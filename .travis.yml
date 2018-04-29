@@ -14,6 +14,9 @@ matrix:
  allow_failures:
  - julia: 0.6
 
+script:
+  - julia -e 'Pkg.clone(pwd()); using Pkg3; pkg"build SymReduce"; Pkg.test("SymReduce"; coverage=true)'
+
 after_success:
   - julia -e 'cd(Pkg.dir("SymReduce")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
   - julia -e 'cd(Pkg.dir("SymReduce")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'

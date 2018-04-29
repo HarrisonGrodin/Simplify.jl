@@ -5,3 +5,5 @@ function Base.show(io::IO, fn::Fn{F}) where {F}
     isempty(fn.args) || join(io, fn.args, ", ")
     print(io, ")")
 end
+Base.show(io::IO, ::TypeSet{T}) where {T} = printstyled(io, "::$T"; color = :red)
+Base.show(io::IO, c::Constant{T}) where {T} = printstyled(io, "$(c.value)::$T"; color = :green)

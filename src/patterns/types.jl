@@ -1,4 +1,4 @@
-export Variable, Fn
+export Variable, Fn, TypeSet, Constant
 
 
 struct Variable <: AbstractExpr
@@ -30,3 +30,16 @@ function Base.match(p::Fn{F,N}, ex::Fn{F,N}) where {F,N}
     result
 end
 Base.replace(p::Fn{F,N}, sub) where {F,N} = Fn{F,N}(replace.(p.args, Ref(sub)))
+
+
+struct TypeSet{T} <: AbstractExpr end
+Base.match(::TypeSet{T}, ::TypeSet{<:T}) where {T} = Substitution()
+
+
+struct Constant{T} <: AbstractExpr
+    value::T
+end
+Base.get(x::Constant) = x.value
+Base.match(a::Constant{T}, b::Constant{<:T}) where {T} =
+    get(a) == get(b) ? Substitution() : nothing
+Base.match(::TypeSet{T}, ::Constant{<:T}) where {T} = Substitution()

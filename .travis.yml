@@ -15,6 +15,7 @@ matrix:
  - julia: 0.6
 
 script:
+  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia -e 'import Pkg3; Pkg3.build(); Pkg3.test(; coverage=true)'
 
 after_success:

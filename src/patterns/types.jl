@@ -1,42 +1,33 @@
 export Variable, Fn, TypeSet, Constant
 
 
-struct Variable <: AbstractExpr
+struct Variable <: Term
     name::Symbol
+    index::UInt
 end
-Base.match(x::Variable, ex::AbstractExpr) = Substitution(x => ex)
+Variable(name::Symbol) = Variable(name, 0)
 Base.replace(x::Variable, sub) = get(sub, x, x)
 
 
-struct Fn{F,N} <: AbstractExpr
-    args::SVector{N,AbstractExpr}
+struct Fn <: Term
+    head::Symbol
+    args::Vector{Term}
 end
-Fn{F,N}(xs::Vararg{<:AbstractExpr,N}) where {F,N} = Fn{F,N}(xs)
-Fn{F}(xs::Vararg{Any,N}) where {F,N} = Fn{F,N}(xs)
-function Base.match(p::Fn{F,N}, ex::Fn{F,N}) where {F,N}
-    N == 0 && return Substitution()
-
-    subs = match.(p.args, ex.args)
-    any(x -> x === nothing, subs) && return nothing
-
-    result = Substitution()
-    for sub ∈ subs
-        for (k, v) in sub
-            haskey(result, k) && result[k] ≠ v && return nothing
-            result[k] = v
-        end
-    end
-
-    result
-end
-Base.replace(p::Fn{F,N}, sub) where {F,N} = Fn{F,N}(replace.(p.args, Ref(sub)))
+Fn(head, args::Term...) = Fn(Symbol(head), collect(args))
+Base.iterate(f::Fn) = iterate(f.args)
+Base.iterate(f::Fn, start) = iterate(f.args, start)
+Base.length(f::Fn) = length(f.args)
+Base.getindex(f::Fn, key) = f.args[key]
+Base.setindex(f::Fn, val, key) = Fn(f.head, [f.args[1:key-1]; val; f.args[key+1:end]])
+Base.map(f, fn::Fn) = Fn(fn.head, map(f, fn.args))
+Base.:(==)(f::Fn, g::Fn) = f.head == g.head && f.args == g.args
 
 
-struct TypeSet{T} <: AbstractExpr end
+struct TypeSet{T} <: Term end
 Base.match(::TypeSet{T}, ::TypeSet{<:T}) where {T} = Substitution()
 
 
-struct Constant{T} <: AbstractExpr
+struct Constant{T} <: Term
     value::T
 end
 Base.get(x::Constant) = x.value

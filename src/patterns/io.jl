@@ -1,8 +1,8 @@
 Base.show(io::IO, x::Variable) = printstyled(io, x.name; color = :light_cyan)
-function Base.show(io::IO, fn::Fn{F}) where {F}
-    printstyled(io, F; color = :yellow)
+function Base.show(io::IO, f::Fn)
+    printstyled(io, f.head; color = :yellow)
     print(io, "(")
-    isempty(fn.args) || join(io, fn.args, ", ")
+    isempty(f.args) || join(io, f.args, ", ")
     print(io, ")")
 end
 Base.show(io::IO, ::TypeSet{T}) where {T} = printstyled(io, "::$T"; color = :red)

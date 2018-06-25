@@ -1,15 +1,16 @@
 module Patterns
 
-using StaticArrays
+export Term
 
 
-abstract type AbstractExpr end
+abstract type Term end
+Base.getindex(t::Term, key...) = foldl(getindex, t, key)
+Base.occursin(a::Term, b::Term) = a == b || any(x -> occursin(a, x), b)
+Base.iterate(::Term) = nothing
+Base.iterate(::Term, ::Any) = nothing
 
-const Substitution = Dict{AbstractExpr,AbstractExpr}
-
-Base.match(::AbstractExpr, ::AbstractExpr) = nothing
-Base.issubset(a::AbstractExpr, b::AbstractExpr) = match(b, a) !== nothing
-Base.replace(ex::AbstractExpr, substitution) = ex
+Base.issubset(a::Term, b::Term) = match(b, a) !== nothing
+Base.replace(ex::Term, substitution) = ex
 
 
 include("types.jl")

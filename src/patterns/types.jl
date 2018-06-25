@@ -6,7 +6,6 @@ struct Variable <: Term
     index::UInt
 end
 Variable(name::Symbol) = Variable(name, 0)
-Base.replace(x::Variable, sub) = get(sub, x, x)
 
 
 struct Fn <: Term

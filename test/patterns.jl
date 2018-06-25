@@ -7,29 +7,41 @@ using SymReduce.Patterns
         @test x == x
         @test x ≠ y
 
-        @test_skip match(a, b) == Dict(a => b)
-        @test_skip b ⊆ a
+        @test unify(x, x) == Substitution()
+        @test unify(x, y) == Substitution(x => y)
+        @test unify(y, x) == Substitution(y => x)
 
-        @test_skip replace(a, Dict(a => b)) == b
-        @test_skip replace(a, Dict(x => b)) == a
+        @test match(a, b) == Substitution(a => b)
+        @test b ⊆ a
+
+        @test replace(a, Substitution(a => b)) == b
+        @test replace(a, Substitution(x => b)) == a
     end
     @testset "Function" begin
-        x, y = Variable.([:x, :y])
-        f1 = Fn(:f, x)
-        f2 = Fn(:f, y)
-        g = Fn(:g, x, y)
+        x, y, z = Variable.([:x, :y, :z])
+        f(xs...) = Fn(:f, xs...)
+        g(xs...) = Fn(:g, xs...)
 
-        @test f1 == f1
-        @test f1 == Fn(:f, x)
-        @test f1 ≠ f2
+        @test f(x) == f(x)
+        @test f(x) ≠ f(y)
 
-        @test_skip match(f1, f2) == Dict(x => y)
-        @test_skip f2 ⊆ f1
-        @test_skip match(f1, g) === nothing
-        @test_skip g ⊈ f1
+        @test unify(x, f(y)) == Substitution(x => f(y))
+        @test unify(f(y), x) == Substitution(x => f(y))
+        @test unify(x, f(x)) == nothing
+        @test unify(f(x), f(y)) == Substitution(x => y)
+        @test unify(g(x, x), g(y, z)) == Substitution(x => z, y => z)
+        @test unify(g(f(x), x), g(f(y), z)) == Substitution(x => z, y => z)
+        @test unify(g(f(x), x), g(y, y)) == nothing
+        @test unify(g(f(x), x), g(y, z)) == Substitution(y => f(z), x => z)
+        @test unify(f(x), f(x, y)) == nothing
 
-        @test_skip replace(f1, Dict(x => y)) == Fn{:f}(y)
-        @test_skip replace(f1, Dict(y => x)) == f1
+        @test match(f(x), f(y)) == Substitution(x => y)
+        @test f(y) ⊆  f(x)
+        @test match(f(x), g(x, y)) === nothing
+        @test g(x, y) ⊈ f(x)
+
+        @test replace(f(x), Substitution(x => y)) == f(y)
+        @test replace(f(x), Substitution(y => x)) == f(x)
     end
     @testset "TypeSet" begin
         ints = TypeSet{Int}()
@@ -39,14 +51,14 @@ using SymReduce.Patterns
         @test ints == ints
         @test ints ≠ integers
 
-        @test_skip match(integers, ints) == Dict()
-        @test_skip ints ⊆ integers
-        @test_skip match(ints, integers) === nothing
-        @test_skip integers ⊈ ints
-        @test_skip match(ints, strings) === nothing
-        @test_skip strings ⊈ ints
+        @test match(integers, ints) == Substitution()
+        @test ints ⊆ integers
+        @test match(ints, integers) === nothing
+        @test integers ⊈ ints
+        @test match(ints, strings) === nothing
+        @test strings ⊈ ints
 
-        @test_skip replace(ints, Dict(Variable(:x) => Variable(:y))) == ints
+        @test replace(ints, Substitution(Variable(:x) => Variable(:y))) == ints
     end
     @testset "Constant" begin
         a, b = Constant{Int}(1), Constant{Integer}(1)
@@ -54,11 +66,11 @@ using SymReduce.Patterns
         @test a == a
         @test a ≠ b
 
-        @test_skip match(b, a) == Dict()
-        @test_skip a ⊆ b
-        @test_skip match(a, b) === nothing
-        @test_skip b ⊈ a
+        @test match(b, a) == Substitution()
+        @test a ⊆ b
+        @test match(a, b) === nothing
+        @test b ⊈ a
 
-        @test_skip replace(a, Dict(Variable(:x) => Variable(:y))) == a
+        @test replace(a, Substitution(Variable(:x) => Variable(:y))) == a
     end
 end

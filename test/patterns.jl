@@ -27,16 +27,17 @@ using SymReduce.Patterns
 
         @test unify(x, f(y)) == Substitution(x => f(y))
         @test unify(f(y), x) == Substitution(x => f(y))
-        @test unify(x, f(x)) == nothing
+        @test unify(x, f(x)) === nothing
         @test unify(f(x), f(y)) == Substitution(x => y)
         @test unify(g(x, x), g(y, z)) == Substitution(x => z, y => z)
         @test unify(g(f(x), x), g(f(y), z)) == Substitution(x => z, y => z)
-        @test unify(g(f(x), x), g(y, y)) == nothing
+        @test unify(g(f(x), x), g(y, y)) === nothing
         @test unify(g(f(x), x), g(y, z)) == Substitution(y => f(z), x => z)
-        @test unify(f(x), f(x, y)) == nothing
+        @test unify(f(x), f(x, y)) === nothing
 
         @test match(f(x), f(y)) == Substitution(x => y)
         @test f(y) ⊆  f(x)
+        @test match(f(x, x), f(y, z)) === nothing
         @test match(f(x), g(x, y)) === nothing
         @test g(x, y) ⊈ f(x)
 

@@ -8,22 +8,36 @@ struct Variable <: Term
     index::UInt
 end
 Variable(name::Symbol) = Variable(name, 0)
-SUBSCRIPTS = Dict{Char,Char}(
-    '0' => '₀',
-    '1' => '₁',
-    '2' => '₂',
-    '3' => '₃',
-    '4' => '₄',
-    '5' => '₅',
-    '6' => '₆',
-    '7' => '₇',
-    '8' => '₈',
-    '9' => '₉',
+function Variable(name::String)
+    vk = Dict(v => k for (k, v) ∈ pairs(SUBSCRIPTS))
+    name = collect(name)
+    i = li = lastindex(name)
+    index = 0
+
+    while !isempty(name)
+        name[i] ∈ keys(vk) || break
+        index += vk[name[i]] * 10^(li - i)
+        i -= 1
+    end
+
+    Variable(Symbol(name[1:i]...), index)
+end
+SUBSCRIPTS = Dict{Int,Char}(
+    0 => '₀',
+    1 => '₁',
+    2 => '₂',
+    3 => '₃',
+    4 => '₄',
+    5 => '₅',
+    6 => '₆',
+    7 => '₇',
+    8 => '₈',
+    9 => '₉',
 )
-subscript(c::Char) = get(SUBSCRIPTS, c, c)
-subscript(s::String) = map(subscript, s)
-subscript(x::Integer) = join(map(subscript ∘ string, reverse(digits(x))))
-Base.string(x::Variable) = string(x.name, subscript(x.index))
+subscript(x::Integer) = map(reverse(digits(x))) do c
+    SUBSCRIPTS[c]
+end |> join
+Base.string(x::Variable) = x.index == 0 ? string(x.name) : string(x.name, subscript(x.index))
 Base.parse(x::Variable) = Symbol(string(x))
 
 

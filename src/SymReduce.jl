@@ -6,6 +6,9 @@ export Patterns, @term, normalize
 include("patterns/Patterns.jl")
 using .Patterns
 
+include("rules.jl")
+
+
 normalize(rs) = Base.Fix2(normalize, rs)
 function normalize(t::Term, (l, r)::Pair)
     σ = match(l, t)

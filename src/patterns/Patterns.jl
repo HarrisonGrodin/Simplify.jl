@@ -28,6 +28,18 @@ end
 macro term(ex)
     parse(Term, ex)
 end
+macro term(strategy, ex)
+    if strategy == :PAIRS
+        @assert ex.head == :vect
+        args = map(ex.args) do pair
+            p, a, b = pair.args
+            @assert p == :(=>)
+            :(Pair($(parse(Term, a)), $(parse(Term, b))))
+        end
+        return :(Pair[$(args...)])
+    end
+    throw(ArgumentError("Unknown @term strategy: $strategy"))
+end
 
 
 const Substitution = Dict{Variable,Term}

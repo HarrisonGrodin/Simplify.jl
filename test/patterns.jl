@@ -47,24 +47,23 @@ using SymReduce.Patterns
         @test replace(f(x), Substitution(y => x)) == f(x)
     end
     @testset "Constant" begin
-        a, b = Constant{Int}(1), Constant{Integer}(1)
+        one, two = Constant(1), Constant(2)
 
-        @test a == a
-        @test a ≠ b
+        @test one == one
+        @test one ≠ two
 
-        @test a == @term 1
-        @test_skip b == @term 1::Integer
+        @test one == @term 1
 
-        @test unify(a, b) == Substitution()
-        @test unify(b, a) == Substitution()
+        @test unify(two, two) == Substitution()
         @test unify(Constant(2), Constant(3)) === nothing
         @test unify(Constant(1), Constant("one")) === nothing
 
-        @test match(b, a) == Substitution()
-        @test a ⊆ b
-        @test match(a, b) === nothing
-        @test b ⊈ a
+        @test match(one, one) == Substitution()
+        @test one ⊆ one
+        @test match(two, one) === nothing
+        @test one ⊈ two
+        @test match(@term(x + 0), @term(y + 0)) == Substitution(@term(x) => @term(y))
 
-        @test replace(a, Substitution(Variable(:x) => Variable(:y))) == a
+        @test replace(one, Substitution(@term(x) => @term(y))) == one
     end
 end

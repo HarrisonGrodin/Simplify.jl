@@ -61,6 +61,4 @@ struct Constant{T} <: Term
     value::T
 end
 Base.get(x::Constant) = x.value
-Base.match(a::Constant{T}, b::Constant{<:T}) where {T} =
-    get(a) == get(b) ? Substitution() : nothing
 Base.parse(x::Constant) = get(x)

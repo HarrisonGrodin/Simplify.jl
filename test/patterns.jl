@@ -46,29 +46,6 @@ using SymReduce.Patterns
         @test replace(f(x), Substitution(x => y)) == f(y)
         @test replace(f(x), Substitution(y => x)) == f(x)
     end
-    @testset "TypeSet" begin
-        ints = TypeSet{Int}()
-        integers = TypeSet{Integer}()
-        strings = TypeSet{String}()
-
-        @test ints == ints
-        @test ints ≠ integers
-
-        @test ints == @term ::Int
-
-        @test unify(ints, integers) == Substitution()
-        @test unify(integers, ints) == Substitution()
-        @test unify(ints, strings) === nothing
-
-        @test match(integers, ints) == Substitution()
-        @test ints ⊆ integers
-        @test match(ints, integers) === nothing
-        @test integers ⊈ ints
-        @test match(ints, strings) === nothing
-        @test strings ⊈ ints
-
-        @test replace(ints, Substitution(Variable(:x) => Variable(:y))) == ints
-    end
     @testset "Constant" begin
         a, b = Constant{Int}(1), Constant{Integer}(1)
 

@@ -1,4 +1,4 @@
-export Variable, Fn, TypeSet, Constant
+export Variable, Fn, Constant
 
 using StaticArrays
 
@@ -57,16 +57,10 @@ Base.map(f, fn::Fn{F,N}) where {F,N} = Fn{F,N}(map(f, fn.args))
 Base.parse(f::Fn{F}) where {F} = :($F($(parse.(f.args)...)))
 
 
-struct TypeSet{T} <: Term end
-Base.match(::TypeSet{T}, ::TypeSet{<:T}) where {T} = Substitution()
-Base.parse(::TypeSet{T}) where {T} = :(::$T)
-
-
 struct Constant{T} <: Term
     value::T
 end
 Base.get(x::Constant) = x.value
 Base.match(a::Constant{T}, b::Constant{<:T}) where {T} =
     get(a) == get(b) ? Substitution() : nothing
-Base.match(::TypeSet{T}, ::Constant{<:T}) where {T} = Substitution()
 Base.parse(x::Constant) = get(x)

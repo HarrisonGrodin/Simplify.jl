@@ -6,6 +6,7 @@ using SymReduce.Patterns
 
         @test x == x
         @test x ≠ y
+        @test a == @term a
 
         @test unify(x, x) == Substitution()
         @test unify(x, y) == Substitution(x => y)
@@ -24,6 +25,7 @@ using SymReduce.Patterns
 
         @test f(x) == f(x)
         @test f(x) ≠ f(y)
+        @test f(x) == @term f(x)
 
         @test unify(x, f(y)) == Substitution(x => f(y))
         @test unify(f(y), x) == Substitution(x => f(y))
@@ -52,6 +54,8 @@ using SymReduce.Patterns
         @test ints == ints
         @test ints ≠ integers
 
+        @test ints == @term ::Int
+
         @test match(integers, ints) == Substitution()
         @test ints ⊆ integers
         @test match(ints, integers) === nothing
@@ -66,6 +70,9 @@ using SymReduce.Patterns
 
         @test a == a
         @test a ≠ b
+
+        @test a == @term 1
+        @test_skip b == @term 1::Integer
 
         @test match(b, a) == Substitution()
         @test a ⊆ b

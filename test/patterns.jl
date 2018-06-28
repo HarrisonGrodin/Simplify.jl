@@ -56,6 +56,10 @@ using SymReduce.Patterns
 
         @test ints == @term ::Int
 
+        @test unify(ints, integers) == Substitution()
+        @test unify(integers, ints) == Substitution()
+        @test unify(ints, strings) === nothing
+
         @test match(integers, ints) == Substitution()
         @test ints ⊆ integers
         @test match(ints, integers) === nothing
@@ -73,6 +77,11 @@ using SymReduce.Patterns
 
         @test a == @term 1
         @test_skip b == @term 1::Integer
+
+        @test unify(a, b) == Substitution()
+        @test unify(b, a) == Substitution()
+        @test unify(Constant(2), Constant(3)) === nothing
+        @test unify(Constant(1), Constant("one")) === nothing
 
         @test match(b, a) == Substitution()
         @test a ⊆ b

@@ -6,6 +6,8 @@ solve(σ::Substitution, (x, y)::Tuple{Variable,Variable}, ms...) =
 solve(σ::Substitution, (x, t)::Tuple{Variable,Term}, ms...) = eliminate(σ, (x, t), ms)
 solve(σ::Substitution, (t, x)::Tuple{Term,Variable}, ms...) = eliminate(σ, (x, t), ms)
 solve(σ::Substitution, (f, g)::Tuple{T,T}, ms...) where {T<:Fn} = solve(σ, zip(f, g)..., ms...)
+solve(σ::Substitution, (t, u)::Tuple, ms...) =
+    (match(t, u) === match(u, t) === nothing) ? nothing : solve(σ, ms...)
 solve(σ::Substitution, ms...) = nothing
 solve(σ::Substitution) = σ
 solve(ms...) = solve(Substitution(), ms...)

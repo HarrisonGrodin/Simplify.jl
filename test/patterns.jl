@@ -19,8 +19,8 @@ using SymReduce.Patterns
     end
     @testset "Function" begin
         x, y, z = Variable.([:x, :y, :z])
-        f(xs...) = Fn(:f, xs...)
-        g(xs...) = Fn(:g, xs...)
+        f(xs...) = Fn{:f}(xs...)
+        g(xs...) = Fn{:g}(xs...)
 
         @test f(x) == f(x)
         @test f(x) ≠ f(y)

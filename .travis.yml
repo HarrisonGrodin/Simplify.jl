@@ -3,16 +3,11 @@ os:
   - linux
   - osx
 julia:
-  - 0.6
   - nightly
 notifications:
   email: false
 git:
   depth: 99999999
-
-matrix:
- allow_failures:
- - julia: 0.6
 
 after_success:
   - julia -e 'cd(Pkg.dir("SymReduce")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'

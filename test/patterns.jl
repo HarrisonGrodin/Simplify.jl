@@ -48,6 +48,7 @@ using SymReduce.Patterns
         @test match(f(x, x), f(y, z)) === nothing
         @test match(f(x), g(x, y)) === nothing
         @test g(x, y) ⊈ f(x)
+        @test @term(f(a, 2, b)) ⊈ @term(f(x, 2, x))
 
         @test replace(f(x), Substitution(x => y)) == f(y)
         @test replace(f(x), Substitution(y => x)) == f(x)

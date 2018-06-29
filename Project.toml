@@ -1,6 +1,7 @@
 name = "SymReduce"
 uuid = "329df15e-4b1e-11e8-0b4f-55ede0b53481"
-version = "0.1.0"
 authors = ["Harrison Grodin <harrison.grodin@gmail.com>, Yijia Chen <yijiachenmain@gmail.com>"]
+version = "0.1.0"
 
 [deps]
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"

@@ -4,7 +4,7 @@ export Term, @term, Substitution
 
 
 abstract type Term end
-Base.getindex(t::Term, key...) = foldl(getindex, t, key)
+Base.getindex(t::Term, key, key′, keys...) = getindex(t[key], key′, keys...)
 Base.occursin(a::Term, b::Term) = a == b || any(x -> occursin(a, x), b)
 Base.iterate(::Term) = nothing
 Base.iterate(::Term, ::Any) = nothing

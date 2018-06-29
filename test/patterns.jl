@@ -27,6 +27,12 @@ using SymReduce.Patterns
         @test f(x) ≠ f(y)
         @test f(x) == @term f(x)
 
+        @test @term(f(x, y))[1] == @term(x)
+        @test_throws BoundsError @term(f(x, y))[3]
+        @test @term(f(x, g(h(y), f(z))))[2, 1] == @term(h(y))
+        @test @term(f(x, g(h(y), f(z))))[2, 1, 1] == @term(y)
+        @test_throws MethodError @term(f(x))[1, 1]
+
         @test unify(x, f(y)) == Substitution(x => f(y))
         @test unify(f(y), x) == Substitution(x => f(y))
         @test unify(x, f(x)) === nothing

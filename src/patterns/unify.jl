@@ -1,6 +1,8 @@
 export unify, match
 
 
+using Base: splat
+
 """
     overlay(pattern, term) -> Union{Nothing, Tuple{Substitution,Any}}
 
@@ -19,17 +21,13 @@ overlay(::Term, ::Term) = nothing
 
 _unify(σ::Substitution) = σ
 function _unify(σ::Substitution, (a, b), ms...)
-    res = overlay(a, b)
-    res === nothing && (res = overlay(b, a))
-    res === nothing && return nothing
-    (σ′, ms′) = res
+    result = overlay(a, b)
+    result === nothing && (result = overlay(b, a))
+    result === nothing && return nothing
+    (σ′, ms′) = result
 
-    σ′ = filter(σ′) do (x, t)
-        x ≠ t
-    end
-    any(σ′) do (x, t)
-        occursin(x, t)
-    end && return nothing
+    σ′ = filter(splat(≠), σ′)
+    any(splat(occursin), σ′) && return nothing
 
     _unify(σ′ ∘ σ′(σ), ms′..., σ′.(ms)...)
 end
@@ -63,9 +61,9 @@ unify(t::Term, u::Term) = _unify((t, u))
 
 _match(σ::Substitution) = σ
 function _match(σ::Substitution, (a, b), ms...)
-    res = overlay(a, b)
-    res === nothing && return nothing
-    (σ′, ms′) = res
+    result = overlay(a, b)
+    result === nothing && return nothing
+    (σ′, ms′) = result
 
     for (k, v) in σ′
         if haskey(σ, k)

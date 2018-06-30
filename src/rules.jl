@@ -3,10 +3,17 @@ export rules
 rules(set::Symbol=:STANDARD, args...; kwargs...) = rules(Val(set), args...; kwargs...)
 
 
-rules(::Val{:STANDARD}) = @term PAIRS [
-    x + 0 => x,
-    0 + x => x,
-]
+rules(::Val{:STANDARD}) = [(@term PAIRS [
+    x + 0      => x,
+    0 + x      => x,
+    x * 1      => x,
+    1 * x      => x,
+    x * 0      => 0,
+    0 * x      => 0,
+    x + -y     => x - y,
+    x - x      => 0,
+    x * inv(y) => x / y,
+]); rules(:BOOLEAN)]
 
 
 rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!) = @term PAIRS [

@@ -32,3 +32,5 @@ include("patterns.jl")
         ]) == @term f(f(x), x)
     end
 end
+
+include("completion.jl")

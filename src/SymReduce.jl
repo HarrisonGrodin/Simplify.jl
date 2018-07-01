@@ -1,6 +1,6 @@
 module SymReduce
 
-export Patterns, @term, normalize
+export Patterns, @term, normalize, complete
 
 
 include("patterns/Patterns.jl")
@@ -25,5 +25,9 @@ function normalize(t::Term, rs)
     end
 end
 normalize(t::Term) = normalize(t, rules())
+
+
+include("Completion.jl")
+using .Completion
 
 end # module

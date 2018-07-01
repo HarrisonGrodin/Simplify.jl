@@ -15,6 +15,7 @@ function normalize(t::Term, (l, r)::Pair)
     σ === nothing && return t
     σ(r)
 end
+normalize(t::Term, set::Symbol) = normalize(t, rules(set))
 function normalize(t::Term, rs)
     while true
         t = map(normalize(rs), t)

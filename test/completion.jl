@@ -1,4 +1,4 @@
-using SymReduce.Completion: normalize, critical_pairs, add_rule!, size, orient!, choose!, complete
+using SymReduce.Completion: normalize, critical_pairs, add_rule!, size, orient!, choose!, complete, LPO
 
 @testset "Completion" begin
 
@@ -88,7 +88,8 @@ using SymReduce.Completion: normalize, critical_pairs, add_rule!, size, orient!,
     end
 
     @testset "complete" begin
-        @test_skip Set(complete(>ᵣ, @term [
+        >ᵣ = LPO(Fn{:i,1}, Fn{:*,2}, Fn{:e,0})
+        @test Set(complete(>ᵣ, @term [
             ((x * y) * z  , x * (y * z)  ),
             (i(x) * x     , e()          ),
             (e() * x      , x            ),
@@ -104,6 +105,16 @@ using SymReduce.Completion: normalize, critical_pairs, add_rule!, size, orient!,
             x * (i(x) * z₃)  =>  z₃,
             i(x) * (x * z₁)  =>  z₁,
         ])
+    end
+
+    @testset "lpo" begin
+        >ₗₚₒ = LPO(Fn{:i,1}, Fn{:f,2}, Fn{:e,0})
+        @test !(@term(x) >ₗₚₒ @term(y))
+        @test @term(f(x, e())) >ₗₚₒ @term(x)
+        @test @term(i(e())) >ₗₚₒ @term(e())
+        @test @term(i(f(x, y))) >ₗₚₒ @term(f(i(y), i(x)))
+        @test @term(f(f(x, y), z)) >ₗₚₒ @term(f(x, f(y, z)))
+        @test @term(f(x, y)) >ₗₚₒ @term(x)
     end
 
 end

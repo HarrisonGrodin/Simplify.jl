@@ -21,15 +21,15 @@ include("patterns.jl")
         @test normalize(@term(f(y, y)), @term PAIRS [
             f(x, x) => x
         ]) == @term y
-        @test normalize(@term(f(x, y)), @term PAIRS [
-            f(x, x) => x
-        ]) == @term f(x, y)
-        @test normalize(@term(f(f(x), x)), @term PAIRS [
-            f(x, x) => x, f(x) => x
-        ]) == @term x
-        @test normalize(@term(f(f(x), g(x))), @term PAIRS [
-            f(f(x), g(x)) => x, g(x) => x
-        ]) == @term f(f(x), x)
+        # @test normalize(@term(f(x, y)), @term PAIRS [
+        #     f(x, x) => x
+        # ]) == @term f(x, y)
+        # @test normalize(@term(f(f(x), x)), @term PAIRS [
+        #     f(x, x) => x, f(x) => x
+        # ]) == @term x
+        # @test normalize(@term(f(f(x), g(x))), @term PAIRS [
+        #     f(f(x), g(x)) => x, g(x) => x
+        # ]) == @term f(f(x), x)
     end
 end
 

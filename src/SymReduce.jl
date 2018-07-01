@@ -27,7 +27,7 @@ end
 normalize(t::Term) = normalize(t, rules())
 
 
-include("Completion.jl")
+include("completion/Completion.jl")
 using .Completion
 
 end # module

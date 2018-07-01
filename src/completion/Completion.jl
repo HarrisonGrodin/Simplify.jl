@@ -113,5 +113,6 @@ function complete!(>ᵣ, es)
 end
 complete(>ᵣ, es) = complete!(>ᵣ, copy(es))
 
+include("orders.jl")
 
 end # module

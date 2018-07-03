@@ -6,9 +6,6 @@ julia:
   - 0.7
   - nightly
 
-env:
-  - JULIA_PROJECT="@."
-
 notifications:
   email: false
 

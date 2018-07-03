@@ -1,22 +1,30 @@
-export LPO
+export LexicographicPathOrder, LPO
+
+
+abstract type AbstractOrder end
 
 """
 Generates lexicographic path order based on given signature order.
 
 # Examples
-```julia
->ₗₚₒ = LPO(Fn{:f,2}, Fn{:i,1}, Fn{:e,0})
+```jldoctest
+julia> >ₗₚₒ = LPO(Fn{:f,2}, Fn{:i,1}, Fn{:e,0});
 ```
 """
-struct LPO
-    order::Vector{Type{<:Term}}
+struct LexicographicPathOrder <: AbstractOrder
+    order::Vector{Type}
 end
-LPO(order::Type{<:Term}...) = LPO(collect(order))
+LexicographicPathOrder(order::Type...) = LexicographicPathOrder(collect(order))
+Base.in(t::Type, lpo::LexicographicPathOrder) = t ∈ lpo.order
+const LPO = LexicographicPathOrder
 
 (>ₗₚₒ::LPO)(s, t) = false
 (>ₗₚₒ::LPO)(s::Term, t::Variable) = occursin(t, s)
 
 function (>ₗₚₒ::LPO)(s::F, t::G) where {F<:Fn,G<:Fn}
+    F ∈ >ₗₚₒ || throw(ArgumentError("$F is not contained in order"))
+    G ∈ >ₗₚₒ || throw(ArgumentError("$G is not contained in order"))
+
     s == t && return false
 
     any(s) do sᵢ
@@ -27,8 +35,6 @@ function (>ₗₚₒ::LPO)(s::F, t::G) where {F<:Fn,G<:Fn}
         s >ₗₚₒ tⱼ
     end || return false
 
-    @assert F ∈ >ₗₚₒ.order "$F is not contained in order"
-    @assert G ∈ >ₗₚₒ.order "$G is not contained in order"
     findfirst(==(F), >ₗₚₒ.order) < findfirst(==(G), >ₗₚₒ.order) && return true
 
     if F == G

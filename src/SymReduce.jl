@@ -1,6 +1,8 @@
 module SymReduce
 
-export Patterns, @term, normalize, complete
+export Patterns, @term
+export normalize
+export Completion, complete
 
 
 include("patterns/Patterns.jl")

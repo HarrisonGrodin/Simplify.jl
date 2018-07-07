@@ -23,6 +23,7 @@ end
         @test normalize(@term(x + 0)) == @term(x)
         @test normalize(@term((y + 0) + 0)) == @term(y)
         @test_skip normalize(@term(y + 0 + 0)) == @term(y)
+        @test normalize(@term(y * (1 + 2 - 3))) == @term(0)
         @test normalize(@term(0 + (y + 0))) == @term(y)
         @test normalize(@term(sin(π/3)cos(0) + cos(π/3)sin(0))) == @term(√3 / 2)
     end

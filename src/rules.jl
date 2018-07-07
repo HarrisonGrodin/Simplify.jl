@@ -23,6 +23,7 @@ end
 struct EvalRule{F,N} <: Rule
     f
 end
+EvalRule(f, N) = EvalRule{nameof(f),N}(f)
 function normalize(t::Fn{F,N}, r::EvalRule{F,N}) where {F,N}
     all(arg -> arg isa Constant, t) || return t
     args = get.(collect(t))
@@ -43,7 +44,7 @@ end
 rules(set::Symbol=:STANDARD, args...; kwargs...) = rules(Val(set), args...; kwargs...)
 
 
-rules(::Val{:STANDARD}) = [(@term RULES [
+rules(::Val{:STANDARD}) = [@term RULES [
     x + 0      => x,
     0 + x      => x,
     x * 1      => x,
@@ -53,10 +54,15 @@ rules(::Val{:STANDARD}) = [(@term RULES [
     x + -y     => x - y,
     x - x      => 0,
     x * inv(y) => x / y,
-]); rules.([:BOOLEAN, :TRIGONOMETRY])...]
+]; [
+    EvalRule(+, 2),
+    EvalRule(-, 1),
+    EvalRule(-, 2),
+    EvalRule(*, 2),
+]; rules.([:BOOLEAN, :TRIGONOMETRY])...]
 
 
-rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!) = @term RULES [
+rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!) = [@term RULES [
     $or(x, false) => x,
     $and(x, true) => x,
 
@@ -73,7 +79,11 @@ rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!) = @term RULES [
     $and(x, $neg(x)) => false,
 
     $neg($neg(x)) => x,
-]
+]; [
+    EvalRule{and,2}(&),
+    EvalRule{or,2}(|),
+    EvalRule{neg,1}(!),
+]]
 
 
 rules(::Val{:TRIGONOMETRY}) = @term RULES [

@@ -19,7 +19,7 @@ function normalize(t::Term, (l, r)::PatternRule)
     σ === nothing && return t
     σ(r)
 end
-macro term(::Val{:PAIRS}, ex)
+macro term(::Val{:RULES}, ex)
     @assert ex.head == :vect
     args = map(ex.args) do pair
         p, a, b = pair.args
@@ -31,7 +31,7 @@ end
 rules(set::Symbol=:STANDARD, args...; kwargs...) = rules(Val(set), args...; kwargs...)
 
 
-rules(::Val{:STANDARD}) = [(@term PAIRS [
+rules(::Val{:STANDARD}) = [(@term RULES [
     x + 0      => x,
     0 + x      => x,
     x * 1      => x,
@@ -41,11 +41,10 @@ rules(::Val{:STANDARD}) = [(@term PAIRS [
     x + -y     => x - y,
     x - x      => 0,
     x * inv(y) => x / y,
-    $pi        => π,
 ]); rules.([:BOOLEAN, :TRIGONOMETRY])...]
 
 
-rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!) = @term PAIRS [
+rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!) = @term RULES [
     $or(x, false) => x,
     $and(x, true) => x,
 
@@ -65,7 +64,7 @@ rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!) = @term PAIRS [
 ]
 
 
-rules(::Val{:TRIGONOMETRY}) = @term PAIRS [
+rules(::Val{:TRIGONOMETRY}) = @term RULES [
     # Common angles
     sin(0) => 0,
     cos(0) => 1,

@@ -18,16 +18,16 @@ include("patterns.jl")
     end
 
     @testset "custom" begin
-        @test normalize(@term(f(y, y)), @term PAIRS [
+        @test normalize(@term(f(y, y)), @term RULES [
             f(x, x) => x
         ]) == @term y
-        @test normalize(@term(f(x, y)), @term PAIRS [
+        @test normalize(@term(f(x, y)), @term RULES [
             f(x, x) => x
         ]) == @term f(x, y)
-        @test normalize(@term(f(f(x), x)), @term PAIRS [
+        @test normalize(@term(f(f(x), x)), @term RULES [
             f(x, x) => x, f(x) => x
         ]) == @term x
-        @test normalize(@term(f(f(x), g(x))), @term PAIRS [
+        @test normalize(@term(f(f(x), g(x))), @term RULES [
             f(f(x), g(x)) => x, g(x) => x
         ]) == @term f(f(x), x)
     end

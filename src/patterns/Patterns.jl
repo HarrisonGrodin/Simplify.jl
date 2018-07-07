@@ -31,17 +31,14 @@ end
 macro term(ex)
     parse(Term, ex)
 end
-macro term(strategy, ex)
-    if strategy == :PAIRS
-        @assert ex.head == :vect
-        args = map(ex.args) do pair
-            p, a, b = pair.args
-            @assert p == :(=>)
-            :(Pair($(parse(Term, a)), $(parse(Term, b))))
-        end
-        return :(Pair[$(args...)])
-    end
-    throw(ArgumentError("Unknown @term strategy: $strategy"))
+
+_strategy(::Val{S}) where {S} = string(S)
+macro term(v::Val, ex)
+    strategy = _strategy(v)
+    :(throw(ArgumentError("Undefined @term strategy: " * $strategy)))
+end
+macro term(strategy::Symbol, expr)
+    esc(:(@term $(Val(strategy)) $expr))
 end
 
 

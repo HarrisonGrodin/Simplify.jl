@@ -1,5 +1,22 @@
 export rules
 
+import SymReduce.Patterns: @term
+
+
+function normalize(t::Term, (l, r)::Pair)
+    σ = match(l, t)
+    σ === nothing && return t
+    σ(r)
+end
+macro term(::Val{:PAIRS}, ex)
+    @assert ex.head == :vect
+    args = map(ex.args) do pair
+        p, a, b = pair.args
+        @assert p == :(=>)
+        :(Pair($(parse(Term, a)), $(parse(Term, b))))
+    end
+    :(Pair[$(args...)])
+end
 rules(set::Symbol=:STANDARD, args...; kwargs...) = rules(Val(set), args...; kwargs...)
 
 

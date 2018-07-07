@@ -3,7 +3,18 @@ export rules
 import SymReduce.Patterns: @term
 
 
-function normalize(t::Term, (l, r)::Pair)
+abstract type Rule end
+
+struct PatternRule <: Rule
+    left::Term
+    right::Term
+end
+function Base.iterate(r::PatternRule, state=:left)
+    state === :left  && return (r.left, :right)
+    state === :right && return (r.right, nothing)
+    nothing
+end
+function normalize(t::Term, (l, r)::PatternRule)
     σ = match(l, t)
     σ === nothing && return t
     σ(r)
@@ -13,9 +24,9 @@ macro term(::Val{:PAIRS}, ex)
     args = map(ex.args) do pair
         p, a, b = pair.args
         @assert p == :(=>)
-        :(Pair($(parse(Term, a)), $(parse(Term, b))))
+        :(PatternRule($(parse(Term, a)), $(parse(Term, b))))
     end
-    :(Pair[$(args...)])
+    :(PatternRule[$(args...)])
 end
 rules(set::Symbol=:STANDARD, args...; kwargs...) = rules(Val(set), args...; kwargs...)
 

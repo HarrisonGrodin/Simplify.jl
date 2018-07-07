@@ -10,11 +10,7 @@ include("rules.jl")
 
 
 normalize(rs) = Base.Fix2(normalize, rs)
-function normalize(t::Term, (l, r)::Pair)
-    σ = match(l, t)
-    σ === nothing && return t
-    σ(r)
-end
+normalize(::Term, ::R) where {R<:Rule} = error("normalize undefined for rule type $R")
 normalize(t::Term, set::Symbol) = normalize(t, rules(set))
 function normalize(t::Term, rs)
     while true

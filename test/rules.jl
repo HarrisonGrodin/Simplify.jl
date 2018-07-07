@@ -1,9 +1,19 @@
-using SymReduce: PatternRule
+using SymReduce: PatternRule, EvalRule
 
 @testset "Rule" begin
     @testset "PatternRule" begin
         @test normalize(@term((x + 0) + 0), PatternRule(@term(a + 0), @term(a))) == @term(x + 0)
         @test normalize(@term((x + 0) + 0), [PatternRule(@term(a + 0), @term(a))]) == @term(x)
+    end
+    @testset "EvalRule" begin
+        @test normalize(@term(2 * 3), EvalRule{:*,2}(*)) == @term(6)
+        @test normalize(@term(x * 3), EvalRule{:*,2}(*)) == @term(x * 3)
+        @test normalize(@term(2 * y), EvalRule{:*,2}(*)) == @term(2 * y)
+        @test normalize(@term("a" * "b"), EvalRule{:*,2}(*)) == @term("ab")
+        @test normalize(@term(x + 2 * 3), EvalRule{:*,2}(*)) == @term(x + 2 * 3)
+        @test normalize(@term(x + 2 * 3), [EvalRule{:*,2}(*)]) == @term(x + 6)
+        @test normalize(@term(2 * 3 + 4 * 5), [EvalRule{:*,2}(*)]) == @term(6 + 20)
+        @test normalize(@term(2 * 3 + 4 * 5), [EvalRule{:+,2}(+), EvalRule{:*,2}(*)]) == @term(26)
     end
 end
 

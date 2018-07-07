@@ -19,6 +19,18 @@ function normalize(t::Term, (l, r)::PatternRule)
     σ === nothing && return t
     σ(r)
 end
+
+struct EvalRule{F,N} <: Rule
+    f
+end
+function normalize(t::Fn{F,N}, r::EvalRule{F,N}) where {F,N}
+    all(arg -> arg isa Constant, t) || return t
+    args = get.(collect(t))
+    Constant(r.f(args...))
+end
+normalize(t::Term, ::EvalRule) = t
+
+
 macro term(::Val{:RULES}, ex)
     @assert ex.head == :vect
     args = map(ex.args) do pair

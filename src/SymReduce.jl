@@ -15,7 +15,7 @@ normalize(t::Term, set::Symbol) = normalize(t, rules(set))
 function normalize(t::Term, rs)
     while true
         t = map(normalize(rs), t)
-        t′ = foldl(normalize, rs; init=t)
+        t′ = foldl(normalize, t, rs)
         t == t′ && return t
         t = t′
     end

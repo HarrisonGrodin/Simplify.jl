@@ -1,6 +1,16 @@
 export unify, match
 
 
+const Substitution = Dict{Variable,Term}
+Base.getindex(σ::Substitution, x::Variable) = get(σ, x, x)
+Base.:∘(σs::Substitution...) = merge(σs...)
+(σ::Substitution)(x::Variable) = σ[x]
+(σ::Substitution)(xs) = map(σ, xs)
+(σ::Substitution)(σ′::Substitution) = Substitution(a => σ(b) for (a, b) ∈ pairs(σ′))
+Base.replace(t::Term, σ::Substitution) = σ(t)
+
+
+
 solve(σ::Substitution, (x, y)::Tuple{Variable,Variable}, ms...) =
     x == y ? solve(σ, ms...) : eliminate(σ, (x, y), ms)
 solve(σ::Substitution, (x, t)::Tuple{Variable,Term}, ms...) = eliminate(σ, (x, t), ms)

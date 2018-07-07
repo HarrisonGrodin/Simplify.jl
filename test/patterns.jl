@@ -1,4 +1,5 @@
 using SymReduce.Patterns
+using SymReduce.Patterns: Substitution
 
 @testset "Patterns" begin
     @testset "Variable" begin

@@ -20,11 +20,11 @@ function normalize(t::Term, (l, r)::PatternRule)
     σ(r)
 end
 
-struct EvalRule{F,N} <: Rule
+struct EvalRule{T<:Term} <: Rule
     f
 end
-EvalRule(f, N) = EvalRule{nameof(f),N}(f)
-function normalize(t::Fn{F,N}, r::EvalRule{F,N}) where {F,N}
+EvalRule(f::Function, arity::Integer) = EvalRule{Fn{nameof(f),arity}}(f)
+function normalize(t::T, r::EvalRule{T}) where {T<:Term}
     all(arg -> arg isa Constant, t) || return t
     args = get.(collect(t))
     Constant(r.f(args...))
@@ -80,9 +80,9 @@ rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!) = [@term RULES [
 
     $neg($neg(x)) => x,
 ]; [
-    EvalRule{and,2}(&),
-    EvalRule{or,2}(|),
-    EvalRule{neg,1}(!),
+    EvalRule{Fn{and,2}}(&),
+    EvalRule{Fn{or,2}}(|),
+    EvalRule{Fn{neg,1}}(!),
 ]]
 
 

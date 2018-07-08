@@ -6,6 +6,7 @@ export Term, @term
 abstract type Term end
 Base.getindex(t::Term, key, key′, keys...) = getindex(t[key], key′, keys...)
 Base.occursin(a::Term, b::Term) = a == b || any(x -> occursin(a, x), b)
+Base.length(::Term) = 0
 Base.iterate(::Term) = nothing
 Base.iterate(::Term, ::Any) = nothing
 Base.map(f, t::Term) = t

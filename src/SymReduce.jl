@@ -9,13 +9,13 @@ using .Patterns
 include("rules.jl")
 
 
-normalize(rs) = Base.Fix2(normalize, rs)
+normalize(trs::TermRewritingSystem) = Base.Fix2(normalize, trs)
 normalize(::Term, ::R) where {R<:Rule} = error("normalize undefined for rule type $R")
 normalize(t::Term, set::Symbol) = normalize(t, rules(set))
-function normalize(t::Term, rs)
+function normalize(t::Term, trs::TermRewritingSystem)
     while true
-        t = map(normalize(rs), t)
-        t′ = foldl(normalize, t, rs)
+        t = map(normalize(trs), t)
+        t′ = foldl(normalize, t, trs)
         t == t′ && return t
         t = t′
     end

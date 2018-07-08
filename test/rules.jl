@@ -3,7 +3,7 @@ using SymReduce: PatternRule, EvalRule
 @testset "Rule" begin
     @testset "PatternRule" begin
         @test normalize(@term((x + 0) + 0), PatternRule(@term(a + 0), @term(a))) == @term(x + 0)
-        @test normalize(@term((x + 0) + 0), [PatternRule(@term(a + 0), @term(a))]) == @term(x)
+        @test normalize(@term((x + 0) + 0), TRS(PatternRule(@term(a + 0), @term(a)))) == @term(x)
     end
     @testset "EvalRule" begin
         @test normalize(@term(2 * 3), EvalRule{Fn{:*,2}}(*)) == @term(6)
@@ -11,9 +11,9 @@ using SymReduce: PatternRule, EvalRule
         @test normalize(@term(2 * y), EvalRule{Fn{:*,2}}(*)) == @term(2 * y)
         @test normalize(@term("a" * "b"), EvalRule{Fn{:*,2}}(*)) == @term("ab")
         @test normalize(@term(x + 2 * 3), EvalRule{Fn{:*,2}}(*)) == @term(x + 2 * 3)
-        @test normalize(@term(x + 2 * 3), [EvalRule{Fn{:*,2}}(*)]) == @term(x + 6)
-        @test normalize(@term(2 * 3 + 4 * 5), [EvalRule{Fn{:*,2}}(*)]) == @term(6 + 20)
-        @test normalize(@term(2 * 3 + 4 * 5), [EvalRule{Fn{:+,2}}(+), EvalRule{Fn{:*,2}}(*)]) == @term(26)
+        @test normalize(@term(x + 2 * 3), TRS(EvalRule{Fn{:*,2}}(*))) == @term(x + 6)
+        @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule{Fn{:*,2}}(*))) == @term(6 + 20)
+        @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule{Fn{:+,2}}(+), EvalRule{Fn{:*,2}}(*))) == @term(26)
     end
 end
 

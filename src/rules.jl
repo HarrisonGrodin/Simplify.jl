@@ -10,6 +10,9 @@ struct PatternRule <: Rule
     left::Term
     right::Term
 end
+PatternRule((l, r)::Pair{<:Term,<:Term}) = PatternRule(l, r)
+Base.convert(::Type{PatternRule}, p::Pair) = PatternRule(p)
+Base.convert(::Type{Rule}, p::Pair) = convert(PatternRule, p)
 function Base.iterate(r::PatternRule, state=:left)
     state === :left  && return (r.left, :right)
     state === :right && return (r.right, nothing)

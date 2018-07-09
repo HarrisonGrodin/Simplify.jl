@@ -2,8 +2,11 @@ using SymReduce: PatternRule, EvalRule
 
 @testset "Rule" begin
     @testset "PatternRule" begin
-        @test normalize(@term((x + 0) + 0), PatternRule(@term(a + 0), @term(a))) == @term(x + 0)
-        @test normalize(@term((x + 0) + 0), TRS(PatternRule(@term(a + 0), @term(a)))) == @term(x)
+        @test normalize(@term((x + 0) + 0), PatternRule{Term}(@term(a + 0), @term(a))) == @term(x + 0)
+        @test normalize(@term(y + 1), PatternRule{Term}(@term(a + 0), @term(a))) == @term(y + 1)
+        @test normalize(@term(y), PatternRule{Term}(@term(a + 0), @term(a))) == @term(y)
+        @test normalize(@term((x + 0) + 0), TRS(@term(a + 0) => @term(a))) == @term(x)
+        @test normalize(@term((x + 0) + 0), TRS(@term(a + 0) => @term(0 + a))) == @term(0 + (0 + x))
     end
     @testset "EvalRule" begin
         @test normalize(@term(2 * 3), EvalRule{Fn{:*,2}}(*)) == @term(6)

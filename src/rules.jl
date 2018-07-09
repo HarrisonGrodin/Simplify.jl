@@ -4,27 +4,30 @@ export rules
 import SymReduce.Patterns: @term
 
 
-abstract type Rule end
+abstract type Rule{T} end
 
-struct PatternRule <: Rule
-    left::Term
-    right::Term
+struct PatternRule{T} <: Rule{T}
+    left::T
+    right::T
 end
-PatternRule((l, r)::Pair{<:Term,<:Term}) = PatternRule(l, r)
-Base.convert(::Type{PatternRule}, p::Pair) = PatternRule(p)
+PatternRule{T}((l, r)::Pair{<:T,<:T}) where {T} = PatternRule{T}(l, r)
+PatternRule(l::L, r::R) where {L,R} = PatternRule{promote_type(L,R)}(l, r)
+PatternRule((l, r)::Pair) = PatternRule(l, r)
+Base.convert(::Type{PR}, p::Pair) where {PR<:PatternRule} = PR(p)
+Base.convert(::Type{Rule{T}}, p::Pair) where {T} = convert(PatternRule{T}, p)
 Base.convert(::Type{Rule}, p::Pair) = convert(PatternRule, p)
 function Base.iterate(r::PatternRule, state=:left)
     state === :left  && return (r.left, :right)
     state === :right && return (r.right, nothing)
     nothing
 end
-function normalize(t::Term, (l, r)::PatternRule)
+function normalize(t::T, (l, r)::PatternRule{U}) where {U,T<:U}
     σ = match(l, t)
     σ === nothing && return t
     σ(r)
 end
 
-struct EvalRule{T<:Term} <: Rule
+struct EvalRule{T<:Term} <: Rule{Term}
     f
 end
 EvalRule(f::Function, arity::Integer) = EvalRule{Fn{nameof(f),arity}}(f)
@@ -36,11 +39,13 @@ end
 normalize(t::Term, ::EvalRule) = t
 
 
-struct TermRewritingSystem
-    rules::Vector{Rule}
+struct AbstractRewritingSystem{T}
+    rules::Vector{Rule{T}}
 end
+AbstractRewritingSystem{T}(rs::Union{Rule,Pair}...) where {T} =
+    AbstractRewritingSystem{T}(collect(rs))
+const TermRewritingSystem = AbstractRewritingSystem{Term}
 const TRS = TermRewritingSystem
-TRS(rs::Rule...) = TRS(collect(rs))
 Base.union(R₁::TRS, R₂::TRS) = TRS([R₁.rules; R₂.rules])
 Base.vcat(trss::TRS...) = TermRewritingSystem([(trs.rules for trs ∈ trss)...;])
 Base.iterate(trs::TRS) = iterate(trs.rules)
@@ -51,7 +56,7 @@ macro term(::Val{:RULES}, ex)
     args = map(ex.args) do pair
         p, a, b = pair.args
         @assert p == :(=>)
-        :(PatternRule($(parse(Term, a)), $(parse(Term, b))))
+        :(PatternRule{Term}($(parse(Term, a)), $(parse(Term, b))))
     end
     :(TermRewritingSystem([$(args...)]))
 end

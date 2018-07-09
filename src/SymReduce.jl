@@ -10,7 +10,7 @@ include("rules.jl")
 
 
 normalize(trs::TermRewritingSystem) = Base.Fix2(normalize, trs)
-normalize(::Term, ::R) where {R<:Rule} = error("normalize undefined for rule type $R")
+normalize(::T, ::R) where {T,R<:Rule} = error("normalize undefined for rule type $R on term type $T")
 normalize(t::Term, set::Symbol) = normalize(t, rules(set))
 function normalize(t::Term, trs::TermRewritingSystem)
     while true

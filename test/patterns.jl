@@ -1,4 +1,5 @@
 using SymReduce.Patterns
+using SymReduce.Patterns: Substitution
 
 @testset "Patterns" begin
     @testset "Variable" begin
@@ -27,6 +28,12 @@ using SymReduce.Patterns
         @test f(x) ≠ f(y)
         @test f(x) == @term f(x)
 
+        @test @term(f(x, y))[1] == @term(x)
+        @test_throws BoundsError @term(f(x, y))[3]
+        @test @term(f(x, g(h(y), f(z))))[2, 1] == @term(h(y))
+        @test @term(f(x, g(h(y), f(z))))[2, 1, 1] == @term(y)
+        @test_throws MethodError @term(f(x))[1, 1]
+
         @test unify(x, f(y)) == Substitution(x => f(y))
         @test unify(f(y), x) == Substitution(x => f(y))
         @test unify(x, f(x)) === nothing
@@ -42,6 +49,7 @@ using SymReduce.Patterns
         @test match(f(x, x), f(y, z)) === nothing
         @test match(f(x), g(x, y)) === nothing
         @test g(x, y) ⊈ f(x)
+        @test @term(f(a, 2, b)) ⊈ @term(f(x, 2, x))
 
         @test replace(f(x), Substitution(x => y)) == f(y)
         @test replace(f(x), Substitution(y => x)) == f(x)

@@ -1,6 +1,16 @@
 export unify, match
 
 
+const Substitution = Dict{Variable,Term}
+Base.getindex(σ::Substitution, x::Variable) = get(σ, x, x)
+Base.:∘(σs::Substitution...) = merge(σs...)
+(σ::Substitution)(x::Variable) = σ[x]
+(σ::Substitution)(xs) = map(σ, xs)
+(σ::Substitution)(σ′::Substitution) = Substitution(a => σ(b) for (a, b) ∈ pairs(σ′))
+Base.replace(t::Term, σ::Substitution) = σ(t)
+
+
+
 solve(σ::Substitution, (x, y)::Tuple{Variable,Variable}, ms...) =
     x == y ? solve(σ, ms...) : eliminate(σ, (x, y), ms)
 solve(σ::Substitution, (x, t)::Tuple{Variable,Term}, ms...) = eliminate(σ, (x, t), ms)
@@ -26,13 +36,13 @@ function matches(σ::Substitution, (x, y)::Tuple{Variable,Variable}, ms...)
     haskey(σ, x) || return matches(Substitution(x => y) ∘ σ, ms...)
     σ(x) == y ? matches(σ, ms...) : nothing
 end
-function matches(σ::Substitution, (x, y)::Tuple{Variable,Term}, ms...)
-    haskey(σ, x) || return matches(Substitution(x => y) ∘ σ, ms...)
-    σ(x) == y ? matches(σ, ms...) : nothing
+function matches(σ::Substitution, (x, t)::Tuple{Variable,Term}, ms...)
+    haskey(σ, x) || return matches(Substitution(x => t) ∘ σ, ms...)
+    σ(x) == t ? matches(σ, ms...) : nothing
 end
 matches(σ::Substitution, (f, g)::Tuple{T,T}, ms...) where {T<:Fn} = matches(σ, zip(f, g)..., ms...)
 matches(σ::Substitution, (a, b)::Tuple{T,T}, ms...) where {T<:Constant} =
-    get(a) == get(b) ? solve(σ, ms...) : nothing
+    get(a) == get(b) ? matches(σ, ms...) : nothing
 matches(σ::Substitution, ms...) = nothing
 matches(σ::Substitution) = σ
 matches(ms...) = matches(Substitution(), ms...)

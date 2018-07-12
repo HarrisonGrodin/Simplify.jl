@@ -10,7 +10,8 @@ Base.iterate(::Term) = nothing
 Base.iterate(::Term, ::Any) = nothing
 Base.map(f, t::Term) = t
 Base.issubset(a::Term, b::Term) = match(b, a) !== nothing
-Base.show(io::IO, t::Term) = print(io, "@term(", parse(t), ")")
+Base.show(io::IO, t::Term) = print(io, "@term(", string(t), ")")
+Base.string(t::Term) = string(parse(t))
 
 
 include("types.jl")

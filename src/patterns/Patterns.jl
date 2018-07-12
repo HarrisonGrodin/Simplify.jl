@@ -30,6 +30,6 @@ macro term(ex)
 end
 
 
-include("unify.jl")
+include("match.jl")
 
 end # module

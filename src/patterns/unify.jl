@@ -1,91 +1,49 @@
 export unify, match
 
 
-using Base: splat
+import Base: match
 
-"""
-    overlay(pattern, term) -> Union{Nothing, Tuple{Substitution,Any}}
-
-Attempt to match `term` to `pattern`. If the process fails, `nothing`
-should be returned, signaling the complete failure of matching or unification
-on the given superterms. Otherwise, a 2-tuple of the new substitution and
-the generated dependency overlaying problems should be returned.
-"""
-function overlay end
-
-overlay(x::Variable, t::Term) = (Substitution(x => t), ())
-overlay(f::F, g::F) where {F<:Fn} = (Substitution(), zip(f, g))
-overlay(a::Constant, b::Constant) = get(a) == get(b) ? (Substitution(), ()) : nothing
-overlay(::Term, ::Term) = nothing
+Base.replace(t::Term, σ::AbstractDict) = haskey(σ, t) ? replace(σ[t], σ) : map(x -> replace(x, σ), t)
 
 
-_unify(σ::Substitution) = σ
-function _unify(σ::Substitution, (a, b), ms...)
-    result = overlay(a, b)
-    result === nothing && (result = overlay(b, a))
-    result === nothing && return nothing
-    (σ′, ms′) = result
 
-    σ′ = filter(splat(≠), σ′)
-    any(splat(occursin), σ′) && return nothing
-
-    _unify(σ′ ∘ σ′(σ), ms′..., σ′.(ms)...)
+struct Match <: AbstractDict{Term,Term}
+    dict::Dict{Term,Term}
 end
-_unify(ms...) = _unify(Substitution(), ms...)
-"""
-    unify(t, u) -> Union{Nothing, Substitution}
+Match(ps::Pair...) = Match(Dict{Term,Term}(ps))
+Base.length(σ::Match) = length(σ.dict)
+Base.iterate(σ::Match) = iterate(σ.dict)
+Base.iterate(σ::Match, state) = iterate(σ.dict, state)
+Base.getindex(σ::Match, t::Term) = getindex(σ.dict, t)
+Base.setindex!(σ::Match, value::Term, key::Term) = (setindex!(σ.dict, value, key); σ)
+Base.get(σ::Match, t::Term, default) = get(σ.dict, t, default)
 
-Unify terms `t` and `u`, producing a substitution if the process succeeds.
+Base.replace(t::Term, σ::Match) = haskey(σ, t) ? σ(σ[t]) : map(σ, t)
+(σ::Match)(t::Term) = replace(t, σ)
 
-# Examples
-```jldoctest
-julia> unify(@term(f(y)), @term(x))
-Dict{Variable,Term} with 1 entry:
-  @term(x) => @term(f(y))
-
-julia> unify(@term(x), @term(x))
-Dict{Variable,Term} with 0 entries
-
-julia> unify(@term(x), @term(f(x)))
-
-julia> unify(@term(f(x)), @term(g(x)))
-
-julia> unify(@term(f(x, y)), @term(f(y, z)))
-Dict{Variable,Term} with 2 entries:
-  @term(x) => @term(z)
-  @term(y) => @term(z)
-```
-"""
-unify(t::Term, u::Term) = _unify((t, u))
-
-
-_match(σ::Substitution) = σ
-function _match(σ::Substitution, (a, b), ms...)
-    result = overlay(a, b)
-    result === nothing && return nothing
-    (σ′, ms′) = result
-
-    for (k, v) in σ′
-        if haskey(σ, k)
-            σ[k] == v || return nothing
-        else
-            σ[k] = v
+function Base.merge!(σ::Match, σs::Match...)
+    for σ′ ∈ σs
+        for (k, v) in σ′
+            if haskey(σ, k)
+                σ[k] == v || return nothing
+            else
+                σ[k] = v
+            end
         end
     end
-
-    _match(σ, ms′..., ms...)
+    σ
 end
-_match(ms...) = _match(Substitution(), ms...)
+Base.merge(σ::Match, σs::Match...) = merge!(Match(), σ, σs...)
 
 """
-    match(pattern::Term, t::Term) -> Union{Nothing, Substitution}
+    match(pattern::Term, subject::Term) -> Union{Match, Nothing}
 
 Match term `t` to `pattern`, producing a substitution if the process succeeds.
 
 # Examples
 ```jldoctest
 julia> match(@term(x), @term(f(x)))
-Dict{Variable,Term} with 1 entry:
+Match with 1 entry:
   @term(x) => @term(f(x))
 
 julia> match(@term(f(x)), @term(x))
@@ -93,8 +51,110 @@ julia> match(@term(f(x)), @term(x))
 julia> match(@term(f(x, x)), @term(f(a, b)))
 
 julia> match(@term(f(x, x)), @term(f(a, a)))
-Dict{Variable,Term} with 1 entry:
+Match with 1 entry:
   @term(x) => @term(a)
 ```
 """
-Base.match(pattern::Term, t::Term) = _match((pattern, t))
+function match(pattern::Term, subject::Term) end
+
+match(x::Variable, t::Term) = Match(x => t)
+function match(f::F, g::F) where {F<:Fn}
+    sub_matches = []
+
+    for (x, y) ∈ zip(f, g)
+        σ = match(x, y)
+        σ === nothing && return nothing
+        push!(sub_matches, σ)
+    end
+
+    merge!(Match(), sub_matches...)
+end
+match(a::Constant{T}, b::Constant{<:T}) where {T} =
+    get(a) == get(b) ? Match() : nothing
+match(::Term, ::Term) = nothing
+
+
+
+struct Unify <: AbstractDict{Term,Term}
+    dict::Dict{Term,Term}
+end
+Unify(ps::Pair...) = Unify(Dict{Term,Term}(ps))
+Base.length(σ::Unify) = length(σ.dict)
+Base.iterate(σ::Unify) = iterate(σ.dict)
+Base.iterate(σ::Unify, state) = iterate(σ.dict, state)
+Base.getindex(σ::Unify, t::Term) = getindex(σ.dict, t)
+function Base.setindex!(σ::Unify, value::Term, key::Term)
+    value == key && return σ
+
+    occursin(key, value) && return nothing
+    σ.dict[key] = value
+
+    for (k, v) ∈ pairs(σ.dict)
+        σ.dict[k] = σ(v)
+    end
+
+    σ
+end
+Base.get(σ::Unify, t::Term, default) = get(σ.dict, t, default)
+
+(σ::Unify)(t::Term) = replace(t, σ)
+(σ::Unify)(xs) = map(σ, xs)
+
+function Base.merge!(σ::Unify, σs::Unify...)
+    for σ′ ∈ σs
+        for (k, v) in σ′
+            if haskey(σ, k)
+                σ[k] == v || return nothing
+            else
+                setindex!(σ, v, k) === nothing && return nothing
+            end
+        end
+    end
+    σ
+end
+Base.merge(σ::Unify, σs::Unify...) = merge!(Unify(), σ, σs...)
+
+
+"""
+    unify(t, u) -> Union{Unify, Nothing}
+
+Unify terms `t` and `u`, producing a substitution if the process succeeds.
+
+# Examples
+```jldoctest
+julia> unify(@term(f(y)), @term(x))
+Unify with 1 entry:
+  @term(x) => @term(f(y))
+
+julia> unify(@term(x), @term(x))
+Unify with 0 entries
+
+julia> unify(@term(x), @term(f(x)))
+
+julia> unify(@term(f(x)), @term(g(x)))
+
+julia> unify(@term(f(x, y)), @term(f(y, z)))
+Unify with 2 entries:
+  @term(x) => @term(z)
+  @term(y) => @term(z)
+```
+"""
+function unify(t::Term, u::Term) end
+unify(t::Term, u::Term) = _unify((t, u))
+
+
+_unify(σ::Unify, (x, y)::Tuple{Variable,Variable}, ms...) =
+    x == y ? _unify(σ, ms...) : eliminate!(σ, (x, y), ms)
+_unify(σ::Unify, (x, t)::Tuple{Variable,Term}, ms...) = eliminate!(σ, (x, t), ms)
+_unify(σ::Unify, (t, x)::Tuple{Term,Variable}, ms...) = eliminate!(σ, (x, t), ms)
+_unify(σ::Unify, (f, g)::Tuple{F,F}, ms...) where {F<:Fn} = _unify(σ, zip(f, g)..., ms...)
+_unify(σ::Unify, (a, b)::Tuple{T,T}, ms...) where {T<:Constant} =
+    get(a) == get(b) ? _unify(σ, ms...) : nothing
+_unify(σ::Unify, ms...) = nothing
+_unify(σ::Unify) = σ
+_unify(ms...) = _unify(Unify(), ms...)
+
+function eliminate!(σ::Unify, (x, t)::Tuple{Variable,Term}, ms)
+    setindex!(σ, t, x) === nothing && return nothing
+    _unify(σ, Unify(x => t).(ms)...)
+end

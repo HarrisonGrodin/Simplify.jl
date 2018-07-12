@@ -1,4 +1,5 @@
 using SymReduce.Patterns
+using SymReduce.Patterns: Match, Unify
 
 @testset "Patterns" begin
     @testset "Variable" begin
@@ -8,15 +9,15 @@ using SymReduce.Patterns
         @test x ≠ y
         @test a == @term a
 
-        @test unify(x, x) == Substitution()
-        @test unify(x, y) == Substitution(x => y)
-        @test unify(y, x) == Substitution(y => x)
+        @test unify(x, x) == Unify()
+        @test unify(x, y) == Unify(x => y)
+        @test unify(y, x) == Unify(y => x)
 
-        @test match(a, b) == Substitution(a => b)
+        @test match(a, b) == Match(a => b)
         @test b ⊆ a
 
-        @test replace(a, Substitution(a => b)) == b
-        @test replace(a, Substitution(x => b)) == a
+        @test replace(a, Dict(a => b)) == b
+        @test replace(a, Dict(x => b)) == a
     end
     @testset "Function" begin
         x, y, z = Variable.([:x, :y, :z])
@@ -33,25 +34,28 @@ using SymReduce.Patterns
         @test @term(f(x, g(h(y), f(z))))[2, 1, 1] == @term(y)
         @test_throws MethodError @term(f(x))[1, 1]
 
-        @test unify(x, f(y)) == Substitution(x => f(y))
-        @test unify(f(y), x) == Substitution(x => f(y))
+        @test unify(x, f(y)) == Unify(x => f(y))
+        @test unify(f(y), x) == Unify(x => f(y))
         @test unify(x, f(x)) === nothing
-        @test unify(f(x), f(y)) == Substitution(x => y)
-        @test unify(g(x, x), g(y, z)) == Substitution(x => z, y => z)
-        @test unify(g(f(x), x), g(f(y), z)) == Substitution(x => z, y => z)
+        @test unify(f(x), f(y)) == Unify(x => y)
+        @test unify(g(x, x), g(y, z)) == Unify(x => z, y => z)
+        @test unify(g(f(x), x), g(f(y), z)) == Unify(x => z, y => z)
         @test unify(g(f(x), x), g(y, y)) === nothing
-        @test unify(g(f(x), x), g(y, z)) == Substitution(y => f(z), x => z)
+        @test unify(g(f(x), x), g(y, z)) == Unify(y => f(z), x => z)
         @test unify(f(x), f(x, y)) === nothing
 
-        @test match(f(x), f(y)) == Substitution(x => y)
+        @test match(f(), f()) == Match()
+        @test match(f(x), f(y)) == Match(x => y)
         @test f(y) ⊆  f(x)
+        @test match(f(x), g(x)) === nothing
+        @test match(f(f(), x), f(g(), y)) === nothing
         @test match(f(x, x), f(y, z)) === nothing
         @test match(f(x), g(x, y)) === nothing
         @test g(x, y) ⊈ f(x)
         @test @term(f(a, 2, b)) ⊈ @term(f(x, 2, x))
 
-        @test replace(f(x), Substitution(x => y)) == f(y)
-        @test replace(f(x), Substitution(y => x)) == f(x)
+        @test replace(f(x), Dict(x => y)) == f(y)
+        @test replace(f(x), Dict(y => x)) == f(x)
     end
     @testset "Constant" begin
         one, two = Constant(1), Constant(2)
@@ -61,16 +65,16 @@ using SymReduce.Patterns
 
         @test one == @term 1
 
-        @test unify(two, two) == Substitution()
+        @test unify(two, two) == Unify()
         @test unify(Constant(2), Constant(3)) === nothing
         @test unify(Constant(1), Constant("one")) === nothing
 
-        @test match(one, one) == Substitution()
+        @test match(one, one) == Match()
         @test one ⊆ one
         @test match(two, one) === nothing
         @test one ⊈ two
-        @test match(@term(x + 0), @term(y + 0)) == Substitution(@term(x) => @term(y))
+        @test match(@term(x + 0), @term(y + 0)) == Match(@term(x) => @term(y))
 
-        @test replace(one, Substitution(@term(x) => @term(y))) == one
+        @test replace(one, Dict(@term(x) => @term(y))) == one
     end
 end

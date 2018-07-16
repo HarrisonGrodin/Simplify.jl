@@ -9,7 +9,7 @@ Base.occursin(a::Term, b::Term) = a == b || any(x -> occursin(a, x), b)
 Base.iterate(::Term) = nothing
 Base.iterate(::Term, ::Any) = nothing
 Base.map(f, t::Term) = t
-Base.issubset(a::Term, b::Term) = match(b, a) !== nothing
+Base.issubset(a::Term, b::Term) = !isempty(match(b, a))
 Base.show(io::IO, t::Term) = print(io, "@term(", string(t), ")")
 Base.string(t::Term) = string(parse(t))
 

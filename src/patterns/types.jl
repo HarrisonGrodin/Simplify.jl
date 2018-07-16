@@ -1,4 +1,4 @@
-export Variable, Fn, Constant
+export Variable, Constant, Fn
 
 using StaticArrays
 
@@ -41,6 +41,13 @@ Base.string(x::Variable) = x.index == 0 ? string(x.name) : string(x.name, subscr
 Base.parse(x::Variable) = Symbol(string(x))
 
 
+struct Constant{T} <: Term
+    value::T
+end
+Base.get(x::Constant) = x.value
+Base.parse(x::Constant) = get(x)
+
+
 struct Fn{F,N} <: Term
     args::SVector{N,Term}
 end
@@ -50,15 +57,7 @@ Fn{F,N}(args::Vararg{Term,N}) where {F,N} = Fn{F,N}(args)
 Base.iterate(f::Fn) = iterate(f.args)
 Base.iterate(f::Fn, start) = iterate(f.args, start)
 Base.length(f::Fn{F,N}) where {F,N} = N
-Base.copy(f::Fn{F,N}) where {F,N} = Fn{F,N}(copy(f.args))
 Base.getindex(f::Fn, key) = f.args[key]
 Base.setindex(f::Fn{F,N}, val, key) where {F,N} = Fn{F,N}(setindex(f.args, val, key))
 Base.map(f, fn::Fn{F,N}) where {F,N} = Fn{F,N}(map(f, fn.args))
 Base.parse(f::Fn{F}) where {F} = :($F($(parse.(f.args)...)))
-
-
-struct Constant{T} <: Term
-    value::T
-end
-Base.get(x::Constant) = x.value
-Base.parse(x::Constant) = get(x)

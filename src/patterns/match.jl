@@ -7,71 +7,74 @@ Base.replace(t::Term, σ::AbstractDict) = haskey(σ, t) ? replace(σ[t], σ) : m
 
 
 
-struct Match <: AbstractDict{Term,Term}
-    dict::Dict{Term,Term}
+mutable struct Match <: AbstractSet{AbstractDict{Term,Term}}
+    matches::Set{Dict{Term,Term}}
 end
-Match(ps::Pair...) = Match(Dict{Term,Term}(ps))
-Base.length(σ::Match) = length(σ.dict)
-Base.iterate(σ::Match) = iterate(σ.dict)
-Base.iterate(σ::Match, state) = iterate(σ.dict, state)
-Base.getindex(σ::Match, t::Term) = getindex(σ.dict, t)
-Base.setindex!(σ::Match, value::Term, key::Term) = (setindex!(σ.dict, value, key); σ)
-Base.get(σ::Match, t::Term, default) = get(σ.dict, t, default)
+Match(xs::Union{Pair,Dict}...) = Match(Set(Dict.(xs)))
+Base.zero(::Type{Match}) = Match()
+Base.one(::Type{Match}) = Match(Dict())
+Base.length(Θ::Match) = length(Θ.matches)
+Base.iterate(Θ::Match) = iterate(Θ.matches)
+Base.iterate(Θ::Match, state) = iterate(Θ.matches, state)
+Base.push!(Θ::Match, items...) = (push!(Θ.matches, items...); Θ)
+Base.union(Θ₁::Match, Θ₂::Match) = Match(union(Θ₁.matches, Θ₂.matches))
+(Θ::Match)(t::Term) = Set{Term}([replace(t, σ) for σ ∈ Θ])
 
-Base.replace(t::Term, σ::Match) = haskey(σ, t) ? σ(σ[t]) : map(σ, t)
-(σ::Match)(t::Term) = replace(t, σ)
-
-function Base.merge!(σ::Match, σs::Match...)
-    for σ′ ∈ σs
-        for (k, v) in σ′
-            if haskey(σ, k)
-                σ[k] == v || return nothing
-            else
-                σ[k] = v
+function Base.merge!(Θ::Match, Θs::Match...)
+    for Θ′ ∈ Θs
+        result = Match()
+        for σ′ ∈ Θ′
+            foreach(Θ) do σ
+                res = copy(σ)
+                for (k, v) in σ′
+                    if haskey(σ, k)
+                        σ[k] == v || return
+                    end
+                    res[k] = v
+                end
+                push!(result, res)
             end
         end
+        Θ.matches = result
     end
-    σ
+    Θ
 end
-Base.merge(σ::Match, σs::Match...) = merge!(Match(), σ, σs...)
+Base.merge(σ::Match, σs::Match...) = merge!(one(Match), σ, σs...)
 
 """
-    match(pattern::Term, subject::Term) -> Union{Match, Nothing}
+    match(pattern::Term, subject::Term, [Θ::Match]) -> Match
 
-Match term `t` to `pattern`, producing a substitution if the process succeeds.
+Match term `t` to `pattern`, producing a `Match` if the process succeeds. If an existing
+match `Θ` is provided, it is used as the base for the returned match.
 
 # Examples
 ```jldoctest
 julia> match(@term(x), @term(f(x)))
-Match with 1 entry:
-  @term(x) => @term(f(x))
+Match(Set(Dict{Term,Term}[Dict(@term(x)=>@term(f(x)))]))
 
 julia> match(@term(f(x)), @term(x))
+Match(Set(Dict{Term,Term}[]))
 
 julia> match(@term(f(x, x)), @term(f(a, b)))
+Match(Set(Dict{Term,Term}[]))
 
 julia> match(@term(f(x, x)), @term(f(a, a)))
-Match with 1 entry:
-  @term(x) => @term(a)
+Match(Set(Dict{Term,Term}[Dict(@term(x)=>@term(a))]))
 ```
 """
 function match(pattern::Term, subject::Term) end
+match(pattern::Term, subject::Term) = match(pattern, subject, one(Match))
 
-match(x::Variable, t::Term) = Match(x => t)
-function match(f::F, g::F) where {F<:Fn}
-    sub_matches = []
-
+match(x::Variable, t::Term, Θ) = merge(Θ, Match(x => t))
+match(a::Constant{T}, b::Constant{<:T}, Θ) where {T} =
+    get(a) == get(b) ? Θ : zero(Match)
+function match(f::F, g::F, Θ) where {F<:Fn}
     for (x, y) ∈ zip(f, g)
-        σ = match(x, y)
-        σ === nothing && return nothing
-        push!(sub_matches, σ)
+        Θ = match(x, y, Θ)
     end
-
-    merge!(Match(), sub_matches...)
+    Θ
 end
-match(a::Constant{T}, b::Constant{<:T}) where {T} =
-    get(a) == get(b) ? Match() : nothing
-match(::Term, ::Term) = nothing
+match(::Term, ::Term, Θ) = zero(Match)
 
 
 
@@ -118,7 +121,7 @@ Base.merge(σ::Unify, σs::Unify...) = merge!(Unify(), σ, σs...)
 """
     unify(t, u) -> Union{Unify, Nothing}
 
-Unify terms `t` and `u`, producing a substitution if the process succeeds.
+Unify terms `t` and `u`, producing a `Unify` if the process succeeds.
 
 # Examples
 ```jldoctest

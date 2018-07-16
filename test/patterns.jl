@@ -86,6 +86,39 @@ using SymReduce.Patterns: Match, Unify
         @test a == Associative{:+}(@term(x), @term(y), @term(z))
 
         @test @term(fₐ(w, x, fₐ(y, z))) == @term(fₐ(w, x, y, z))
+
+        @test match(@term(x), a) ==
+            Match(@term(x) => a)
+
+        @test match(@term(x), Associative{:+}(@term(a), @term(b))) ==
+            Match(@term(x) => Associative{:+}(@term(a), @term(b)))
+
+        @test match(@term(x), @term(a +ₐ b)) ==
+            Match(@term(x) => @term(a +ₐ b))
+
+        @test match(@term(x +ₐ y), @term(a() +ₐ b()))::Match ==
+            Match(Dict(@term(x) => @term(+ₐ(a())), @term(y) => @term(+ₐ(b()))))
+
+        @test match(@term(x +ₐ y), @term(1 +ₐ b)) ==
+            Match(Dict(@term(x) => @term(+ₐ(1)), @term(y) => @term((+ₐ(b)))))
+
+        @test match(@term(x +ₐ y), @term(a +ₐ b +ₐ c)) == Match(
+            Dict(@term(x) => @term(a +ₐ b), @term(y) => @term(+ₐ(c))),
+            Dict(@term(x) => @term(+ₐ(a)), @term(y) => @term(b +ₐ c)),
+        )
+
+        @test match(@term(x +ₐ 1 +ₐ y), @term(f() +ₐ g() +ₐ 1 +ₐ h())) ==
+            Match(Dict(@term(x) => @term(f() +ₐ g()), @term(y) => @term(+ₐ(h()))))
+
+        @test match(@term(f() +ₐ g()), @term(f() +ₐ g())) ==
+            one(Match)
+
+        @test match(@term(g() +ₐ f()), @term(f() +ₐ g())) ==
+            zero(Match)
+
+        @test match(@term(fₐ(g(X), g(Y), Z)), @term(fₐ(g(a), g(b), g(c), g(d), g(e)))) ==
+            Match(Dict(@term(X)=>@term(a), @term(Y)=>@term(b), @term(Z)=>@term(fₐ(g(c), g(d), g(e)))))
+
     end
 
 end

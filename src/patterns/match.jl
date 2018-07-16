@@ -74,6 +74,40 @@ function match(f::F, g::F, Θ) where {F<:Fn}
     end
     Θ
 end
+"""
+    match(p::F, s::F, Θ::Match) where {F<:Associative} -> Match
+
+Match an associative function call to another associative function call, based on the
+algorithm by [Krebber](https://arxiv.org/abs/1705.00907).
+"""
+function match(p::F, s::F, Θ) where {F<:Associative}
+    m, n = length(p), length(s)
+    m > n && return zero(Match)
+    n_free = n - m
+    n_vars = count(x -> x isa Variable, p)
+    Θᵣ = zero(Match)
+
+    for k ∈ Iterators.product((0:n_free for i ∈ 1:n_vars)...)
+        (isempty(k) ? 0 : sum(k)) == n_free || continue  # FIXME: efficiency
+        i, j = 1, 1
+        Θ′ = Θ
+        for pₗ ∈ p
+            l_sub = 0
+            if pₗ isa Variable
+                l_sub += k[j]
+                j += 1
+                S = F(s[i:i+l_sub])
+            else
+                S = s[i]
+            end
+            Θ′ = match(pₗ, S, Θ′)
+            isempty(Θ′) && break
+            i += l_sub + 1
+        end
+        Θᵣ = Θᵣ ∪ Θ′
+    end
+    Θᵣ
+end
 match(::Term, ::Term, Θ) = zero(Match)
 
 

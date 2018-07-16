@@ -17,27 +17,24 @@ Base.string(t::Term) = string(parse(t))
 include("types.jl")
 
 
-const SUFFIXES = Pair{String,Type}[
-    "ₐ" => Associative,
-    "" => Fn,
-]
-function _type(f::Symbol)
-    name = string(f)
-    suffix, typ = SUFFIXES[findfirst(p -> endswith(name, p[1]), SUFFIXES)]
-    typ{Symbol(name[1:end-length(suffix)])}
-end
+PROPERTIES = Dict{Symbol,Type{<:Term}}(
+    :+  => Associative,
+    :++ => Associative,
+    :*  => Associative,
+)
 
-Base.parse(::Type{Term}, t::Term) = t
-Base.parse(::Type{Term}, n) = Constant(n)
-Base.parse(::Type{Term}, x::Symbol) = Variable(string(x))
-function Base.parse(::Type{Term}, ex::Expr)
-    ex.head == :$    && return :(parse(Term, $(esc(ex.args[1]))))
-    ex.head == :call || return Expr(ex.head, parse.(Term, ex.args)...)
-    :(_type($(Meta.quot(ex.args[1])))($(parse.(Term, ex.args[2:end])...)))
+Base.parse(::Type{Term}, props, t::Term) = t
+Base.parse(::Type{Term}, props, n) = Constant(n)
+Base.parse(::Type{Term}, props, x::Symbol) = Variable(string(x))
+function Base.parse(::Type{Term}, props, ex::Expr)
+    ex.head == :call || return Expr(ex.head, parse.(Term, props, ex.args)...)
+    T = get(props, ex.args[1], Fn)
+    parse(T, props, ex)
 end
+Base.parse(T::Type{Term}, x) = parse(T, PROPERTIES, x)
 
 macro term(ex)
-    parse(Term, ex)
+    :(parse(Term, $(Meta.quot(ex))))
 end
 
 

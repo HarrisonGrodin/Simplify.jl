@@ -60,6 +60,16 @@ Base.length(f::Fn{F,N}) where {F,N} = N
 Base.getindex(f::Fn, key) = f.args[key]
 Base.setindex(f::Fn{F,N}, val, key) where {F,N} = Fn{F,N}(setindex(f.args, val, key))
 Base.map(f, fn::Fn{F,N}) where {F,N} = Fn{F,N}(map(f, fn.args))
+function Base.parse(::Type{Fn}, props, ex::Expr) where {F}
+    ex.head === :call || throw(ArgumentError("$(repr(ex)) is not a function call"))
+    parse(Fn{ex.args[1]}, props, ex)
+end
+function Base.parse(::Type{Fn{F}}, props, ex::Expr) where {F}
+    ex.head === :call || return parse(Term, props, ex)
+    ex.args[1] === F || return parse(Term, props, ex)
+    args = ex.args[2:end]
+    Fn{F}(parse.(Term, props, args)...)
+end
 Base.parse(f::Fn{F}) where {F} = :($F($(parse.(f.args)...)))
 
 
@@ -76,7 +86,17 @@ Base.length(f::Associative) = length(f.args)
 Base.getindex(f::Associative, inds...) = getindex(f.args, inds...)
 Base.setindex(f::Associative{F}, val, key) where {F} = Associative{F}(setindex!(copy(f.args), val, key))
 Base.parse(f::Associative{F}) where {F} = :($F($(parse.(f.args)...)))
-Base.string(f::Associative{F}) where {F} = string(:($(Symbol(F, :ₐ))($(parse.(f.args)...))))
+function Base.parse(::Type{Associative}, props, ex::Expr) where {F}
+    ex.head === :call || throw(ArgumentError("$(repr(ex)) is not a function call"))
+    parse(Associative{ex.args[1]}, props, ex)
+end
+function Base.parse(::Type{Associative{F}}, props, ex::Expr) where {F}
+    ex.head === :call || return parse(Term, ex)
+    ex.args[1] === F || return parse(Term, ex)
+    args = ex.args[2:end]
+    Associative{F}(parse.(Associative{F}, props, args)...)
+end
+Base.parse(::Type{<:Associative}, props, x) = parse(Term, props, x)
 
 flatten(::Type{F}, args) where {F} = [_flatten.(F, args)...;]
 _flatten(::Type{F}, f::F) where {F} = _flatten(F, f.args)

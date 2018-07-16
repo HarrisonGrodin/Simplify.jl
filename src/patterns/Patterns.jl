@@ -18,6 +18,7 @@ include("types.jl")
 
 
 const SUFFIXES = Pair{String,Type}[
+    "ₐ" => Associative,
     "" => Fn,
 ]
 function _type(f::Symbol)

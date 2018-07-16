@@ -1,4 +1,4 @@
-export Variable, Constant, Fn
+export Variable, Constant, Fn, Associative
 
 using StaticArrays
 
@@ -61,3 +61,23 @@ Base.getindex(f::Fn, key) = f.args[key]
 Base.setindex(f::Fn{F,N}, val, key) where {F,N} = Fn{F,N}(setindex(f.args, val, key))
 Base.map(f, fn::Fn{F,N}) where {F,N} = Fn{F,N}(map(f, fn.args))
 Base.parse(f::Fn{F}) where {F} = :($F($(parse.(f.args)...)))
+
+
+struct Associative{F} <: Term
+    args::Vector{Term}
+    Associative{F}(args) where {F} = new{F}(flatten(Associative{F}, args))
+end
+Associative{F}(args::Term...) where {F} = Associative{F}(collect(args))
+Base.:(==)(f::F, g::F) where {F<:Associative} = f.args == g.args
+Base.:(==)(::Associative, ::Associative) = false
+Base.iterate(f::Associative) = iterate(f.args)
+Base.iterate(f::Associative, state) = iterate(f.args, state)
+Base.length(f::Associative) = length(f.args)
+Base.getindex(f::Associative, inds...) = getindex(f.args, inds...)
+Base.setindex(f::Associative{F}, val, key) where {F} = Associative{F}(setindex!(copy(f.args), val, key))
+Base.parse(f::Associative{F}) where {F} = :($F($(parse.(f.args)...)))
+Base.string(f::Associative{F}) where {F} = string(:($(Symbol(F, :ₐ))($(parse.(f.args)...))))
+
+flatten(::Type{F}, args) where {F} = [_flatten.(F, args)...;]
+_flatten(::Type{F}, f::F) where {F} = _flatten(F, f.args)
+_flatten(::Type, x) = x

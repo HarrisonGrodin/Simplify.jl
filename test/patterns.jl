@@ -80,4 +80,12 @@ using SymReduce.Patterns: Match, Unify
 
         @test replace(_1, Dict(@term(x) => @term(y))) == _1
     end
+
+    @testset "Associative" begin
+        a = Associative{:+}(Associative{:+}(@term(x), @term(y)), @term(z))
+        @test a == Associative{:+}(@term(x), @term(y), @term(z))
+
+        @test @term(fₐ(w, x, fₐ(y, z))) == @term(fₐ(w, x, y, z))
+    end
+
 end

@@ -33,6 +33,29 @@ function Base.parse(::Type{Term}, props, ex::Expr)
 end
 Base.parse(T::Type{Term}, x) = parse(T, PROPERTIES, x)
 
+
+const PROPERTY_NAMES = Dict{Symbol,Type{<:Term}}(
+    :A => Associative,
+    :Assoc => Associative,
+    :Associative => Associative,
+)
+
+macro term(ex::Expr)
+    if ex.head === :where
+        ex, _props = ex.args[1], ex.args[2:end]
+        props = Dict{Symbol,Type}()
+        for prop ∈ _props
+            (prop isa Expr && prop.head == :(::)) || (@warn "Invalid property '$prop'; ignoring"; continue)
+            f, p = prop.args
+            haskey(PROPERTY_NAMES, p) || (@warn "Unknown property '$p'; ignoring"; continue)
+            props[f] = PROPERTY_NAMES[p]
+        end
+    else
+        props = PROPERTIES
+    end
+
+    :(parse(Term, $props, $(Meta.quot(ex))))
+end
 macro term(ex)
     :(parse(Term, $(Meta.quot(ex))))
 end

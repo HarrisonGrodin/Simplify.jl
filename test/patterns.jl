@@ -76,7 +76,7 @@ using SymReduce.Patterns: Match, Unify
         @test _1 ⊆ _1
         @test match(_2, _1) |> isempty
         @test _1 ⊈ _2
-        @test match(@term(x + 0), @term(y + 0)) == Match(@term(x) => @term(y))
+        @test match(@term(x + 0), @term(y + 0)) == Match(@term(x) => @term(+y))
 
         @test replace(_1, Dict(@term(x) => @term(y))) == _1
     end
@@ -85,7 +85,7 @@ using SymReduce.Patterns: Match, Unify
         a = Associative{:+}(Associative{:+}(@term(x), @term(y)), @term(z))
         @test a == Associative{:+}(@term(x), @term(y), @term(z))
 
-        @test @term(fₐ(w, x, fₐ(y, z))) == @term(fₐ(w, x, y, z))
+        @test @term(f(w, x, f(y, z)) where {f::A}) == @term(f(w, x, y, z) where {f::A})
 
         @test match(@term(x), a) ==
             Match(@term(x) => a)
@@ -93,31 +93,31 @@ using SymReduce.Patterns: Match, Unify
         @test match(@term(x), Associative{:+}(@term(a), @term(b))) ==
             Match(@term(x) => Associative{:+}(@term(a), @term(b)))
 
-        @test match(@term(x), @term(a +ₐ b)) ==
-            Match(@term(x) => @term(a +ₐ b))
+        @test match(@term(x), @term(a + b)) ==
+            Match(@term(x) => @term(a + b))
 
-        @test match(@term(x +ₐ y), @term(a() +ₐ b()))::Match ==
-            Match(Dict(@term(x) => @term(+ₐ(a())), @term(y) => @term(+ₐ(b()))))
+        @test match(@term(x + y), @term(a() + b()))::Match ==
+            Match(Dict(@term(x) => @term(+a()), @term(y) => @term(+b())))
 
-        @test match(@term(x +ₐ y), @term(1 +ₐ b)) ==
-            Match(Dict(@term(x) => @term(+ₐ(1)), @term(y) => @term((+ₐ(b)))))
+        @test match(@term(x + y), @term(1 + b)) ==
+            Match(Dict(@term(x) => @term(+ 1), @term(y) => @term((+b))))
 
-        @test match(@term(x +ₐ y), @term(a +ₐ b +ₐ c)) == Match(
-            Dict(@term(x) => @term(a +ₐ b), @term(y) => @term(+ₐ(c))),
-            Dict(@term(x) => @term(+ₐ(a)), @term(y) => @term(b +ₐ c)),
+        @test match(@term(x + y), @term(a + b + c)) == Match(
+            Dict(@term(x) => @term(a + b), @term(y) => @term(+c)),
+            Dict(@term(x) => @term(+a), @term(y) => @term(b + c)),
         )
 
-        @test match(@term(x +ₐ 1 +ₐ y), @term(f() +ₐ g() +ₐ 1 +ₐ h())) ==
-            Match(Dict(@term(x) => @term(f() +ₐ g()), @term(y) => @term(+ₐ(h()))))
+        @test match(@term(x + 1 + y), @term(f() + g() + 1 + h())) ==
+            Match(Dict(@term(x) => @term(f() + g()), @term(y) => @term(+h())))
 
-        @test match(@term(f() +ₐ g()), @term(f() +ₐ g())) ==
+        @test match(@term(f() + g()), @term(f() + g())) ==
             one(Match)
 
-        @test match(@term(g() +ₐ f()), @term(f() +ₐ g())) ==
+        @test match(@term(g() + f()), @term(f() + g())) ==
             zero(Match)
 
-        @test match(@term(fₐ(g(X), g(Y), Z)), @term(fₐ(g(a), g(b), g(c), g(d), g(e)))) ==
-            Match(Dict(@term(X)=>@term(a), @term(Y)=>@term(b), @term(Z)=>@term(fₐ(g(c), g(d), g(e)))))
+        @test match(@term(f(g(X), g(Y), Z) where {f::A}), @term(f(g(a), g(b), g(c), g(d), g(e)) where {f::A})) ==
+            Match(Dict(@term(X)=>@term(a), @term(Y)=>@term(b), @term(Z)=>@term(f(g(c), g(d), g(e)) where {f::A})))
 
     end
 

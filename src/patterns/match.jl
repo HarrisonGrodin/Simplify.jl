@@ -5,9 +5,6 @@ import Base: match
 using Combinatorics: permutations
 
 
-Base.replace(t::Term, σ::AbstractDict) = haskey(σ, t) ? replace(σ[t], σ) : map(x -> replace(x, σ), t)
-
-
 mutable struct Match <: AbstractSet{AbstractDict{Term,Term}}
     matches::Set{Dict{Term,Term}}
 end
@@ -18,6 +15,7 @@ Base.length(Θ::Match) = length(Θ.matches)
 Base.iterate(Θ::Match) = iterate(Θ.matches)
 Base.iterate(Θ::Match, state) = iterate(Θ.matches, state)
 Base.push!(Θ::Match, items...) = (push!(Θ.matches, items...); Θ)
+Base.copy(Θ::Match) = Match(copy(Θ.matches))
 Base.union(Θ₁::Match, Θ₂::Match) = Match(union(Θ₁.matches, Θ₂.matches))
 (Θ::Match)(t::Term) = Set{Term}([replace(t, σ) for σ ∈ Θ])
 

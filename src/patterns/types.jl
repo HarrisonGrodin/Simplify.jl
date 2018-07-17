@@ -59,7 +59,8 @@ Base.iterate(f::Fn, start) = iterate(f.args, start)
 Base.length(f::Fn{F,N}) where {F,N} = N
 Base.getindex(f::Fn, key) = f.args[key]
 Base.setindex(f::Fn{F,N}, val, key) where {F,N} = Fn{F,N}(setindex(f.args, val, key))
-Base.map(f, fn::Fn{F,N}) where {F,N} = Fn{F,N}(map(f, fn.args))
+Base.map(f, fn::F) where {F<:Fn} = F(map(f, fn.args))
+Base.parse(f::Fn{F}) where {F} = :($F($(parse.(f.args)...)))
 function Base.parse(::Type{Fn}, props, ex::Expr) where {F}
     ex.head === :call || throw(ArgumentError("$(repr(ex)) is not a function call"))
     parse(Fn{ex.args[1]}, props, ex)
@@ -70,7 +71,6 @@ function Base.parse(::Type{Fn{F}}, props, ex::Expr) where {F}
     args = ex.args[2:end]
     Fn{F}(parse.(Term, props, args)...)
 end
-Base.parse(f::Fn{F}) where {F} = :($F($(parse.(f.args)...)))
 
 
 struct Associative{F} <: Term
@@ -85,6 +85,7 @@ Base.iterate(f::Associative, state) = iterate(f.args, state)
 Base.length(f::Associative) = length(f.args)
 Base.getindex(f::Associative, inds...) = getindex(f.args, inds...)
 Base.setindex(f::Associative{F}, val, key) where {F} = Associative{F}(setindex!(copy(f.args), val, key))
+Base.map(f, fn::F) where {F<:Associative} = F(map(f, fn.args))
 Base.parse(f::Associative{F}) where {F} = :($F($(parse.(f.args)...)))
 function Base.parse(::Type{Associative}, props, ex::Expr) where {F}
     ex.head === :call || throw(ArgumentError("$(repr(ex)) is not a function call"))
@@ -113,6 +114,7 @@ Base.iterate(f::Commutative, state) = iterate(f.fn, state)
 Base.length(f::Commutative) = length(f.fn)
 Base.getindex(f::Commutative, inds...) = getindex(f.fn, inds...)
 Base.setindex(f::Commutative{T}, val, key) where {T} = Commutative{T}(setindex(f.fn, val, key))
+Base.map(f, fn::F) where {F<:Commutative} = F(map(f, fn.fn))
 Base.parse(f::Commutative) = parse(f.fn)
 function Base.parse(::Type{Commutative}, props, ex::Expr) where {F}
     ex.head === :call || throw(ArgumentError("$(repr(ex)) is not a function call"))

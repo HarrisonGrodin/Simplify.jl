@@ -1,17 +1,20 @@
 module Patterns
 
-export Term, @term, Substitution
+export Term, @term
 
 
 abstract type Term end
 Base.getindex(t::Term, key, key′, keys...) = getindex(t[key], key′, keys...)
 Base.occursin(a::Term, b::Term) = a == b || any(x -> occursin(a, x), b)
+Base.length(::Term) = 0
 Base.iterate(::Term) = nothing
 Base.iterate(::Term, ::Any) = nothing
 Base.map(f, t::Term) = t
 Base.issubset(a::Term, b::Term) = !isempty(match(b, a))
 Base.show(io::IO, t::Term) = print(io, "@term(", string(t), ")")
 Base.string(t::Term) = string(parse(t))
+
+Base.replace(t::Term, σ::AbstractDict) = map(x -> replace(x, σ), haskey(σ, t) ? σ[t] : t)
 
 
 include("types.jl")
@@ -25,7 +28,10 @@ const PROPERTIES = Dict{Symbol,Type{<:Term}}(
 
 Base.parse(::Type{Term}, props, t::Term) = t
 Base.parse(::Type{Term}, props, n) = Constant(n)
-Base.parse(::Type{Term}, props, x::Symbol) = Variable(string(x))
+function Base.parse(::Type{Term}, props, x::Symbol)
+    x === :π && return Constant(π)
+    Variable(string(x))
+end
 function Base.parse(::Type{Term}, props, ex::Expr)
     ex.head == :call || return Expr(ex.head, parse.(Term, props, ex.args)...)
     T = get(props, ex.args[1], Fn)
@@ -63,6 +69,15 @@ macro term(ex::Expr)
 end
 macro term(ex)
     :(parse(Term, $(Meta.quot(ex))))
+end
+
+_strategy(::Val{S}) where {S} = string(S)
+macro term(v::Val, ex)
+    strategy = _strategy(v)
+    :(throw(ArgumentError("Undefined @term strategy: " * $strategy)))
+end
+macro term(strategy::Symbol, expr)
+    esc(:(@term $(Val(strategy)) $expr))
 end
 
 

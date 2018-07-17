@@ -14,7 +14,7 @@ normalize(::T, ::R) where {T,R<:Rule} = error("normalize undefined for rule type
 function normalize(t::Term, trs::TermRewritingSystem)
     while true
         t = map(normalize(trs), t)
-        t′ = foldl(normalize, t, trs)
+        t′ = foldl(normalize, trs; init=t)
         t == t′ && return t
         t = t′
     end

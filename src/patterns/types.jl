@@ -1,4 +1,4 @@
-export Variable, Constant, Fn, Associative
+export Variable, Constant, Fn, Associative, Commutative
 
 using StaticArrays
 
@@ -101,3 +101,21 @@ Base.parse(::Type{<:Associative}, props, x) = parse(Term, props, x)
 flatten(::Type{F}, args) where {F} = [_flatten.(F, args)...;]
 _flatten(::Type{F}, f::F) where {F} = _flatten(F, f.args)
 _flatten(::Type, x) = x
+
+
+struct Commutative{T<:Term} <: Term
+    fn::T
+end
+Base.:(==)(f::F, g::F) where {F<:Commutative} = f.fn == g.fn
+Base.:(==)(::Commutative, ::Commutative) = false
+Base.iterate(f::Commutative) = iterate(f.fn)
+Base.iterate(f::Commutative, state) = iterate(f.fn, state)
+Base.length(f::Commutative) = length(f.fn)
+Base.getindex(f::Commutative, inds...) = getindex(f.fn, inds...)
+Base.setindex(f::Commutative{T}, val, key) where {T} = Commutative{T}(setindex(f.fn, val, key))
+Base.parse(f::Commutative) = parse(f.fn)
+function Base.parse(::Type{Commutative}, props, ex::Expr) where {F}
+    ex.head === :call || throw(ArgumentError("$(repr(ex)) is not a function call"))
+    parse(Commutative{Fn{ex.args[1]}}, props, ex)
+end
+Base.parse(::Type{Commutative{T}}, props, ex) where {T} = Commutative(parse(T, props, ex))

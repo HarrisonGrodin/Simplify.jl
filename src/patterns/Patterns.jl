@@ -17,8 +17,8 @@ Base.string(t::Term) = string(parse(t))
 include("types.jl")
 
 
-PROPERTIES = Dict{Symbol,Type{<:Term}}(
-    :+  => Associative,
+const PROPERTIES = Dict{Symbol,Type{<:Term}}(
+    :+  => Commutative{Associative},
     :++ => Associative,
     :*  => Associative,
 )
@@ -35,9 +35,14 @@ Base.parse(T::Type{Term}, x) = parse(T, PROPERTIES, x)
 
 
 const PROPERTY_NAMES = Dict{Symbol,Type{<:Term}}(
-    :A => Associative,
-    :Assoc => Associative,
+    :A           => Associative,
+    :Assoc       => Associative,
     :Associative => Associative,
+    :C           => Commutative,
+    :Comm        => Commutative,
+    :Commutative => Commutative,
+    :AC          => Commutative{Associative},
+    :AssociativeCommutative => Commutative{Associative},
 )
 
 macro term(ex::Expr)

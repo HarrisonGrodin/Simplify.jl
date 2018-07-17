@@ -2,9 +2,10 @@ export unify, match
 
 
 import Base: match
+using Combinatorics: permutations
+
 
 Base.replace(t::Term, σ::AbstractDict) = haskey(σ, t) ? replace(σ[t], σ) : map(x -> replace(x, σ), t)
-
 
 
 mutable struct Match <: AbstractSet{AbstractDict{Term,Term}}
@@ -62,8 +63,8 @@ julia> match(@term(f(x, x)), @term(f(a, a)))
 Match(Set(Dict{Term,Term}[Dict(@term(x)=>@term(a))]))
 ```
 """
-function match(pattern::Term, subject::Term) end
 match(pattern::Term, subject::Term) = match(pattern, subject, one(Match))
+match(p::Term, s::Term, Θ, f) = match(p, s, Θ)
 
 match(x::Variable, t::Term, Θ) = merge(Θ, Match(x => t))
 match(a::Constant{T}, b::Constant{<:T}, Θ) where {T} =
@@ -80,7 +81,7 @@ end
 Match an associative function call to another associative function call, based on the
 algorithm by [Krebber](https://arxiv.org/abs/1705.00907).
 """
-function match(p::F, s::F, Θ) where {F<:Associative}
+function match(p::F, s::F, Θ, f = F) where {F<:Associative}
     m, n = length(p), length(s)
     m > n && return zero(Match)
     n_free = n - m
@@ -96,7 +97,7 @@ function match(p::F, s::F, Θ) where {F<:Associative}
             if pₗ isa Variable
                 l_sub += k[j]
                 j += 1
-                S = F(s[i:i+l_sub])
+                S = f(s[i:i+l_sub]...)
             else
                 S = s[i]
             end
@@ -107,6 +108,12 @@ function match(p::F, s::F, Θ) where {F<:Associative}
         Θᵣ = Θᵣ ∪ Θ′
     end
     Θᵣ
+end
+function match(p::F, s::F, Θ) where {T,F<:Commutative{T}}
+    map(permutations(s)) do perm  # FIXME: efficiency
+        s_fn = T(perm...)
+        match(p.fn, s_fn, Θ, Commutative ∘ T)
+    end |> Base.splat(union)
 end
 match(::Term, ::Term, Θ) = zero(Match)
 

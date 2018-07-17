@@ -95,10 +95,8 @@ function match(p::F, s::F, Θ, f = F) where {F<:Associative}
             if pₗ isa Variable
                 l_sub += k[j]
                 j += 1
-                S = f(s[i:i+l_sub]...)
-            else
-                S = s[i]
             end
+            S = l_sub > 0 ? f(s[i:i+l_sub]...) : s[i]
             Θ′ = match(pₗ, S, Θ′)
             isempty(Θ′) && break
             i += l_sub + 1

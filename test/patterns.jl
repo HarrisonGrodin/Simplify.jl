@@ -97,18 +97,18 @@ using SymReduce.Patterns: Match, Unify
             Match(@term(x) => @term(a * b))
 
         @test match(@term(x * y), @term(a() * b()))::Match ==
-            Match(Dict(@term(x) => @term(*(a())), @term(y) => @term(*(b()))))
+            Match(Dict(@term(x) => @term(a()), @term(y) => @term(b())))
 
         @test match(@term(x * y), @term(1 * b)) ==
-            Match(Dict(@term(x) => @term(*(1)), @term(y) => @term((*(b)))))
+            Match(Dict(@term(x) => @term(1), @term(y) => @term(b)))
 
         @test match(@term(x * y), @term(a * b * c)) == Match(
-            Dict(@term(x) => @term(a * b), @term(y) => @term(*(c))),
-            Dict(@term(x) => @term(*(a)), @term(y) => @term(b * c)),
+            Dict(@term(x) => @term(a * b), @term(y) => @term(c)),
+            Dict(@term(x) => @term(a), @term(y) => @term(b * c)),
         )
 
         @test match(@term(x * 1 * y), @term(f() * g() * 1 * h())) ==
-            Match(Dict(@term(x) => @term(f() * g()), @term(y) => @term(*(h()))))
+            Match(Dict(@term(x) => @term(f() * g()), @term(y) => @term(h())))
 
         @test match(@term(f() * g()), @term(f() * g())) ==
             one(Match)
@@ -146,18 +146,18 @@ using SymReduce.Patterns: Match, Unify
                 Match(@term(x) => @term(a + b))
 
             @test match(@term(x + y), @term(a() + b()))::Match == Match(
-                Dict(@term(x) => @term(+(a())), @term(y) => @term(+(b()))),
-                Dict(@term(x) => @term(+(b())), @term(y) => @term(+(a()))),
+                Dict(@term(x) => @term(a()), @term(y) => @term(b())),
+                Dict(@term(x) => @term(b()), @term(y) => @term(a())),
             )
 
             @test match(@term(x + y), @term(1 + b)) == Match(
-                Dict(@term(x) => @term(+(1)), @term(y) => @term((+(b)))),
-                Dict(@term(x) => @term(+(b)), @term(y) => @term((+(1)))),
+                Dict(@term(x) => @term(1), @term(y) => @term(b)),
+                Dict(@term(x) => @term(b), @term(y) => @term(1)),
             )
 
             @test match(@term(x + y), @term(a + b)) == Match(
-                Dict(@term(x) => @term(+a), @term(y) => @term(+b)),
-                Dict(@term(x) => @term(+b), @term(y) => @term(+a)),
+                Dict(@term(x) => @term(a), @term(y) => @term(b)),
+                Dict(@term(x) => @term(b), @term(y) => @term(a)),
             )
 
             @test length(match(@term(x + y), @term(a + b + c))) == 12
@@ -168,8 +168,8 @@ using SymReduce.Patterns: Match, Unify
             )
 
             @test match(@term(x + y + 1), @term(f() + 1 + g())) == Match(
-                Dict(@term(x) => @term(+f()), @term(y) => @term(+g())),
-                Dict(@term(x) => @term(+g()), @term(y) => @term(+f())),
+                Dict(@term(x) => @term(f()), @term(y) => @term(g())),
+                Dict(@term(x) => @term(g()), @term(y) => @term(f())),
             )
 
             @test match(@term(f() + g()), @term(f() + g())) ==

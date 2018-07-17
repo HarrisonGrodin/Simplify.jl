@@ -8,7 +8,7 @@ using SymReduce: PatternRule, EvalRule
         @test normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x)))) == @term(g(a))
         @test_throws ArgumentError("Divergent normalization paths") normalize(@term(f(a, b) where {f::C}), TRS(@term(f(x, y) where {f::C}) => @term(g(x))))
         @test_broken normalize(@term(x + 0 + 0), TRS(@term(a + 0) => @term(a))) == @term(x)
-        @test_broken normalize(@term(+x), TRS(@term(+a) => @term(a))) == @term(x)
+        @test normalize(@term(+x), TRS(@term(+a) => @term(a))) == @term(x)
     end
     @testset "EvalRule" begin
         @test normalize(@term(f(2, 3)), EvalRule{Fn{:f,2}}(*)) == @term(6)
@@ -25,11 +25,11 @@ end
 @testset "normalize" begin
     @testset "STANDARD" begin
         @test normalize(@term(x)) == @term(x)
-        @test_broken normalize(@term(x + 0)) == @term(x)
+        @test normalize(@term(x + 0)) == @term(x)
         @test_broken normalize(@term(y + 0 + 0)) == @term(y)
         @test normalize(@term(y * (1 + 2 - 3))) == @term(0)
         @test_broken normalize(@term(0 + y + 0)) == @term(y)
-        @test_broken normalize(@term(sin(π/3)cos(0) + cos(π/3)sin(0))) == @term(√3 / 2)
+        @test normalize(@term(sin(π/3)cos(0) + cos(π/3)sin(0))) == @term(√3 / 2)
     end
 
     @testset "TRIGONOMETRY" begin

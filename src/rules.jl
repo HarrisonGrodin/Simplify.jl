@@ -208,4 +208,12 @@ rules(::Val{:TRIGONOMETRY}) = @term RULES [
     2sin(θ)cos(θ) => sin(2θ)
     cos(θ)^2 - sin(θ)^2 => cos(2θ)
     2cos(θ)^2 - 1 => cos(2θ)
+
+    # Sum and difference formulae
+    sin(α) * cos(β) + cos(α) * sin(β) = sin(α + β)
+    sin(α) * cos(β) - cos(α) * sin(β) = sin(α - β)
+    cos(α) * cos(β) - sin(α) * sin(β) = cos(α + β)
+    cos(α) * cos(β) + sin(α) * sin(β) = cos(α - β)
+    (tan(α) + tan(β)) / (1 - tan(α) * tan(β)) = tan(α + β)
+    (tan(α) - tan(β)) / (1 + tan(α) * tan(β)) = tan(α - β)
 ]

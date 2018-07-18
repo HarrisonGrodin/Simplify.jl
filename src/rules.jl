@@ -197,12 +197,12 @@ rules(::Val{:TRIGONOMETRY}) = @term RULES [
 
     # Periodic formulae
     #FIXME where clause requires predicates
-    sin(θ + 2*π()*n) where n isa Int => sin(θ)
-    cos(θ + 2*π()*n) where n isa Int => cos(θ)
-    tan(θ + π()*n) where n isa Int => tan(θ)
-    csc(θ + 2*π()*n) where n isa Int => csc(θ)
-    sec(θ + 2*π()*n) where n isa Int => sec(θ)
-    cot(θ + π()*n) where n isa Int => cot(θ)
+    sin(θ + 2πn) where n isa Int => sin(θ)
+    cos(θ + 2πn) where n isa Int => cos(θ)
+    tan(θ + πn) where n isa Int => tan(θ)
+    csc(θ + 2πn) where n isa Int => csc(θ)
+    sec(θ + 2πn) where n isa Int => sec(θ)
+    cot(θ + πn) where n isa Int => cot(θ)
 
     # Double-angle formulae
     2sin(θ)cos(θ) => sin(2θ)
@@ -210,22 +210,22 @@ rules(::Val{:TRIGONOMETRY}) = @term RULES [
     2cos(θ)^2 - 1 => cos(2θ)
 
     # Sum and difference formulae
-    sin(α) * cos(β) + cos(α) * sin(β) = sin(α + β)
-    sin(α) * cos(β) - cos(α) * sin(β) = sin(α - β)
-    cos(α) * cos(β) - sin(α) * sin(β) = cos(α + β)
-    cos(α) * cos(β) + sin(α) * sin(β) = cos(α - β)
-    (tan(α) + tan(β)) / (1 - tan(α) * tan(β)) = tan(α + β)
-    (tan(α) - tan(β)) / (1 + tan(α) * tan(β)) = tan(α - β)
+    sin(α)cos(β) + cos(α)sin(β) = sin(α + β)
+    sin(α)cos(β) - cos(α)sin(β) = sin(α - β)
+    cos(α)cos(β) - sin(α)sin(β) = cos(α + β)
+    cos(α)cos(β) + sin(α)sin(β) = cos(α - β)
+    (tan(α)tan(β)) / (1 - tan(α)tan(β)) = tan(α + β)
+    (tan(α)tan(β)) / (1 + tan(α)tan(β)) = tan(α - β)
 
     # Product to sum formulae
-    cos(α - β) - cos(α + β) = 2 * sin(α) * sin(β)
-    cos(α - β) + cos(α + β) = 2 * cos(α) * cos(β)
-    sin(α + β) + sin(α - β) = 2 * sin(α) * cos(β)
-    sin(α + β) - sin(α - β) = 2 * cos(α) * sin(β)
+    cos(α - β) - cos(α + β) = 2sin(α)sin(β)
+    cos(α - β) + cos(α + β) = 2cos(α)cos(β)
+    sin(α + β) + sin(α - β) = 2sin(α)cos(β)
+    sin(α + β) - sin(α - β) = 2cos(α)sin(β)
 
     # Sum to product formulae
-    2 * sin((α + β) / 2) * cos(α - β / 2) = sin(α) + sin(β)
-    2 * cos((α + β) / 2) * sin(α - β / 2) = sin(α) - sin(β)
-    2 * cos((α + β) / 2) * cos(α - β / 2) = cos(α) + cos(β)
-    -2 * sin((α + β) / 2) * sin(α - β / 2) = cos(α) - cos(β)
+    2sin((α + β) / 2)cos(α - β / 2) = sin(α) + sin(β)
+    2cos((α + β) / 2)sin(α - β / 2) = sin(α) - sin(β)
+    2cos((α + β) / 2)cos(α - β / 2) = cos(α) + cos(β)
+    -2sin((α + β) / 2)sin(α - β / 2) = cos(α) - cos(β)
 ]

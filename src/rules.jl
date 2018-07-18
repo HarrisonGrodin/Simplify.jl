@@ -92,7 +92,7 @@ rules(::Val{:STANDARD}) = [
 
 
 rules(::Val{ABSOLUTE_VALUE}) = @term RULES [
-    abs(a) => a ≥ 0 ? a : -a # FIXME
+    # abs(a) => a ≥ 0 ? a : -a # FIXME
     abs(-a) => abs(a)
     abs(a * b) => abs(a) * abs(b)
     abs(a / b) => abs(a) / abs(b)
@@ -125,10 +125,14 @@ rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!) = [
     );
 ]
 
+#=
+FIXME Notation
 rules(::Val{:LAPLACE}) = @term RULES [
     laplace(1) => 1/s #1
     laplace(e^(a*t)) => 1/(s-a) #2
+    laplace(t^n) where n isa Int => factorial(n) / s^(n+1)
 ]
+=#
 
 rules(::Val{:LOGARITHM}) = @term RULES [
     log(b, b) => 1
@@ -190,13 +194,15 @@ rules(::Val{:TRIGONOMETRY}) = @term RULES [
     cot(-θ) => -cot(θ)
 
     # Periodic formulae
-    #FIXME where clause requires predicates
+    #=
+    FIXME where clause requires predicates
     sin(θ + 2πn) where n isa Int => sin(θ)
     cos(θ + 2πn) where n isa Int => cos(θ)
     tan(θ + πn) where n isa Int => tan(θ)
     csc(θ + 2πn) where n isa Int => csc(θ)
     sec(θ + 2πn) where n isa Int => sec(θ)
     cot(θ + πn) where n isa Int => cot(θ)
+    =#
 
     # Double-angle formulae
     2sin(θ)cos(θ) => sin(2θ)

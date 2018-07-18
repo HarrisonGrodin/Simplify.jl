@@ -185,12 +185,24 @@ rules(::Val{:TRIGONOMETRY}) = @term RULES [
     sin(-θ) => -sin(θ)
     cos(-θ) => cos(θ)
     tan(-θ) => tan(θ)
+    csc(-θ) => -csc(θ)
+    sec(-θ) => sec(θ)
+    cot(-θ) => -cot(θ)
 
     # Angle sum and difference identities
     sin(α)cos(β) + cos(α)sin(β) => sin(α + β)
     sin(α)cos(β) - cos(α)sin(β) => sin(α - β)
     cos(α)cos(β) - sin(α)sin(β) => cos(α + β)
     cos(α)cos(β) + sin(α)sin(β) => cos(α - β)
+
+    # Periodic formulae
+    #FIXME where clause requires predicates
+    sin(θ + 2*π()*n) where n isa Int => sin(θ)
+    cos(θ + 2*π()*n) where n isa Int => cos(θ)
+    tan(θ + π()*n) where n isa Int => tan(θ)
+    csc(θ + 2*π()*n) where n isa Int => csc(θ)
+    sec(θ + 2*π()*n) where n isa Int => sec(θ)
+    cot(θ + π()*n) where n isa Int => cot(θ)
 
     # Double-angle formulae
     2sin(θ)cos(θ) => sin(2θ)

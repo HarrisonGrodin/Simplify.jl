@@ -189,12 +189,6 @@ rules(::Val{:TRIGONOMETRY}) = @term RULES [
     sec(-θ) => sec(θ)
     cot(-θ) => -cot(θ)
 
-    # Angle sum and difference identities
-    sin(α)cos(β) + cos(α)sin(β) => sin(α + β)
-    sin(α)cos(β) - cos(α)sin(β) => sin(α - β)
-    cos(α)cos(β) - sin(α)sin(β) => cos(α + β)
-    cos(α)cos(β) + sin(α)sin(β) => cos(α - β)
-
     # Periodic formulae
     #FIXME where clause requires predicates
     sin(θ + 2πn) where n isa Int => sin(θ)
@@ -210,22 +204,30 @@ rules(::Val{:TRIGONOMETRY}) = @term RULES [
     2cos(θ)^2 - 1 => cos(2θ)
 
     # Sum and difference formulae
-    sin(α)cos(β) + cos(α)sin(β) = sin(α + β)
-    sin(α)cos(β) - cos(α)sin(β) = sin(α - β)
-    cos(α)cos(β) - sin(α)sin(β) = cos(α + β)
-    cos(α)cos(β) + sin(α)sin(β) = cos(α - β)
-    (tan(α)tan(β)) / (1 - tan(α)tan(β)) = tan(α + β)
-    (tan(α)tan(β)) / (1 + tan(α)tan(β)) = tan(α - β)
+    sin(α)cos(β) + cos(α)sin(β) => sin(α + β)
+    sin(α)cos(β) - cos(α)sin(β) => sin(α - β)
+    cos(α)cos(β) - sin(α)sin(β) => cos(α + β)
+    cos(α)cos(β) + sin(α)sin(β) => cos(α - β)
+    (tan(α)tan(β)) / (1 - tan(α)tan(β)) => tan(α + β)
+    (tan(α)tan(β)) / (1 + tan(α)tan(β)) => tan(α - β)
 
     # Product to sum formulae
-    cos(α - β) - cos(α + β) = 2sin(α)sin(β)
-    cos(α - β) + cos(α + β) = 2cos(α)cos(β)
-    sin(α + β) + sin(α - β) = 2sin(α)cos(β)
-    sin(α + β) - sin(α - β) = 2cos(α)sin(β)
+    cos(α - β) - cos(α + β) => 2sin(α)sin(β)
+    cos(α - β) + cos(α + β) => 2cos(α)cos(β)
+    sin(α + β) + sin(α - β) => 2sin(α)cos(β)
+    sin(α + β) - sin(α - β) => 2cos(α)sin(β)
 
     # Sum to product formulae
-    2sin((α + β) / 2)cos(α - β / 2) = sin(α) + sin(β)
-    2cos((α + β) / 2)sin(α - β / 2) = sin(α) - sin(β)
-    2cos((α + β) / 2)cos(α - β / 2) = cos(α) + cos(β)
-    -2sin((α + β) / 2)sin(α - β / 2) = cos(α) - cos(β)
+    2sin((α + β) / 2)cos(α - β / 2) => sin(α) + sin(β)
+    2cos((α + β) / 2)sin(α - β / 2) => sin(α) - sin(β)
+    2cos((α + β) / 2)cos(α - β / 2) => cos(α) + cos(β)
+    -2sin((α + β) / 2)sin(α - β / 2) => cos(α) - cos(β)
+
+    # Cofunction formulae
+    sin(π/2-θ) => cos(θ)
+    cos(π/2-θ) => sin(θ)
+    csc(π/2-θ) => sec(θ)
+    sec(π/2-θ) => csc(θ)
+    tan(π/2-θ) => cot(θ)
+    cot(π/2-θ) => tan(θ)
 ]

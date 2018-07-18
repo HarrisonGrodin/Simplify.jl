@@ -216,4 +216,16 @@ rules(::Val{:TRIGONOMETRY}) = @term RULES [
     cos(α) * cos(β) + sin(α) * sin(β) = cos(α - β)
     (tan(α) + tan(β)) / (1 - tan(α) * tan(β)) = tan(α + β)
     (tan(α) - tan(β)) / (1 + tan(α) * tan(β)) = tan(α - β)
+
+    # Product to sum formulae
+    cos(α - β) - cos(α + β) = 2 * sin(α) * sin(β)
+    cos(α - β) + cos(α + β) = 2 * cos(α) * cos(β)
+    sin(α + β) + sin(α - β) = 2 * sin(α) * cos(β)
+    sin(α + β) - sin(α - β) = 2 * cos(α) * sin(β)
+
+    # Sum to product formulae
+    2 * sin((α + β) / 2) * cos(α - β / 2) = sin(α) + sin(β)
+    2 * cos((α + β) / 2) * sin(α - β / 2) = sin(α) - sin(β)
+    2 * cos((α + β) / 2) * cos(α - β / 2) = cos(α) + cos(β)
+    -2 * sin((α + β) / 2) * sin(α - β / 2) = cos(α) - cos(β)
 ]

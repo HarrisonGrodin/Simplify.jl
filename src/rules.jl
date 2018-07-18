@@ -91,6 +91,14 @@ rules(::Val{:STANDARD}) = [
 ]
 
 
+rules(::Val{ABSOLUTE_VALUE}) = @term RULES [
+    abs(a) => a ≥ 0 ? a : -a # FIXME
+    abs(-a) => abs(a)
+    abs(a * b) => abs(a) * abs(b)
+    abs(a / b) => abs(a) / abs(b)
+]
+
+
 rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!) = [
     @term RULES [
         $or(x, false) => x
@@ -117,6 +125,23 @@ rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!) = [
     );
 ]
 
+rules(::Val{:LAPLACE}) = @term RULES [
+    laplace(1) => 1/s #1
+    laplace(e^(a*t)) => 1/(s-a) #2
+]
+
+rules(::Val{:LOGARITHM}) = @term RULES [
+    log(b, b) => 1
+    log(b, 1) => 0
+
+    log(b, b ^ x) => x
+    b ^ log(b, x) => x
+
+    log(b, x ^ r) => r * log(b, x)
+
+    log(b, x * y) => log(b, x) + log(b, y)
+    log(b, x / y) => log(b, x) - log(b, y)
+]
 
 rules(::Val{:TRIGONOMETRY}) = @term RULES [
     # Common angles

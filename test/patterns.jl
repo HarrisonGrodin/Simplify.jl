@@ -87,6 +87,8 @@ using SymReduce.Patterns: Match, Unify
 
         @test @term(f(w, x, f(y, z)) where {f::A}) == @term(f(w, x, y, z) where {f::A})
 
+        @test @term(f(x) where {f::A}) == @term(x)
+
         @test match(@term(x), a) ==
             Match(@term(x) => a)
 
@@ -142,6 +144,8 @@ using SymReduce.Patterns: Match, Unify
             ac = Commutative(Associative{:f}(@term(x), @term(y), @term(z)))
             @test ac == @term(f(x, y, z) where {f::AC})
 
+            @test @term((x+y+b*a) where {(+)::AC,(*)::AC}) == @term((a*b+x+y) where {(+)::AC,(*)::AC})
+
             @test match(@term(x), @term(a + b)) ==
                 Match(@term(x) => @term(a + b))
 
@@ -160,7 +164,7 @@ using SymReduce.Patterns: Match, Unify
                 Dict(@term(x) => @term(b), @term(y) => @term(a)),
             )
 
-            @test length(match(@term(x + y), @term(a + b + c))) == 12
+            @test length(match(@term(x + y), @term(a + b + c))) == 6
 
             @test match(@term(x + 0), @term(f() + 0 + g())) == Match(
                 Dict(@term(x) => @term(f() + g())),

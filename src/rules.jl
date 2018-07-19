@@ -68,8 +68,6 @@ rules(set::Symbol=:STANDARD, args...; kwargs...) = rules(Val(set), args...; kwar
 
 rules(::Val{:STANDARD}) = [
     @term RULES [
-        # +x         => x  # FIXME: Associative matches x as +x
-        # *(x        => x  # FIXME: Associative matches x as *(x)
         x + 0      => x
         0 + x      => x
         x * 1      => x

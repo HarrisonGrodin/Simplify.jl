@@ -96,8 +96,8 @@ function match(p::F, s::F, Θ, f = F) where {F<:Associative}
                 l_sub += k[j]
                 j += 1
             end
-            S = l_sub > 0 ? f(s[i:i+l_sub]...) : s[i]
-            Θ′ = match(pₗ, S, Θ′)
+            s′ = f(s[i:i+l_sub]...)
+            Θ′ = match(pₗ, s′, Θ′)
             isempty(Θ′) && break
             i += l_sub + 1
         end
@@ -108,7 +108,7 @@ end
 function match(p::F, s::F, Θ) where {T,F<:Commutative{T}}
     map(permutations(s)) do perm  # FIXME: efficiency
         s_fn = T(perm...)
-        match(p.fn, s_fn, Θ, Commutative ∘ T)
+        match(p.fn, s_fn, Θ, F ∘ T)
     end |> Base.splat(union)
 end
 match(::Term, ::Term, Θ) = zero(Match)

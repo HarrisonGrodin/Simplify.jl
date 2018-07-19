@@ -75,7 +75,12 @@ end
 
 struct Associative{F} <: Term
     args::Vector{Term}
-    Associative{F}(args) where {F} = new{F}(flatten(Associative{F}, args))
+    function Associative{F}(args) where {F}
+        flat = flatten(Associative{F}, args)
+        isempty(flat) && throw(ArgumentError("Unable to construct associative function with zero arguments"))
+        length(flat) == 1 && return flat[1]
+        new{F}(flat)
+    end
 end
 Associative{F}(args::Term...) where {F} = Associative{F}(collect(args))
 Base.:(==)(f::F, g::F) where {F<:Associative} = f.args == g.args
@@ -86,6 +91,7 @@ Base.length(f::Associative) = length(f.args)
 Base.getindex(f::Associative, inds...) = getindex(f.args, inds...)
 Base.setindex(f::Associative{F}, val, key) where {F} = Associative{F}(setindex!(copy(f.args), val, key))
 Base.map(f, fn::F) where {F<:Associative} = F(map(f, fn.args))
+Base.hash(f::F, h::UInt) where {F<:Associative} = hash([F; f.args], h)
 Base.parse(f::Associative{F}) where {F} = :($F($(parse.(f.args)...)))
 function Base.parse(::Type{Associative}, props, ex::Expr) where {F}
     ex.head === :call || throw(ArgumentError("$(repr(ex)) is not a function call"))
@@ -95,7 +101,7 @@ function Base.parse(::Type{Associative{F}}, props, ex::Expr) where {F}
     ex.head === :call || return parse(Term, ex)
     ex.args[1] === F || return parse(Term, ex)
     args = ex.args[2:end]
-    Associative{F}(parse.(Associative{F}, props, args)...)
+    Associative{F}(parse.(Term, props, args)...)
 end
 Base.parse(::Type{<:Associative}, props, x) = parse(Term, props, x)
 
@@ -106,7 +112,13 @@ _flatten(::Type, x) = x
 
 struct Commutative{T<:Term} <: Term
     fn::T
+    function Commutative{T}(fn::T) where {T}
+        args = collect(fn)
+        new{typeof(fn)}(typeof(fn)(sort(args, lt=_sort_lt)...))
+    end
 end
+Commutative(fn::T) where {T} = Commutative{T}(fn)
+Commutative{T}(x) where {T} = x
 Base.:(==)(f::F, g::F) where {F<:Commutative} = f.fn == g.fn
 Base.:(==)(::Commutative, ::Commutative) = false
 Base.iterate(f::Commutative) = iterate(f.fn)
@@ -115,9 +127,23 @@ Base.length(f::Commutative) = length(f.fn)
 Base.getindex(f::Commutative, inds...) = getindex(f.fn, inds...)
 Base.setindex(f::Commutative{T}, val, key) where {T} = Commutative{T}(setindex(f.fn, val, key))
 Base.map(f, fn::F) where {F<:Commutative} = F(map(f, fn.fn))
+Base.hash(f::F, h::UInt) where {F<:Commutative} = hash([F; f.fn...], h)
 Base.parse(f::Commutative) = parse(f.fn)
 function Base.parse(::Type{Commutative}, props, ex::Expr) where {F}
     ex.head === :call || throw(ArgumentError("$(repr(ex)) is not a function call"))
     parse(Commutative{Fn{ex.args[1]}}, props, ex)
 end
-Base.parse(::Type{Commutative{T}}, props, ex) where {T} = Commutative(parse(T, props, ex))
+Base.parse(::Type{Commutative{T}}, props, ex::Expr) where {T<:Term} = Commutative{T}(parse(T, props, ex))
+
+# FIXME
+const _order = [Commutative, Associative, Fn, Variable, Constant]
+_sort_lt(a::Commutative, b::Commutative) = _sort_lt(a.fn, b.fn)
+_sort_lt(::Associative{F}, ::Associative{G}) where {F,G} = F < G
+_sort_lt(a::F, b::F) where {F<:Associative} =
+    length(a) > length(b) ? true : all(p -> _sort_lt(p...), zip(a, b))
+_sort_lt(::Fn{F1,N1}, ::Fn{F2,N2}) where {F1,N1,F2,N2} = F1 < F2 ? true : N1 > N2
+_sort_lt(a::F, b::F) where {F<:Fn} = all(p -> _sort_lt(p...), zip(a, b))
+_sort_lt(a::Constant, b::Constant) = repr(get(a)) < repr(get(b))
+_sort_lt(a::Variable, b::Variable) = a.name < b.name ? true : a.index < b.index
+_sort_lt(::A, ::B) where {A<:Term,B<:Term} =
+    findfirst((T -> A <: T), _order) < findfirst((T -> B <: T), _order)

@@ -14,7 +14,7 @@ Base.issubset(a::Term, b::Term) = !isempty(match(b, a))
 Base.show(io::IO, t::Term) = print(io, "@term(", string(t), ")")
 Base.string(t::Term) = string(parse(t))
 
-Base.replace(t::Term, σ::AbstractDict) = map(x -> replace(x, σ), haskey(σ, t) ? σ[t] : t)
+Base.replace(t::Term, σ::AbstractDict) = haskey(σ, t) ? σ[t] : map(x -> replace(x, σ), t)
 
 
 include("types.jl")

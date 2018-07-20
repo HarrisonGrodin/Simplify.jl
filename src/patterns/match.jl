@@ -5,6 +5,33 @@ import Base: match
 using Combinatorics: permutations
 
 
+abstract type AbstractContext end
+
+struct AlgebraContext <: AbstractContext
+    props::Dict{Symbol,Type}
+    consts::Dict{Symbol,Any}
+end
+function (ctx::AlgebraContext)(ex::Expr)
+    ex.head === :call || throw(ArgumentError("Invalid expression head: $(repr(ex.head))"))
+    typ = get(ctx.props, ex.args[1], Fn)
+
+    convert(typ, ex, ctx)
+end
+(ctx::AlgebraContext)(x::Symbol) = haskey(ctx.consts, x) ? convert(Constant, ctx.consts[x]) : convert(Variable, x)
+(ctx::AlgebraContext)(x) = convert(Constant, x)
+
+Base.convert(::Type{T}, ex) where {T<:Term} = convert(T, ex, AlgebraContext(
+    Dict(
+        :+  => Commutative{Associative},
+        :++ => Associative,
+        :*  => Associative,
+    ),
+    Dict(
+        :π  => π,
+    )
+))
+
+
 mutable struct Match <: AbstractSet{AbstractDict{Term,Term}}
     matches::Set{Dict{Term,Term}}
 end

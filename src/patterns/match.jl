@@ -1,7 +1,7 @@
 export unify, match
 
 
-import Base: match
+import Base: match, setindex
 using Combinatorics: permutations
 
 
@@ -94,7 +94,8 @@ match(p::Term, s::Term, Θ, f) = match(p, s, Θ)
 match(x::Variable, t::Term, Θ) = merge(Θ, Match(x => t))
 match(a::Constant{T}, b::Constant{<:T}, Θ) where {T} =
     get(a) == get(b) ? Θ : zero(Match)
-function match(f::F, g::F, Θ) where {F<:Fn}
+function match(f::Fn, g::Fn, Θ)
+    f.name == g.name || return zero(Match)
     for (x, y) ∈ zip(f, g)
         Θ = match(x, y, Θ)
     end
@@ -106,7 +107,9 @@ end
 Match an associative function call to another associative function call, based on the
 algorithm by [Krebber](https://arxiv.org/abs/1705.00907).
 """
-function match(p::F, s::F, Θ, f = F) where {F<:Associative}
+function match(p::Associative, s::Associative, Θ, f = (xs...) -> Associative(p.name, xs...))
+    p.name == s.name || return zero(Match)
+
     m, n = length(p), length(s)
     m > n && return zero(Match)
     n_free = n - m
@@ -123,7 +126,7 @@ function match(p::F, s::F, Θ, f = F) where {F<:Associative}
                 l_sub += k[j]
                 j += 1
             end
-            s′ = f(s[i:i+l_sub]...)
+            s′ = l_sub > 0 ? f(s[i:i+l_sub]...) : s[i]
             Θ′ = match(pₗ, s′, Θ′)
             isempty(Θ′) && break
             i += l_sub + 1
@@ -132,10 +135,10 @@ function match(p::F, s::F, Θ, f = F) where {F<:Associative}
     end
     Θᵣ
 end
-function match(p::F, s::F, Θ) where {T,F<:Commutative{T}}
+function match(p::F, s::F, Θ) where {F<:Commutative}
     map(permutations(s)) do perm  # FIXME: efficiency
-        s_fn = T(perm...)
-        match(p.fn, s_fn, Θ, F ∘ T)
+        s_fn = setindex(s.fn, perm)
+        match(p.fn, s_fn, Θ, (args...) -> F(setindex(s.fn, args)))
     end |> Base.splat(union)
 end
 match(::Term, ::Term, Θ) = zero(Match)
@@ -214,7 +217,8 @@ _unify(σ::Unify, (x, y)::Tuple{Variable,Variable}, ms...) =
     x == y ? _unify(σ, ms...) : eliminate!(σ, (x, y), ms)
 _unify(σ::Unify, (x, t)::Tuple{Variable,Term}, ms...) = eliminate!(σ, (x, t), ms)
 _unify(σ::Unify, (t, x)::Tuple{Term,Variable}, ms...) = eliminate!(σ, (x, t), ms)
-_unify(σ::Unify, (f, g)::Tuple{F,F}, ms...) where {F<:Fn} = _unify(σ, zip(f, g)..., ms...)
+_unify(σ::Unify, (f, g)::Tuple{Fn,Fn}, ms...) =
+    f.name == g.name && length(f) == length(g) ? _unify(σ, zip(f, g)..., ms...) : nothing
 _unify(σ::Unify, (a, b)::Tuple{T,T}, ms...) where {T<:Constant} =
     get(a) == get(b) ? _unify(σ, ms...) : nothing
 _unify(σ::Unify, ms...) = nothing

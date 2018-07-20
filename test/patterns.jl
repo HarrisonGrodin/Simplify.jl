@@ -23,8 +23,8 @@ using SymReduce.Patterns: Match, Unify
 
     @testset "Function" begin
         x, y, z = Variable.([:x, :y, :z])
-        f(xs...) = Fn{:f}(xs...)
-        g(xs...) = Fn{:g}(xs...)
+        f(xs...) = Fn(:f, xs...)
+        g(xs...) = Fn(:g, xs...)
 
         @test f(x) == f(x)
         @test f(x) ≠ f(y)
@@ -38,13 +38,14 @@ using SymReduce.Patterns: Match, Unify
 
         @test unify(x, f(y)) == Unify(x => f(y))
         @test unify(f(y), x) == Unify(x => f(y))
-        @test unify(x, f(x)) === nothing
+        @test unify(x, f(x)) == nothing
         @test unify(f(x), f(y)) == Unify(x => y)
+        @test unify(f(x), g(y)) == nothing
         @test unify(g(x, x), g(y, z)) == Unify(x => z, y => z)
         @test unify(g(f(x), x), g(f(y), z)) == Unify(x => z, y => z)
-        @test unify(g(f(x), x), g(y, y)) === nothing
+        @test unify(g(f(x), x), g(y, y)) == nothing
         @test unify(g(f(x), x), g(y, z)) == Unify(y => f(z), x => z)
-        @test unify(f(x), f(x, y)) === nothing
+        @test unify(f(x), f(x, y)) == nothing
 
         @test match(f(), f()) == one(Match)
         @test match(f(x), f(y)) == Match(x => y)
@@ -82,18 +83,19 @@ using SymReduce.Patterns: Match, Unify
     end
 
     @testset "Associative" begin
-        a = Associative{:+}(Associative{:+}(@term(x), @term(y)), @term(z))
-        @test a == Associative{:+}(@term(x), @term(y), @term(z))
+        a = Associative(:+, Associative(:+, @term(x), @term(y)), @term(z))
+        @test a == Associative(:+, @term(x), @term(y), @term(z))
 
         @test @term(f(w, x, f(y, z)) where {f::A}) == @term(f(w, x, y, z) where {f::A})
+        @test length(@term(f(w, x, g(y, z)) where {f::A,g::A})) == 3
 
         @test @term(f(x) where {f::A}) == @term(x)
 
         @test match(@term(x), a) ==
             Match(@term(x) => a)
 
-        @test match(@term(x), Associative{:+}(@term(a), @term(b))) ==
-            Match(@term(x) => Associative{:+}(@term(a), @term(b)))
+        @test match(@term(x), Associative(:+, @term(a), @term(b))) ==
+            Match(@term(x) => Associative(:+, @term(a), @term(b)))
 
         @test match(@term(x), @term(a * b)) ==
             Match(@term(x) => @term(a * b))
@@ -125,7 +127,7 @@ using SymReduce.Patterns: Match, Unify
     @testset "Commutative" begin
 
         @testset "Fn" begin
-            c = Commutative(Fn{:f}(@term(x), @term(y)))
+            c = Commutative(Fn(:f, @term(x), @term(y)))
             @test c == @term(f(x, y) where {f::C})
 
             @test match(@term(x), c) ==
@@ -141,7 +143,7 @@ using SymReduce.Patterns: Match, Unify
         end
 
         @testset "Associative" begin
-            ac = Commutative(Associative{:f}(@term(x), @term(y), @term(z)))
+            ac = Commutative(Associative(:f, @term(x), @term(y), @term(z)))
             @test ac == @term(f(x, y, z) where {f::AC})
 
             @test @term((x+y+b*a) where {(+)::AC,(*)::AC}) == @term((a*b+x+y) where {(+)::AC,(*)::AC})
@@ -168,7 +170,6 @@ using SymReduce.Patterns: Match, Unify
 
             @test match(@term(x + 0), @term(f() + 0 + g())) == Match(
                 Dict(@term(x) => @term(f() + g())),
-                Dict(@term(x) => @term(g() + f())),
             )
 
             @test match(@term(x + y + 1), @term(f() + 1 + g())) == Match(

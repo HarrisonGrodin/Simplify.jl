@@ -10,14 +10,14 @@ using SymReduce: PatternRule, EvalRule
         @test normalize(@term(x + 0 + 0), TRS(@term(a + 0) => @term(a))) == @term(x)
     end
     @testset "EvalRule" begin
-        @test normalize(@term(f(2, 3)), EvalRule{Fn{:f,2}}(*)) == @term(6)
-        @test normalize(@term(f(x, 3)), EvalRule{Fn{:f,2}}(*)) == @term(f(x, 3))
-        @test normalize(@term(f(2, y)), EvalRule{Fn{:f,2}}(*)) == @term(f(2, y))
-        @test normalize(@term("a" * "b"), EvalRule{Associative{:*}}(*)) == @term("ab")
-        @test normalize(@term(x + 2 * 3), EvalRule{Associative{:*}}(*)) == @term(x + 2 * 3)
-        @test normalize(@term(x + 2 * 3), TRS(EvalRule{Associative{:*}}(*))) == @term(x + 6)
-        @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule{Associative{:*}}(*))) == @term(6 + 20)
-        @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule{Commutative{Associative{:+}}}(+), EvalRule{Associative{:*}}(*))) == @term(26)
+        @test normalize(@term(f(2, 3)), EvalRule(:f, *)) == @term(6)
+        @test normalize(@term(f(x, 3)), EvalRule(:f, *)) == @term(f(x, 3))
+        @test normalize(@term(f(2, y)), EvalRule(:f, *)) == @term(f(2, y))
+        @test normalize(@term("a" * "b"), EvalRule(*)) == @term("ab")
+        @test normalize(@term(x + 2 * 3), EvalRule(*)) == @term(x + 2 * 3)
+        @test normalize(@term(x + 2 * 3), TRS(EvalRule(*))) == @term(x + 6)
+        @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(*))) == @term(6 + 20)
+        @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(+), EvalRule(*))) == @term(26)
     end
 end
 

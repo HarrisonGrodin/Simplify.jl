@@ -1,7 +1,8 @@
 export TermRewritingSystem, TRS
 export rules
 
-import SymReduce.Patterns: @term
+import .Patterns: @term
+using .Patterns: fn_name
 
 
 abstract type Rule{T} end
@@ -22,21 +23,26 @@ function Base.iterate(r::PatternRule, state=:left)
     nothing
 end
 function normalize(t::T, (l, r)::PatternRule{U}) where {U,T<:U}
-    σ = match(l, t)
-    σ === nothing && return t
-    σ(r)
+    Θ = match(l, t)
+    isempty(Θ) && return t
+    xs = Set(replace(r, σ) for σ ∈ Θ)
+    length(xs) == 1 || throw(ArgumentError("Divergent normalization paths"))
+    first(xs)
 end
 
-struct EvalRule{T<:Term} <: Rule{Term}
+struct EvalRule <: Rule{Term}
+    name::Symbol
     f
 end
-EvalRule(f::Function, arity::Integer) = EvalRule{Fn{nameof(f),arity}}(f)
-function normalize(t::T, r::EvalRule{T}) where {T<:Term}
-    all(arg -> arg isa Constant, t) || return t
+EvalRule(f::Function) = EvalRule(nameof(f), f)
+function normalize(t::Term, r::EvalRule)
+    fn_name(t) == r.name || return t
+    all_constants(t...) || return t
     args = get.(collect(t))
     Constant(r.f(args...))
 end
-normalize(t::Term, ::EvalRule) = t
+all_constants(::Constant...) = true
+all_constants(::Term...) = false
 
 
 struct AbstractRewritingSystem{T}
@@ -56,7 +62,8 @@ macro term(::Val{:RULES}, ex)
     args = map(ex.args) do pair
         p, a, b = pair.args
         @assert p == :(=>)
-        :(PatternRule{Term}($(parse(Term, a)), $(parse(Term, b))))
+        a, b = Meta.quot(a), Meta.quot(b)
+        :(PatternRule{Term}(convert(Term, $a), convert(Term, $b)))
     end
     :(TermRewritingSystem([$(args...)]))
 end
@@ -76,10 +83,9 @@ rules(::Val{:STANDARD}) = [
         x * inv(y) => x / y
     ];
     TRS(
-        EvalRule(+, 2),
-        EvalRule(-, 1),
-        EvalRule(-, 2),
-        EvalRule(*, 2),
+        EvalRule(+),
+        EvalRule(-),
+        EvalRule(*),
     );
     rules(:BOOLEAN);
     rules(:TRIGONOMETRY);
@@ -106,9 +112,9 @@ rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!) = [
         $neg($neg(x)) => x
     ];
     TRS(
-        EvalRule{Fn{and,2}}(&),
-        EvalRule{Fn{or,2}}(|),
-        EvalRule{Fn{neg,1}}(!),
+        EvalRule(and, &),
+        EvalRule(or,  |),
+        EvalRule(neg, !),
     );
 ]
 

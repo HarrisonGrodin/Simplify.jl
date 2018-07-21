@@ -1,11 +1,17 @@
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
+[[Combinatorics]]
+deps = ["Compat", "IterTools", "Polynomials"]
+git-tree-sha1 = "60c82fafd63df8a8a2c08b29905c64a75fe8bacd"
+uuid = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
+version = "0.6.0"
+
 [[Compat]]
 deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", "LibGit2", "Libdl", "LinearAlgebra", "Markdown", "Mmap", "Pkg", "Printf", "REPL", "Random", "Serialization", "SharedArrays", "Sockets", "SparseArrays", "Test", "UUIDs", "Unicode"]
-git-tree-sha1 = "f3e87ca1e2df8e1e4f82ea504fddf0b9b0894f61"
+git-tree-sha1 = "eb98811a03884748e0e7fc0ceb6849f3bb727ffd"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "0.69.0"
+version = "0.70.0"
 
 [[Dates]]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -18,6 +24,12 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[InteractiveUtils]]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
+
+[[IterTools]]
+deps = ["Pkg", "SparseArrays", "Test"]
+git-tree-sha1 = "ed0787e62dc46b8d8c7c3db54391d71e0da5fefd"
+uuid = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
+version = "1.0.0"
 
 [[LibGit2]]
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
@@ -36,6 +48,12 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[Pkg]]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+
+[[Polynomials]]
+deps = ["Compat"]
+git-tree-sha1 = "23d095b4c1ecbacd78bb0eea6b85d6e0872ce3bd"
+uuid = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
+version = "0.4.0"
 
 [[Printf]]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
@@ -57,12 +75,6 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 
 [[SparseArrays]]
 uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
-
-[[StaticArrays]]
-deps = ["Compat", "InteractiveUtils", "LinearAlgebra", "Random"]
-git-tree-sha1 = "39adecbac9304fe6991920bd10fc67b67766275f"
-uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "0.7.2"
 
 [[Test]]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

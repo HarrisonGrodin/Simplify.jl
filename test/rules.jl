@@ -2,21 +2,22 @@ using SymReduce: PatternRule, EvalRule
 
 @testset "Rule" begin
     @testset "PatternRule" begin
-        @test normalize(@term((x + 0) + 0), PatternRule{Term}(@term(a + 0), @term(a))) == @term(x + 0)
+        @test normalize(@term(x + 0 + 0), PatternRule{Term}(@term(a + 0), @term(a))) == @term(x + 0)
         @test normalize(@term(y + 1), PatternRule{Term}(@term(a + 0), @term(a))) == @term(y + 1)
         @test normalize(@term(y), PatternRule{Term}(@term(a + 0), @term(a))) == @term(y)
-        @test normalize(@term((x + 0) + 0), TRS(@term(a + 0) => @term(a))) == @term(x)
-        @test normalize(@term((x + 0) + 0), TRS(@term(a + 0) => @term(0 + a))) == @term(0 + (0 + x))
+        @test normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x)))) == @term(g(a))
+        @test_throws ArgumentError("Divergent normalization paths") normalize(@term(f(a, b) where {f::C}), TRS(@term(f(x, y) where {f::C}) => @term(g(x))))
+        @test normalize(@term(x + 0 + 0), TRS(@term(a + 0) => @term(a))) == @term(x)
     end
     @testset "EvalRule" begin
-        @test normalize(@term(2 * 3), EvalRule{Fn{:*,2}}(*)) == @term(6)
-        @test normalize(@term(x * 3), EvalRule{Fn{:*,2}}(*)) == @term(x * 3)
-        @test normalize(@term(2 * y), EvalRule{Fn{:*,2}}(*)) == @term(2 * y)
-        @test normalize(@term("a" * "b"), EvalRule{Fn{:*,2}}(*)) == @term("ab")
-        @test normalize(@term(x + 2 * 3), EvalRule{Fn{:*,2}}(*)) == @term(x + 2 * 3)
-        @test normalize(@term(x + 2 * 3), TRS(EvalRule{Fn{:*,2}}(*))) == @term(x + 6)
-        @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule{Fn{:*,2}}(*))) == @term(6 + 20)
-        @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule{Fn{:+,2}}(+), EvalRule{Fn{:*,2}}(*))) == @term(26)
+        @test normalize(@term(f(2, 3)), EvalRule(:f, *)) == @term(6)
+        @test normalize(@term(f(x, 3)), EvalRule(:f, *)) == @term(f(x, 3))
+        @test normalize(@term(f(2, y)), EvalRule(:f, *)) == @term(f(2, y))
+        @test normalize(@term("a" * "b"), EvalRule(*)) == @term("ab")
+        @test normalize(@term(x + 2 * 3), EvalRule(*)) == @term(x + 2 * 3)
+        @test normalize(@term(x + 2 * 3), TRS(EvalRule(*))) == @term(x + 6)
+        @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(*))) == @term(6 + 20)
+        @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(+), EvalRule(*))) == @term(26)
     end
 end
 
@@ -24,10 +25,9 @@ end
     @testset "STANDARD" begin
         @test normalize(@term(x)) == @term(x)
         @test normalize(@term(x + 0)) == @term(x)
-        @test normalize(@term((y + 0) + 0)) == @term(y)
-        @test_skip normalize(@term(y + 0 + 0)) == @term(y)
+        @test normalize(@term(y + 0 + 0)) == @term(y)
         @test normalize(@term(y * (1 + 2 - 3))) == @term(0)
-        @test normalize(@term(0 + (y + 0))) == @term(y)
+        @test normalize(@term(0 + y + 0)) == @term(y)
         @test normalize(@term(sin(π/3)cos(0) + cos(π/3)sin(0))) == @term(√3 / 2)
     end
 

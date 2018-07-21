@@ -4,33 +4,53 @@ export Term, @term
 
 
 abstract type Term end
+Base.convert(::Type{T}, ex::T) where {T<:Term} = ex
+Base.convert(::Type{Term}, ex, context) = context(ex)
 Base.getindex(t::Term, key, key′, keys...) = getindex(t[key], key′, keys...)
 Base.occursin(a::Term, b::Term) = a == b || any(x -> occursin(a, x), b)
 Base.length(::Term) = 0
 Base.iterate(::Term) = nothing
 Base.iterate(::Term, ::Any) = nothing
 Base.map(f, t::Term) = t
-Base.issubset(a::Term, b::Term) = match(b, a) !== nothing
-Base.show(io::IO, t::Term) = print(io, "@term(", parse(t), ")")
+Base.issubset(a::Term, b::Term) = !isempty(match(b, a))
+Base.show(io::IO, t::Term) = print(io, "@term(", string(t), ")")
+Base.string(t::Term) = string(parse(t))
+
+Base.replace(t::Term, σ::AbstractDict) = haskey(σ, t) ? σ[t] : map(x -> replace(x, σ), t)
 
 
 include("types.jl")
 
 
-Base.parse(::Type{Term}, t::Term) = t
-Base.parse(::Type{Term}, n) = Constant(n)
-function Base.parse(::Type{Term}, x::Symbol)
-    x === :π && return Constant(π)
-    Variable(string(x))
-end
-function Base.parse(::Type{Term}, ex::Expr)
-    ex.head == :$    && return :(parse(Term, $(esc(ex.args[1]))))
-    ex.head == :call || return Expr(ex.head, parse.(Term, ex.args)...)
-    :(Fn{$(Meta.quot(ex.args[1]))}($(parse.(Term, ex.args[2:end])...)))
-end
+const PROPERTY_NAMES = Dict{Symbol,Type{<:Term}}(
+    :A           => Associative,
+    :Assoc       => Associative,
+    :Associative => Associative,
+    :C           => Commutative,
+    :Comm        => Commutative,
+    :Commutative => Commutative,
+    :AC          => Commutative{Associative},
+    :AssociativeCommutative => Commutative{Associative},
+)
 
+macro term(ex::Expr)
+    if ex.head === :where
+        ex, _props = ex.args[1], ex.args[2:end]
+        props = Dict{Symbol,Type}()
+        for prop ∈ _props
+            (prop isa Expr && prop.head == :(::)) || (@warn "Invalid property '$prop'; ignoring"; continue)
+            f, p = prop.args
+            haskey(PROPERTY_NAMES, p) || (@warn "Unknown property '$p'; ignoring"; continue)
+            props[f] = PROPERTY_NAMES[p]
+        end
+        props = AlgebraContext(props, Dict())
+        return :(convert(Term, $(Meta.quot(ex)), $props))
+    end
+
+    :(convert(Term, $(Meta.quot(ex))))
+end
 macro term(ex)
-    parse(Term, ex)
+    :(convert(Term, $(Meta.quot(ex))))
 end
 
 _strategy(::Val{S}) where {S} = string(S)
@@ -43,7 +63,6 @@ macro term(strategy::Symbol, expr)
 end
 
 
-
-include("unify.jl")
+include("match.jl")
 
 end # module

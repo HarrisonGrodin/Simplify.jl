@@ -74,6 +74,7 @@ fn_name(fn::Fn) = fn.name
 Base.iterate(fn::Fn) = iterate(fn.args)
 Base.iterate(fn::Fn, start) = iterate(fn.args, start)
 Base.length(fn::Fn) = length(fn.args)
+Base.hash(fn::Fn, h::UInt) = hash(hash((fn.name, fn.args), hash(Fn)), h)
 Base.getindex(fn::Fn, key) = fn.args[key]
 Base.setindex(fn::Fn, val) = length(val) == length(fn) ? Fn(fn.name, val...) :
     throw(ArgumentError("Invalid number of arguments for $(fn.name)"))
@@ -102,6 +103,7 @@ fn_name(fn::Associative) = fn.name
 Base.iterate(fn::Associative) = iterate(fn.args)
 Base.iterate(fn::Associative, state) = iterate(fn.args, state)
 Base.length(fn::Associative) = length(fn.args)
+Base.hash(fn::Associative, h::UInt) = hash(hash((fn.name, fn.args), hash(Associative)), h)
 Base.getindex(fn::Associative, inds...) = getindex(fn.args, inds...)
 Base.setindex(fn::Associative, val) = Associative(fn.name, val...)
 Base.setindex(fn::Associative, val, key...) = Associative(fn.name, setindex!(copy(fn.args), val, key...))
@@ -129,10 +131,10 @@ fn_name(fn::Commutative) = fn_name(fn.fn)
 Base.iterate(fn::Commutative) = iterate(fn.fn)
 Base.iterate(fn::Commutative, state) = iterate(fn.fn, state)
 Base.length(fn::Commutative) = length(fn.fn)
+Base.hash(fn::Commutative, h::UInt) = hash(hash(fn.fn, hash(typeof(fn))), h)
 Base.getindex(fn::Commutative, inds...) = getindex(fn.fn, inds...)
 Base.setindex(fn::Commutative{T}, val, key...) where {T} = Commutative{T}(setindex(fn.fn, val, key...))
 Base.map(f, fn::F) where {F<:Commutative} = F(map(f, fn.fn))
-Base.hash(fn::F, h::UInt) where {F<:Commutative} = hash([F; fn.fn...], h)
 Base.parse(fn::Commutative) = parse(fn.fn)
 
 # FIXME

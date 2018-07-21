@@ -6,6 +6,7 @@ using Combinatorics: permutations
 
 
 abstract type AbstractContext end
+Base.broadcastable(ctx::AbstractContext) = Ref(ctx)
 
 struct AlgebraContext <: AbstractContext
     props::Dict{Symbol,Type}

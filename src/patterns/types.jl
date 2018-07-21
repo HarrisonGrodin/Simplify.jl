@@ -67,7 +67,7 @@ struct Fn <: Term
 end
 function Base.convert(::Type{Fn}, ex::Expr, context)
     ex.head === :call || throw(ArgumentError("Unable to convert $ex to an Fn; not a function call"))
-    Fn(ex.args...)
+    Fn(ex.args[1], convert.(Term, ex.args[2:end], context)...)
 end
 Base.:(==)(f::Fn, g::Fn) = (f.name == g.name) && (f.args == g.args)
 fn_name(fn::Fn) = fn.name
@@ -79,7 +79,7 @@ Base.getindex(fn::Fn, key) = fn.args[key]
 Base.setindex(fn::Fn, val) = length(val) == length(fn) ? Fn(fn.name, val...) :
     throw(ArgumentError("Invalid number of arguments for $(fn.name)"))
 Base.setindex(fn::Fn, val, key...) = Fn(fn.name, setindex!(copy(fn.args), val, key...))
-Base.map(f, fn::Fn) = Fn(fn.name, map(f, fn.args)...)
+Base.map(f, fn::Fn) = setindex(fn, map(f, fn.args))
 Base.parse(fn::Fn) = Expr(:call, fn.name, parse.(fn.args)...)
 
 
@@ -107,7 +107,7 @@ Base.hash(fn::Associative, h::UInt) = hash(hash((fn.name, fn.args), hash(Associa
 Base.getindex(fn::Associative, inds...) = getindex(fn.args, inds...)
 Base.setindex(fn::Associative, val) = Associative(fn.name, val...)
 Base.setindex(fn::Associative, val, key...) = Associative(fn.name, setindex!(copy(fn.args), val, key...))
-Base.map(f, fn::Associative) = Associative(fn.name, map(f, fn.args)...)
+Base.map(f, fn::Associative) = setindex(fn, map(f, fn.args))
 Base.parse(fn::Associative) = Expr(:call, fn.name, parse.(fn.args)...)
 
 flatten(name, args) = [_flatten.(name, args)...;]
@@ -134,7 +134,7 @@ Base.length(fn::Commutative) = length(fn.fn)
 Base.hash(fn::Commutative, h::UInt) = hash(hash(fn.fn, hash(typeof(fn))), h)
 Base.getindex(fn::Commutative, inds...) = getindex(fn.fn, inds...)
 Base.setindex(fn::Commutative{T}, val, key...) where {T} = Commutative{T}(setindex(fn.fn, val, key...))
-Base.map(f, fn::F) where {F<:Commutative} = F(map(f, fn.fn))
+Base.map(f, fn::Commutative) = setindex(fn, map(f, fn.fn))
 Base.parse(fn::Commutative) = parse(fn.fn)
 
 # FIXME

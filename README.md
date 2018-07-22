@@ -1,2 +1,3 @@
-# SymReduce.jl
-Modular algebraic reduction system
+# Rewrite.jl
+
+Term rewriting in the Julia language.

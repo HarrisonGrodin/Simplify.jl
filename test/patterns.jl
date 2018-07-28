@@ -1,5 +1,5 @@
-using SymReduce.Patterns
-using SymReduce.Patterns: Match, Unify
+using Rewrite.Patterns
+using Rewrite.Patterns: Match, Unify
 
 @testset "Patterns" begin
 

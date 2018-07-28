@@ -1,4 +1,4 @@
-using SymReduce: PatternRule, EvalRule
+using Rewrite: PatternRule, EvalRule
 
 @testset "Rule" begin
     @testset "PatternRule" begin

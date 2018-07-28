@@ -1,4 +1,4 @@
-using SymReduce
+using Rewrite
 using Test
 
 include("patterns.jl")

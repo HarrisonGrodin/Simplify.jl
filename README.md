@@ -1,2 +1,2 @@
-# SymReduce.jl
+# Rewrite.jl
 Modular algebraic reduction system

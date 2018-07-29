@@ -1,4 +1,6 @@
 using Rewrite: PatternRule, EvalRule
+using SpecialSets
+
 
 @testset "Rule" begin
     @testset "PatternRule" begin
@@ -8,6 +10,18 @@ using Rewrite: PatternRule, EvalRule
         @test normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x)))) == @term(g(a))
         @test_throws ArgumentError("Divergent normalization paths") normalize(@term(f(a, b) where {f::C}), TRS(@term(f(x, y) where {f::C}) => @term(g(x))))
         @test normalize(@term(x + 0 + 0), TRS(@term(a + 0) => @term(a))) == @term(x)
+
+        @testset "Predicates" begin
+            nz = Variable(:nz, Nonzero)
+            odd = Variable(:odd, Odd)
+
+            @test normalize(@term(3 / 3), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one(3))
+            @test normalize(@term(2 / 3), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(2 / 3)
+            @test normalize(@term(x / x), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(x / x)
+            @test normalize(@term((2^x) / (2^x)), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one(2^x))
+            @test normalize(@term($odd / $odd), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one($odd))
+            @test_skip normalize(@term(($odd + 2) / ($odd + 2)), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one($odd + 2))
+        end
     end
     @testset "EvalRule" begin
         @test normalize(@term(f(2, 3)), EvalRule(:f, *)) == @term(6)

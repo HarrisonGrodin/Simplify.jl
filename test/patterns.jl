@@ -1,5 +1,7 @@
 using Rewrite.Patterns
 using Rewrite.Patterns: Match, Unify
+using SpecialSets
+
 
 @testset "Patterns" begin
 
@@ -19,6 +21,19 @@ using Rewrite.Patterns: Match, Unify
 
         @test replace(a, Dict(a => b)) == b
         @test replace(a, Dict(x => b)) == a
+
+        @testset "Predicates" begin
+            @test Variable(:x) ≠ Variable(:x, Even)
+
+            nz, p, n = Variable.([:nz, :p, :n], [Nonzero, Positive, Negative])
+
+            @test match(nz, nz) == Match(nz => nz)
+            @test match(@term($nz / $nz), @term(3 / 3)) == Match(nz => @term(3))
+            @test match(@term($nz / $nz), @term(2 / 3)) == zero(Match)
+            @test match(@term($nz / $nz), p) == zero(Match)
+            @test match(@term($nz / $nz), @term($p / $p)) == Match(nz => p)
+            @test match(@term($nz / $nz), @term($n / $p)) == zero(Match)
+        end
     end
 
     @testset "Constant" begin

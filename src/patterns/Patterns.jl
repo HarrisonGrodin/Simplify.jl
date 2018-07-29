@@ -1,11 +1,12 @@
 module Patterns
 
+using SpecialSets
+
 export Term, @term
 
 
 abstract type Term end
 Base.convert(::Type{T}, ex::T) where {T<:Term} = ex
-Base.convert(::Type{Term}, ex, context) = context(ex)
 Base.getindex(t::Term, key, key′, keys...) = getindex(t[key], key′, keys...)
 Base.occursin(a::Term, b::Term) = a == b || any(x -> occursin(a, x), b)
 Base.length(::Term) = 0
@@ -64,5 +65,6 @@ end
 
 
 include("match.jl")
+include("context.jl")
 
 end # module

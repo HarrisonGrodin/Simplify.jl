@@ -5,6 +5,7 @@ version = "0.1.0"
 
 [deps]
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
+SpecialSets = "c6b63f46-9023-11e8-3b28-1f7d8c94880d"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

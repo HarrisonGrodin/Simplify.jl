@@ -1,36 +1,7 @@
-export unify, match
-
-
 import Base: match, setindex
 using Combinatorics: permutations
 
-
-abstract type AbstractContext end
-Base.broadcastable(ctx::AbstractContext) = Ref(ctx)
-
-struct AlgebraContext <: AbstractContext
-    props::Dict{Symbol,Type}
-    consts::Dict{Symbol,Any}
-end
-function (ctx::AlgebraContext)(ex::Expr)
-    ex.head === :call || throw(ArgumentError("Invalid expression head: $(repr(ex.head))"))
-    typ = get(ctx.props, ex.args[1], Fn)
-
-    convert(typ, ex, ctx)
-end
-(ctx::AlgebraContext)(x::Symbol) = haskey(ctx.consts, x) ? convert(Constant, ctx.consts[x]) : convert(Variable, x)
-(ctx::AlgebraContext)(x) = convert(Constant, x)
-
-Base.convert(::Type{T}, ex) where {T<:Term} = convert(T, ex, AlgebraContext(
-    Dict(
-        :+  => Commutative{Associative},
-        :++ => Associative,
-        :*  => Associative,
-    ),
-    Dict(
-        :π  => π,
-    )
-))
+export match, unify
 
 
 mutable struct Match <: AbstractSet{AbstractDict{Term,Term}}
@@ -90,12 +61,20 @@ Match(Set(Dict{Term,Term}[Dict(@term(x)=>@term(a))]))
 ```
 """
 match(pattern::Term, subject::Term) = match(pattern, subject, one(Match))
-match(p::Term, s::Term, Θ, f) = match(p, s, Θ)
+function match(pattern::Term, subject::Term, Θ)
+    image(subject) ⊆ image(pattern) || return zero(Match)
+    Θ(pattern, subject)
+end
+function match(pattern::Term, subject::Term, Θ, f)
+    image(subject) ⊆ image(pattern) || return zero(Match)
+    Θ(pattern, subject, f)
+end
 
-match(x::Variable, t::Term, Θ) = merge(Θ, Match(x => t))
-match(a::Constant{T}, b::Constant{<:T}, Θ) where {T} =
+(Θ::Match)(p::Term, s::Term, f) = Θ(p, s)
+(Θ::Match)(x::Variable, t::Term) = merge(Θ, Match(x => t))
+(Θ::Match)(a::Constant{T}, b::Constant{<:T}) where {T} =
     get(a) == get(b) ? Θ : zero(Match)
-function match(f::Fn, g::Fn, Θ)
+function (Θ::Match)(f::Fn, g::Fn)
     f.name == g.name || return zero(Match)
     for (x, y) ∈ zip(f, g)
         Θ = match(x, y, Θ)
@@ -103,12 +82,12 @@ function match(f::Fn, g::Fn, Θ)
     Θ
 end
 """
-    match(p::F, s::F, Θ::Match) where {F<:Associative} -> Match
+    (Θ::Match)(p::F, s::F) where {F<:Associative} -> Match
 
 Match an associative function call to another associative function call, based on the
 algorithm by [Krebber](https://arxiv.org/abs/1705.00907).
 """
-function match(p::Associative, s::Associative, Θ, f = (xs...) -> Associative(p.name, xs...))
+function (Θ::Match)(p::Associative, s::Associative, f = (xs...) -> Associative(p.name, xs...))
     p.name == s.name || return zero(Match)
 
     m, n = length(p), length(s)
@@ -136,13 +115,13 @@ function match(p::Associative, s::Associative, Θ, f = (xs...) -> Associative(p.
     end
     Θᵣ
 end
-function match(p::F, s::F, Θ) where {F<:Commutative}
+function (Θ::Match)(p::F, s::F) where {F<:Commutative}
     map(permutations(s)) do perm  # FIXME: efficiency
         s_fn = setindex(s.fn, perm)
         match(p.fn, s_fn, Θ, (args...) -> F(setindex(s.fn, args)))
     end |> Base.splat(union)
 end
-match(::Term, ::Term, Θ) = zero(Match)
+(Θ::Match)(::Term, ::Term) = zero(Match)
 
 
 

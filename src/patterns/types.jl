@@ -11,10 +11,13 @@ Return the name of a given function, or `nothing` if the argument is not a funct
 fn_name(::Term) = nothing
 
 
-struct Variable <: Term
+struct Variable{I<:AbstractSet} <: Term
     name::Symbol
-    index::UInt
+    index::Int
+    image::I
 end
+Variable(name, index::Int) = Variable(name, index, TypeSet(Any))
+Variable(name, image::AbstractSet) = Variable(name, 0, image)
 Variable(name::Symbol) = Variable(name, 0)
 function Variable(name::String)
     vk = Dict(v => k for (k, v) ∈ pairs(SUBSCRIPTS))
@@ -46,9 +49,12 @@ const SUBSCRIPTS = Dict{Int,Char}(
     8 => '₈',
     9 => '₉',
 )
-subscript(x::Integer) = map(reverse(digits(x))) do c
-    SUBSCRIPTS[c]
-end |> join
+function subscript(x::Integer)
+    result = map(reverse(digits(abs(x)))) do c
+        SUBSCRIPTS[c]
+    end |> join
+    x < 0 ? "₋$result" : result
+end
 
 
 struct Constant{T} <: Term

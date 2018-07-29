@@ -4,6 +4,8 @@ export Term, @term
 
 
 abstract type Term end
+Base.convert(::Type{T}, ex::T) where {T<:Term} = ex
+Base.convert(::Type{Term}, ex, context) = context(ex)
 Base.getindex(t::Term, key, key′, keys...) = getindex(t[key], key′, keys...)
 Base.occursin(a::Term, b::Term) = a == b || any(x -> occursin(a, x), b)
 Base.length(::Term) = 0
@@ -14,30 +16,10 @@ Base.issubset(a::Term, b::Term) = !isempty(match(b, a))
 Base.show(io::IO, t::Term) = print(io, "@term(", string(t), ")")
 Base.string(t::Term) = string(parse(t))
 
-Base.replace(t::Term, σ::AbstractDict) = map(x -> replace(x, σ), haskey(σ, t) ? σ[t] : t)
+Base.replace(t::Term, σ::AbstractDict) = haskey(σ, t) ? σ[t] : map(x -> replace(x, σ), t)
 
 
 include("types.jl")
-
-
-const PROPERTIES = Dict{Symbol,Type{<:Term}}(
-    :+  => Commutative{Associative},
-    :++ => Associative,
-    :*  => Associative,
-)
-
-Base.parse(::Type{Term}, props, t::Term) = t
-Base.parse(::Type{Term}, props, n) = Constant(n)
-function Base.parse(::Type{Term}, props, x::Symbol)
-    x === :π && return Constant(π)
-    Variable(string(x))
-end
-function Base.parse(::Type{Term}, props, ex::Expr)
-    ex.head == :call || return Expr(ex.head, parse.(Term, props, ex.args)...)
-    T = get(props, ex.args[1], Fn)
-    parse(T, props, ex)
-end
-Base.parse(T::Type{Term}, x) = parse(T, PROPERTIES, x)
 
 
 const PROPERTY_NAMES = Dict{Symbol,Type{<:Term}}(
@@ -61,14 +43,14 @@ macro term(ex::Expr)
             haskey(PROPERTY_NAMES, p) || (@warn "Unknown property '$p'; ignoring"; continue)
             props[f] = PROPERTY_NAMES[p]
         end
-    else
-        props = PROPERTIES
+        props = AlgebraContext(props, Dict())
+        return :(convert(Term, $(Meta.quot(ex)), $props))
     end
 
-    :(parse(Term, $props, $(Meta.quot(ex))))
+    :(convert(Term, $(Meta.quot(ex))))
 end
 macro term(ex)
-    :(parse(Term, $(Meta.quot(ex))))
+    :(convert(Term, $(Meta.quot(ex))))
 end
 
 _strategy(::Val{S}) where {S} = string(S)

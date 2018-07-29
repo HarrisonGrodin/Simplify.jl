@@ -1,4 +1,4 @@
-module SymReduce
+module Rewrite
 
 export Patterns, @term, normalize
 

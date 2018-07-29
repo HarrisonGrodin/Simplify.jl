@@ -1,7 +1,8 @@
 export TermRewritingSystem, TRS
 export rules
 
-import SymReduce.Patterns: @term
+import .Patterns: @term
+using .Patterns: fn_name
 
 
 abstract type Rule{T} end
@@ -29,16 +30,19 @@ function normalize(t::T, (l, r)::PatternRule{U}) where {U,T<:U}
     first(xs)
 end
 
-struct EvalRule{T<:Term} <: Rule{Term}
+struct EvalRule <: Rule{Term}
+    name::Symbol
     f
 end
-EvalRule(f::Function, arity::Integer) = EvalRule{Fn{nameof(f),arity}}(f)
-function normalize(t::T, r::EvalRule{T}) where {T<:Term}
-    all(arg -> arg isa Constant, t) || return t
+EvalRule(f::Function) = EvalRule(nameof(f), f)
+function normalize(t::Term, r::EvalRule)
+    fn_name(t) == r.name || return t
+    all_constants(t...) || return t
     args = get.(collect(t))
     Constant(r.f(args...))
 end
-normalize(t::Term, ::EvalRule) = t
+all_constants(::Constant...) = true
+all_constants(::Term...) = false
 
 
 struct AbstractRewritingSystem{T}
@@ -59,7 +63,7 @@ macro term(::Val{:RULES}, ex)
         p, a, b = pair.args
         @assert p == :(=>)
         a, b = Meta.quot(a), Meta.quot(b)
-        :(PatternRule{Term}(parse(Term, $a), parse(Term, $b)))
+        :(PatternRule{Term}(convert(Term, $a), convert(Term, $b)))
     end
     :(TermRewritingSystem([$(args...)]))
 end
@@ -68,8 +72,6 @@ rules(set::Symbol=:STANDARD, args...; kwargs...) = rules(Val(set), args...; kwar
 
 rules(::Val{:STANDARD}) = [
     @term RULES [
-        # +x         => x  # FIXME: Associative matches x as +x
-        # *(x        => x  # FIXME: Associative matches x as *(x)
         x + 0      => x
         0 + x      => x
         x * 1      => x
@@ -81,10 +83,9 @@ rules(::Val{:STANDARD}) = [
         x * inv(y) => x / y
     ];
     TRS(
-        EvalRule{Commutative{Associative{:+}}}(+),
-        EvalRule(-, 1),
-        EvalRule(-, 2),
-        EvalRule{Associative{:*}}(*),
+        EvalRule(+),
+        EvalRule(-),
+        EvalRule(*),
     );
     rules(:BOOLEAN);
     rules(:TRIGONOMETRY);
@@ -119,9 +120,9 @@ rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!) = [
         $neg($neg(x)) => x
     ];
     TRS(
-        EvalRule{Fn{and,2}}(&),
-        EvalRule{Fn{or,2}}(|),
-        EvalRule{Fn{neg,1}}(!),
+        EvalRule(and, &),
+        EvalRule(or,  |),
+        EvalRule(neg, !),
     );
 ]
 

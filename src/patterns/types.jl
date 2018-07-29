@@ -34,6 +34,8 @@ function Variable(name::String)
     Variable(Symbol(name[1:i]...), index)
 end
 Base.convert(::Type{Variable}, name::Symbol, context) = Variable(name)
+Base.:(==)(x::Variable{T}, y::Variable{T}) where {T} =
+    (x.name, x.index, x.image) == (y.name, y.index, y.image)
 Base.string(x::Variable) = x.index == 0 ? string(x.name) : string(x.name, subscript(x.index))
 Base.parse(x::Variable) = Symbol(string(x))
 

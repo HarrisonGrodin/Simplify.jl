@@ -24,6 +24,9 @@ using SpecialSets
 
         @testset "Predicates" begin
             @test Variable(:x) ≠ Variable(:x, Even)
+            @test Variable(:x, Even) == Variable(:x, Even)
+            @test Variable(:x, Set([1])) == Variable(:x, Set([1]))
+            @test Variable(:x, Set([1])) ≠ Variable(:x, Set([2]))
 
             nz, p, n = Variable.([:nz, :p, :n], [Nonzero, Positive, Negative])
 

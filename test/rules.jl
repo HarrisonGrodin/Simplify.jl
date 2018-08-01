@@ -47,6 +47,7 @@ end
     end
 
     @testset "ABSOLUTE_VALUE" begin
+        @test normalize(@term(abs(x))) == @term(abs(x))
         @test normalize(@term(abs(-x))) == @term(abs(x))
         @test normalize(@term(abs(0))) == @term(0)
         @test normalize(@term(abs(-3))) == @term(3)
@@ -55,6 +56,12 @@ end
         @test normalize(@term(abs(-(5x)))) == @term(5abs(x))
         @test normalize(@term(abs(x * y))) == @term(abs(x) * abs(y))
         @test normalize(@term(abs(x / y))) == @term(abs(x) / abs(y))
+        @test normalize(@term(abs(abs(x)))) == @term(abs(x))
+        @test normalize(@term(abs(x^2))) == @term(x^2)
+
+        d1, d2 = Variable.([:d1, :d2], [Set([1,2]), Set([-1,1])])
+        @test normalize(@term(abs($d1))) == @term($d1)
+        @test normalize(@term(abs($d2))) == @term(abs($d2))
     end
 
     @testset "BOOLEAN" begin

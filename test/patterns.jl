@@ -138,6 +138,7 @@ using SpecialSets
 
             @test replace(@term(w * x * (y * x)), Dict(@term(x) => @term(z))) == @term(w * z * y * z)
             @test_skip replace(@term(x * y * z), Dict(@term(y * z) => @term(2))) == @term(x * 2)
+
         end
 
         @testset "commutative" begin
@@ -156,9 +157,11 @@ using SpecialSets
                     @test replace(@term(f(x, y)), Dict(@term(x) => @term(1))) == @term(f(y, 1))
                     @test replace(@term(f(f(x, y), z)), Dict(@term(f(x, y)) => 2)) == @term(f(z, 2))
                 end
+
             end
 
             @testset "flat" begin
+
                 with_context(AlgebraContext(Dict(:f => [Flat, Orderless]))) do
                     @test replace(@term(f(x, y, z)), Dict(@term(y) => @term(x^3))) == @term(f(x, x^3, z))
                     @test_skip replace(@term(f(x, y, z)), Dict(@term(f(x, z)) => :w)) == @term(f(w, y))
@@ -205,6 +208,7 @@ using SpecialSets
 
                 @test match(@term(f() + f()), @term(f() + g())) ==
                     zero(Match)
+
             end
 
         end

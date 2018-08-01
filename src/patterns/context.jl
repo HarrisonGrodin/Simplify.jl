@@ -17,8 +17,8 @@ function (i::StandardImages)(fn::Fn)
     sig == (:^, 2) && i(fn[2]) ⊆ Even && return Nonnegative
     sig == (:abs, 1) && return Nonnegative
     sig == (:sqrt, 1) && return Nonnegative
-    sig == (:sin, 1) && return GreaterThan(-1, true) ∩ LessThan(1, true)
-    sig == (:cos, 1) && return GreaterThan(-1, true) ∩ LessThan(1, true)
+    sig == (:sin, 1) && return GreaterThan{Number}(-1, true) ∩ LessThan{Number}(1, true)
+    sig == (:cos, 1) && return GreaterThan{Number}(-1, true) ∩ LessThan{Number}(1, true)
     TypeSet(Number)
 end
 (::StandardImages)(x::Constant) = Set([get(x)])

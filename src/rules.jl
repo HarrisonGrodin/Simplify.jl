@@ -2,6 +2,8 @@ export TermRewritingSystem, TRS
 export rules
 
 import .Patterns: @term
+using SpecialSets
+
 
 abstract type Rule{T} end
 
@@ -100,17 +102,21 @@ rules(::Val{:STANDARD}) = [
 ]
 
 
-rules(::Val{:ABSOLUTE_VALUE}) = [
-    @term RULES [
-        # abs(a) => a ≥ 0 ? a : -a # FIXME
-        abs(-a) => abs(a)
-        abs(a * b) => abs(a) * abs(b)
-        abs(a / b) => abs(a) / abs(b)
+function rules(::Val{:ABSOLUTE_VALUE})
+    nn, neg = Variable.([:nn, :neg], [Nonnegative, Negative])
+    [
+        @term RULES [
+            abs($nn)   => $nn
+            abs($neg)  => -$neg
+            abs(-a)    => abs(a)
+            abs(a * b) => abs(a) * abs(b)
+            abs(a / b) => abs(a) / abs(b)
+        ]
+        TRS(
+            EvalRule(abs),
+        )
     ]
-    TRS(
-        EvalRule(abs),
-    )
-]
+end
 
 
 rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!) = [

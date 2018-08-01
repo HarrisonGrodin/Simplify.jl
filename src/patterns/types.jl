@@ -33,7 +33,7 @@ function Variable(name::String)
 
     Variable(Symbol(name[1:i]...), index)
 end
-Base.convert(::Type{Variable}, name::Symbol, context) = Variable(name)
+Base.convert(::Type{Variable}, name::Symbol) = Variable(name)
 Base.:(==)(x::Variable{T}, y::Variable{T}) where {T} =
     (x.name, x.index, x.image) == (y.name, y.index, y.image)
 Base.string(x::Variable) = x.index == 0 ? string(x.name) : string(x.name, subscript(x.index))
@@ -62,8 +62,10 @@ end
 struct Constant{T} <: Term
     value::T
 end
-Base.convert(::Type{Constant{T}}, value, context) where {T} = Constant{T}(value)
-Base.convert(::Type{Constant}, value, context) = Constant(value)
+Base.convert(::Type{Constant{T}}, value::Constant{T}) where {T} = value
+Base.convert(::Type{Constant{T}}, value) where {T} = Constant{T}(value)
+Base.convert(::Type{Constant}, value::Constant) = value
+Base.convert(::Type{Constant}, value) = Constant(value)
 Base.get(x::Constant) = x.value
 Base.parse(x::Constant) = get(x)
 
@@ -73,9 +75,9 @@ struct Fn <: Term
     args::Vector{Term}
     Fn(name, args...) = new(name, collect(args))
 end
-function Base.convert(::Type{Fn}, ex::Expr, context)
+function Base.convert(::Type{Fn}, ex::Expr)
     ex.head === :call || throw(ArgumentError("Unable to convert $ex to an Fn; not a function call"))
-    Fn(ex.args[1], convert.(Term, ex.args[2:end], context)...)
+    Fn(ex.args[1], convert.(Term, ex.args[2:end])...)
 end
 Base.:(==)(f::Fn, g::Fn) = (f.name == g.name) && (f.args == g.args)
 fn_name(fn::Fn) = fn.name
@@ -100,11 +102,11 @@ struct Associative <: Term
         new(name, collect(flat))
     end
 end
-function Base.convert(::Type{Associative}, ex::Expr, context)
-    ex.head === :call || error("LOSE FIXME")
+function Base.convert(::Type{Associative}, ex::Expr)
+    ex.head === :call || throw(ArgumentError("Unable to convert $ex to an Associative; not a function call"))
     args = ex.args[2:end]
-    length(args) == 1 && return convert(Term, args[1], context)
-    Associative(ex.args[1], map(x -> convert(Term, x, context), args)...)
+    length(args) == 1 && return convert(Term, args[1])
+    Associative(ex.args[1], map(x -> convert(Term, x), args)...)
 end
 Base.:(==)(f::Associative, g::Associative) = (f.name == g.name) && (f.args == g.args)
 fn_name(fn::Associative) = fn.name
@@ -131,8 +133,8 @@ struct Commutative{T<:Term} <: Term
     end
 end
 Commutative(fn) = Commutative{typeof(fn)}(fn)
-Base.convert(::Type{Commutative{T}}, ex, context) where {T} = Commutative(convert(T, ex, context))
-Base.convert(::Type{Commutative}, ex, context) = convert(Commutative{Fn}, ex, context)
+Base.convert(::Type{Commutative{T}}, ex::Expr) where {T} = Commutative{T}(convert(T, ex))
+Base.convert(::Type{Commutative}, ex::Expr) = convert(Commutative{Fn}, ex)
 Base.:(==)(f::F, g::F) where {F<:Commutative} = f.fn == g.fn
 Base.:(==)(::Commutative, ::Commutative) = false
 fn_name(fn::Commutative) = fn_name(fn.fn)

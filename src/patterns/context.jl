@@ -1,3 +1,5 @@
+export with_context, set_context!, AlgebraContext
+
 """
     image(x, t::T) -> AbstractSet
 
@@ -32,14 +34,15 @@ struct AlgebraContext <: AbstractContext
     props::Dict{Symbol,Type}
     consts::Dict{Symbol,Any}
     images::AbstractImages
+    AlgebraContext(props = Dict(), consts = Dict(), images = StandardImages()) =
+        new(props, consts, images)
 end
-AlgebraContext(props, consts) = AlgebraContext(props, consts, StandardImages())
 
 
 function Base.convert(::Type{Term}, ex::Expr, ctx::AlgebraContext)
     ex.head === :call || throw(ArgumentError("Invalid expression head: $(repr(ex.head))"))
     typ = get(ctx.props, ex.args[1], Fn)
-    convert(typ, ex, ctx)
+    convert(typ, ex)
 end
 Base.convert(::Type{Term}, x::Symbol, ctx::AlgebraContext) =
     haskey(ctx.consts, x) ? convert(Constant, ctx.consts[x]) : convert(Variable, x)
@@ -60,5 +63,21 @@ const DEFAULT_CONTEXT = AlgebraContext(
     ),
     StandardImages(),
 )
-Base.convert(::Type{T}, ex) where {T<:Term} = convert(T, ex, DEFAULT_CONTEXT)
-image(x) = image(x, DEFAULT_CONTEXT)
+
+
+CONTEXT = DEFAULT_CONTEXT
+Base.convert(::Type{Term}, ex) = convert(Term, ex, CONTEXT)
+image(x) = image(x, CONTEXT)
+
+set_context!(context::AbstractContext) = (global CONTEXT = context)
+
+function with_context(f, context::AbstractContext)
+    global CONTEXT
+    old = CONTEXT
+    CONTEXT = context
+    try
+        f()
+    finally
+        CONTEXT = old
+    end
+end

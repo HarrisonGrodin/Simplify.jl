@@ -1,5 +1,5 @@
 using Rewrite.Patterns
-using Rewrite.Patterns: Match, Unify
+using Rewrite.Patterns: Match, Unify, AlgebraContext
 using SpecialSets
 
 
@@ -105,10 +105,15 @@ using SpecialSets
         a = Associative(:+, Associative(:+, @term(x), @term(y)), @term(z))
         @test a == Associative(:+, @term(x), @term(y), @term(z))
 
-        @test @term(f(w, x, f(y, z)) where {f::A}) == @term(f(w, x, y, z) where {f::A})
-        @test length(@term(f(w, x, g(y, z)) where {f::A,g::A})) == 3
+        with_context(AlgebraContext(Dict(:f => Associative))) do
+            @test @term(f(w, x, f(y, z))) == @term(f(w, x, y, z))
+            @test length(@term(f(w, x, g(y, z)))) == 3
 
-        @test @term(f(x) where {f::A}) == @term(x)
+            @test @term(f(x)) == @term(x)
+
+            @test match(@term(f(g(X), g(Y), Z)), @term(f(g(a), g(b), g(c), g(d), g(e)))) ==
+                Match(Dict(@term(X)=>@term(a), @term(Y)=>@term(b), @term(Z)=>@term(f(g(c), g(d), g(e)))))
+        end
 
         @test match(@term(x), a) ==
             Match(@term(x) => a)
@@ -139,9 +144,6 @@ using SpecialSets
         @test match(@term(g() * f()), @term(f() * g())) ==
             zero(Match)
 
-        @test match(@term(f(g(X), g(Y), Z) where {f::A}), @term(f(g(a), g(b), g(c), g(d), g(e)) where {f::A})) ==
-            Match(Dict(@term(X)=>@term(a), @term(Y)=>@term(b), @term(Z)=>@term(f(g(c), g(d), g(e)) where {f::A})))
-
         @test replace(@term(w * x * (y * x)), Dict(@term(x) => @term(z))) == @term(w * z * y * z)
         @test_skip replace(@term(x * y * z), Dict(@term(y * z) => @term(2))) == @term(x * 2)
     end
@@ -149,31 +151,40 @@ using SpecialSets
     @testset "Commutative" begin
 
         @testset "Fn" begin
-            c = Commutative(Fn(:f, @term(x), @term(y)))
-            @test c == @term(f(x, y) where {f::C})
+            with_context(AlgebraContext(Dict(:f => Commutative))) do
+                c = Commutative(Fn(:f, @term(x), @term(y)))
+                @test c == @term(f(y, x))
 
-            @test @term(f(f(x, y), z) where f::C)[1] isa Commutative{Fn}
+                @test @term(f(f(x, y), z))[1] isa Commutative{Fn}
 
-            @test match(@term(x), c) ==
-                Match(@term(x) => c)
+                @test match(@term(x), c) ==
+                    Match(@term(x) => c)
 
-            @test match(@term(f(x, 1) where {f::C}), @term(f(1, y) where {f::C})) ==
-                Match(@term(x) => @term(y))
+                @test match(@term(f(x, 1)), @term(f(1, y))) ==
+                    Match(@term(x) => @term(y))
 
-            @test match(@term(f(g(x), g(y), z) where {f::C}), @term(f(h(a), g(b), g(c)) where {f::C})) == Match(
-                Dict(@term(x) => @term(b), @term(y) => @term(c), @term(z) => @term(h(a))),
-                Dict(@term(x) => @term(c), @term(y) => @term(b), @term(z) => @term(h(a))),
-            )
+                @test match(@term(f(g(x), g(y), z)), @term(f(h(a), g(b), g(c))))::Match == Match(
+                    Dict(@term(x) => @term(b), @term(y) => @term(c), @term(z) => @term(h(a))),
+                    Dict(@term(x) => @term(c), @term(y) => @term(b), @term(z) => @term(h(a))),
+                )
 
-            @test replace(@term(f(x, y) where f::C), Dict(@term(x) => @term(1))) == @term(f(y, 1) where f::C)
-            @test replace(@term(f(f(x, y), z) where f::C), Dict(@term(f(x, y) where f::C) => 2)) == @term(f(z, 2) where f::C)
+                @test replace(@term(f(x, y)), Dict(@term(x) => @term(1))) == @term(f(y, 1))
+                @test replace(@term(f(f(x, y), z)), Dict(@term(f(x, y)) => 2)) == @term(f(z, 2))
+            end
         end
 
         @testset "Associative" begin
-            ac = Commutative(Associative(:f, @term(x), @term(y), @term(z)))
-            @test ac == @term(f(x, y, z) where {f::AC})
+            with_context(AlgebraContext(Dict(:f => Commutative{Associative}))) do
+                ac = Commutative(Associative(:f, @term(x), @term(y), @term(z)))
+                @test ac == @term(f(x, y, z))
 
-            @test @term((x+y+b*a) where {(+)::AC,(*)::AC}) == @term((a*b+x+y) where {(+)::AC,(*)::AC})
+                @test replace(@term(f(x, y, z)), Dict(@term(y) => @term(x^3))) == @term(f(x, x^3, z))
+                @test_skip replace(@term(f(x, y, z)), Dict(@term(f(x, z)) => :w)) == @term(f(w, y))
+            end
+
+            with_context(AlgebraContext(Dict(:+ => Commutative{Associative}, :* => Commutative{Associative}))) do
+                @test @term((x+y+b*a)) == @term((a*b+x+y))
+            end
 
             @test match(@term(x), @term(a + b)) ==
                 Match(@term(x) => @term(a + b))
@@ -212,9 +223,6 @@ using SpecialSets
 
             @test match(@term(f() + f()), @term(f() + g())) ==
                 zero(Match)
-
-            @test replace(@term(f(x, y, z) where f::AC), Dict(@term(y) => @term(x^3))) == @term(f(x, x^3, z) where f::AC)
-            @test_skip replace(@term(f(x, y, z) where f::AC), Dict(@term(f(x, z) where f::AC) => :w)) == @term(f(w, y) where f::AC)
         end
 
     end

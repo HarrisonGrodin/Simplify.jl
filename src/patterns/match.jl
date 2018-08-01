@@ -116,10 +116,11 @@ function (Θ::Match)(p::Associative, s::Associative, f = (xs...) -> Associative(
     Θᵣ
 end
 function (Θ::Match)(p::F, s::F) where {F<:Commutative}
-    map(permutations(s)) do perm  # FIXME: efficiency
+    results = map(permutations(s)) do perm  # FIXME: efficiency
         s_fn = setindex(s.fn, perm)
         match(p.fn, s_fn, Θ, (args...) -> F(setindex(s.fn, args)))
-    end |> Base.splat(union)
+    end 
+    reduce(union, results)
 end
 (Θ::Match)(::Term, ::Term) = zero(Match)
 
@@ -189,7 +190,6 @@ Unify with 2 entries:
   @term(y) => @term(z)
 ```
 """
-function unify(t::Term, u::Term) end
 unify(t::Term, u::Term) = _unify((t, u))
 
 

@@ -31,7 +31,7 @@ abstract type AbstractContext end
 Base.broadcastable(ctx::AbstractContext) = Ref(ctx)
 
 struct AlgebraContext <: AbstractContext
-    props::Dict{Symbol,Vector{Property}}
+    props::Dict{Symbol,Vector{Type{<:Property}}}
     consts::Dict{Symbol,Any}
     images::AbstractImages
     AlgebraContext(props = Dict(), consts = Dict(), images = StandardImages()) =
@@ -79,4 +79,7 @@ function with_context(f, context::AbstractContext)
 end
 
 
-hasproperty(p::Property, fn::Fn) = haskey(CONTEXT.props, fn.name) && p ∈ CONTEXT.props[fn.name]
+hasproperty(::Type{Flat}, fn::Fn) =
+    length(fn) ≥ 2 && haskey(CONTEXT.props, fn.name) && Flat ∈ CONTEXT.props[fn.name]
+hasproperty(::Type{Orderless}, fn::Fn) =
+    length(fn) ≥ 2 && haskey(CONTEXT.props, fn.name) && Orderless ∈ CONTEXT.props[fn.name]

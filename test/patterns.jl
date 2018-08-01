@@ -107,8 +107,6 @@ using SpecialSets
                 @test @term(f(w, x, f(y, z))) == @term(f(w, x, y, z))
                 @test length(@term(f(w, x, g(y, z)))) == 3
 
-                @test @term(f(x)) == @term(x)
-
                 @test match(@term(f(g(X), g(Y), Z)), @term(f(g(a), g(b), g(c), g(d), g(e)))) ==
                     Match(Dict(@term(X)=>@term(a), @term(Y)=>@term(b), @term(Z)=>@term(f(g(c), g(d), g(e)))))
             end

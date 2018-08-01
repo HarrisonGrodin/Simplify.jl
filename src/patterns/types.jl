@@ -78,13 +78,7 @@ struct Fn <: Term
 end
 function Base.convert(::Type{Fn}, ex::Expr)
     ex.head === :call || throw(ArgumentError("Unable to convert $ex to an Fn; not a function call"))
-    fn = Fn(ex.args[1], convert.(Term, ex.args[2:end])...)
-    if hasproperty(Flat, fn)
-        flatten!(fn)
-        length(fn) == 1 && return convert(Term, first(fn))
-    end
-    hasproperty(Orderless, fn) && sort!(fn)
-    fn
+    Fn(ex.args[1], convert.(Term, ex.args[2:end])...)
 end
 Base.:(==)(f::Fn, g::Fn) = (f.name == g.name) && (f.args == g.args)
 Base.iterate(fn::Fn) = iterate(fn.args)

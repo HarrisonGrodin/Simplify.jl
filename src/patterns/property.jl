@@ -4,11 +4,8 @@ export Flat, Orderless
 
 abstract type Property end
 
-struct FlatProp <: Property end
-struct OrderlessProp <: Property end
-
-const Flat = FlatProp()
-const Orderless = OrderlessProp()
+struct Flat <: Property end
+struct Orderless <: Property end
 
 
 hasproperty(::Property, x) = false

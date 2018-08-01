@@ -85,12 +85,14 @@ end
 match(::Term, ::Term, Θ) = zero(Match)
 
 
-function match_standard(f, g, Θ)
+function match_standard(f::Fn, g::Fn, Θ)
+    @assert f.name === g.name
     length(f) == length(g) || return zero(Match)
 
     for (x, y) ∈ zip(f, g)
         Θ = match(x, y, Θ)
     end
+
     Θ
 end
 """
@@ -100,6 +102,8 @@ Match an associative function call to another associative function call, based o
 algorithm by [Krebber](https://arxiv.org/abs/1705.00907).
 """
 function match_flat(p::Fn, s::Fn, Θ)
+    @assert p.name === s.name
+
     m, n = length(p), length(s)
     m > n && return zero(Match)
     n_free = n - m
@@ -125,7 +129,9 @@ function match_flat(p::Fn, s::Fn, Θ)
     end
     Θᵣ
 end
-function match_orderless(p, s, Θ, callback)
+function match_orderless(p::Fn, s::Fn, Θ, callback)
+    @assert p.name === s.name
+
     results = map(permutations(s)) do perm  # FIXME: efficiency
         s_fn = Fn(s.name, perm...; clean=false)
         callback(p, s_fn, Θ)

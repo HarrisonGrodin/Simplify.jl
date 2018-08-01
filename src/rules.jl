@@ -79,16 +79,38 @@ rules(::Val{:STANDARD}) = [
         x * 0      => 0
         0 * x      => 0
         x + -y     => x - y
+        0 - x      => -x
         x - x      => 0
         x * inv(y) => x / y
-    ];
+        -x / y     => -(x / y)
+        x / -y     => -(x / y)
+        x ^ 0      => one(x)
+        # x^(a + b)  => x^a * x^b  # FIXME
+    ]
     TRS(
         EvalRule(+),
         EvalRule(-),
         EvalRule(*),
-    );
-    rules(:BOOLEAN);
-    rules(:TRIGONOMETRY);
+        EvalRule(zero),
+        EvalRule(one),
+    )
+    rules(:ABSOLUTE_VALUE)
+    rules(:BOOLEAN)
+    rules(:LOGARITHM)
+    rules(:TRIGONOMETRY)
+]
+
+
+rules(::Val{:ABSOLUTE_VALUE}) = [
+    @term RULES [
+        # abs(a) => a ≥ 0 ? a : -a # FIXME
+        abs(-a) => abs(a)
+        abs(a * b) => abs(a) * abs(b)
+        abs(a / b) => abs(a) / abs(b)
+    ]
+    TRS(
+        EvalRule(abs),
+    )
 ]
 
 
@@ -118,6 +140,27 @@ rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!) = [
     );
 ]
 
+#=
+FIXME Notation
+rules(::Val{:LAPLACE}) = @term RULES [
+    laplace(1) => 1/s #1
+    laplace(e^(a*t)) => 1/(s-a) #2
+    laplace(t^n) where n isa Int => factorial(n) / s^(n+1)
+]
+=#
+
+rules(::Val{:LOGARITHM}) = @term RULES [
+    log(b, b) => 1
+    log(b, 1) => 0
+
+    log(b, b ^ x) => x
+    b ^ log(b, x) => x
+
+    log(b, x ^ r) => r * log(b, x)
+
+    log(b, x * y) => log(b, x) + log(b, y)
+    log(b, x / y) => log(b, x) - log(b, y)
+]
 
 rules(::Val{:TRIGONOMETRY}) = @term RULES [
     # Common angles
@@ -161,15 +204,51 @@ rules(::Val{:TRIGONOMETRY}) = @term RULES [
     sin(-θ) => -sin(θ)
     cos(-θ) => cos(θ)
     tan(-θ) => tan(θ)
+    csc(-θ) => -csc(θ)
+    sec(-θ) => sec(θ)
+    cot(-θ) => -cot(θ)
 
-    # Angle sum and difference identities
-    sin(α)cos(β) + cos(α)sin(β) => sin(α + β)
-    sin(α)cos(β) - cos(α)sin(β) => sin(α - β)
-    cos(α)cos(β) - sin(α)sin(β) => cos(α + β)
-    cos(α)cos(β) + sin(α)sin(β) => cos(α - β)
+    # Periodic formulae
+    #=
+    FIXME where clause requires predicates
+    sin(θ + 2πn) where n isa Int => sin(θ)
+    cos(θ + 2πn) where n isa Int => cos(θ)
+    tan(θ + πn) where n isa Int => tan(θ)
+    csc(θ + 2πn) where n isa Int => csc(θ)
+    sec(θ + 2πn) where n isa Int => sec(θ)
+    cot(θ + πn) where n isa Int => cot(θ)
+    =#
 
     # Double-angle formulae
     2sin(θ)cos(θ) => sin(2θ)
     cos(θ)^2 - sin(θ)^2 => cos(2θ)
     2cos(θ)^2 - 1 => cos(2θ)
+
+    # Sum and difference formulae
+    sin(α)cos(β) + cos(α)sin(β) => sin(α + β)
+    sin(α)cos(β) - cos(α)sin(β) => sin(α - β)
+    cos(α)cos(β) - sin(α)sin(β) => cos(α + β)
+    cos(α)cos(β) + sin(α)sin(β) => cos(α - β)
+    (tan(α)tan(β)) / (1 - tan(α)tan(β)) => tan(α + β)
+    (tan(α)tan(β)) / (1 + tan(α)tan(β)) => tan(α - β)
+
+    # Product to sum formulae
+    cos(α - β) - cos(α + β) => 2sin(α)sin(β)
+    cos(α - β) + cos(α + β) => 2cos(α)cos(β)
+    sin(α + β) + sin(α - β) => 2sin(α)cos(β)
+    sin(α + β) - sin(α - β) => 2cos(α)sin(β)
+
+    # Sum to product formulae
+    2sin((α + β) / 2)cos(α - β / 2) => sin(α) + sin(β)
+    2cos((α + β) / 2)sin(α - β / 2) => sin(α) - sin(β)
+    2cos((α + β) / 2)cos(α - β / 2) => cos(α) + cos(β)
+    -2sin((α + β) / 2)sin(α - β / 2) => cos(α) - cos(β)
+
+    # Cofunction formulae
+    sin(π/2-θ) => cos(θ)
+    cos(π/2-θ) => sin(θ)
+    csc(π/2-θ) => sec(θ)
+    sec(π/2-θ) => csc(θ)
+    tan(π/2-θ) => cot(θ)
+    cot(π/2-θ) => tan(θ)
 ]

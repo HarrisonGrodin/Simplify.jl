@@ -76,9 +76,12 @@ end
     get(a) == get(b) ? Θ : zero(Match)
 function (Θ::Match)(f::Fn, g::Fn)
     f.name == g.name || return zero(Match)
+    length(f) == length(g) || return zero(Match)
+
     for (x, y) ∈ zip(f, g)
         Θ = match(x, y, Θ)
     end
+
     Θ
 end
 """

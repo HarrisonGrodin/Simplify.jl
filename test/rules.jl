@@ -28,34 +28,46 @@ end
         @test normalize(@term(y + 0 + 0)) == @term(y)
         @test normalize(@term(y * (1 + 2 - 3))) == @term(0)
         @test normalize(@term(0 + y + 0)) == @term(y)
-        @test normalize(@term(sin(π/3)cos(0) + cos(π/3)sin(0))) == @term(√3 / 2)
     end
 
     @testset "ABSOLUTE_VALUE" begin
-        @test normalize(@term(abs(-x))) == @term(-abs(x))
+        @test normalize(@term(abs(-x))) == @term(abs(x))
+        @test normalize(@term(abs(0))) == @term(0)
+        @test normalize(@term(abs(-3))) == @term(3)
+        @test normalize(@term(abs(3))) == @term(3)
+        @test normalize(@term(abs(2x))) == @term(2abs(x))
+        @test normalize(@term(abs(-(5x)))) == @term(5abs(x))
         @test normalize(@term(abs(x * y))) == @term(abs(x) * abs(y))
-        @test normalize(@term(abs(x / y))) == @term(abs(x) / abs(z))
+        @test normalize(@term(abs(x / y))) == @term(abs(x) / abs(y))
     end
 
     @testset "BOOLEAN" begin
-        @test normalize(@term(and(x, true))) == @term(x)
-        @test normalize(@term(or(x, and(x, y)))) == @term(x)
-        @test normalize(@term(or(y, neg(y)))) == @term(true)
-        @test normalize(@term(and(y, y))) == @term(y)
-        @test normalize(@term(neg(neg(x)))) == @term(x)
+        @test normalize(@term(x & true)) == @term(x)
+        @test normalize(@term(x | (x & y))) == @term(x)
+        @test normalize(@term(y | !y)) == @term(true)
+        @test normalize(@term(y & y)) == @term(y)
+        @test normalize(@term(!(!x))) == @term(x)
+        @test normalize(@term(!(!x & !x))) == @term(x)
+        @test normalize(@term(!(!x & !x) & !x)) == @term(false)
+        @test normalize(@term(!(!x & !x) | x)) == @term(x)
     end
 
     @testset "LOGARITHM" begin
         @test normalize(@term(log(b, x * y))) == @term(log(b, x) + log(b, y))
         @test normalize(@term(log(b, 1))) == @term(0)
         @test normalize(@term(log(b, b ^ x))) == @term(x)
+        @test normalize(@term(log(x, x * y))) == @term(1 + log(x, y))
+        @test normalize(@term(log(b, 1/x))) == @term(-log(b, x))
+        @test_skip normalize(@term(b ^ log(b, x*b))) == @term(x * b)
+        @test_skip normalize(@term(b ^ (log(b, x) + log(b, b)))) == @term(x * b)
     end
 
     @testset "TRIGONOMETRY" begin
-        @test normalize(@term(sin(0) * tan(π / 4)), :TRIGONOMETRY) == @term(0 * 1)
+        @test normalize(@term(sin(0) * tan(π / 4))) == @term(0)
+        @test normalize(@term(sin(π/3)cos(0) + cos(π/3)sin(0))) == @term(√3 / 2)
         @test normalize(@term(one(θ) + tan(θ) ^ 2)) == @term(sec(θ) ^ 2)
         @test normalize(@term(tan(π / 6))) == @term(√3 / 3)
-        @test normalize(@term(1 / (sin(-θ) / cos(-θ)))) == @term(cot(θ))
+        @test normalize(@term(1 / (sin(-θ) / cos(-θ)))) == @term(-cot(θ))
         @test normalize(@term(2 * cos((α + β) / 2) * cos(α - β / 2))) == @term(cos(α) + cos(β))
         @test normalize(@term((tan(α) * tan(β)) / (1 + tan(α) * tan(β)))) == @term(tan(α - β))
         @test normalize(@term(csc(π/2 - θ))) == @term(sec(θ))

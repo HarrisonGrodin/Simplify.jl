@@ -35,7 +35,7 @@ using Rewrite.Patterns: Match, Unify
 
         @test match(_1, _1) == one(Match)
         @test _1 ⊆ _1
-        @test match(_2, _1) |> isempty
+        @test match(_2, _1) == zero(Match)
         @test _1 ⊈ _2
         @test match(@term(f(x, 0)), @term(f(y, 0))) == Match(@term(x) => @term(y))
 
@@ -71,10 +71,11 @@ using Rewrite.Patterns: Match, Unify
         @test match(f(), f()) == one(Match)
         @test match(f(x), f(y)) == Match(x => y)
         @test f(y) ⊆  f(x)
-        @test match(f(x), g(x)) |> isempty
-        @test match(f(f(), x), f(g(), y)) |> isempty
-        @test match(f(x, x), f(y, z)) |> isempty
-        @test match(f(x), g(x, y)) |> isempty
+        @test match(f(x), g(x)) == zero(Match)
+        @test match(f(f(), x), f(g(), y)) == zero(Match)
+        @test match(f(x, x), f(y, z)) == zero(Match)
+        @test match(f(x), g(x, y)) == zero(Match)
+        @test match(@term(x - x), @term(-y)) == zero(Match)
         @test g(x, y) ⊈ f(x)
         @test @term(f(a, 2, b)) ⊈ @term(f(x, 2, x))
 

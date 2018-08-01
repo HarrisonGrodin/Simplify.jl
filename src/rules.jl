@@ -79,25 +79,38 @@ rules(::Val{:STANDARD}) = [
         x * 0      => 0
         0 * x      => 0
         x + -y     => x - y
+        0 - x      => -x
         x - x      => 0
         x * inv(y) => x / y
-    ];
+        -x / y     => -(x / y)
+        x / -y     => -(x / y)
+        x ^ 0      => one(x)
+        # x^(a + b)  => x^a * x^b  # FIXME
+    ]
     TRS(
         EvalRule(+),
         EvalRule(-),
         EvalRule(*),
-    );
+        EvalRule(zero),
+        EvalRule(one),
+    )
     rules(:ABSOLUTE_VALUE)
-    rules(:BOOLEAN);
-    rules(:TRIGONOMETRY);
+    rules(:BOOLEAN)
+    rules(:LOGARITHM)
+    rules(:TRIGONOMETRY)
 ]
 
 
-rules(::Val{:ABSOLUTE_VALUE}) = @term RULES [
-    # abs(a) => a ≥ 0 ? a : -a # FIXME
-    abs(-a) => abs(a)
-    abs(a * b) => abs(a) * abs(b)
-    abs(a / b) => abs(a) / abs(b)
+rules(::Val{:ABSOLUTE_VALUE}) = [
+    @term RULES [
+        # abs(a) => a ≥ 0 ? a : -a # FIXME
+        abs(-a) => abs(a)
+        abs(a * b) => abs(a) * abs(b)
+        abs(a / b) => abs(a) / abs(b)
+    ]
+    TRS(
+        EvalRule(abs),
+    )
 ]
 
 

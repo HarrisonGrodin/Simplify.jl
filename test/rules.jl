@@ -1,4 +1,6 @@
 using Rewrite: PatternRule, EvalRule
+using SpecialSets
+
 
 @testset "Rule" begin
     @testset "PatternRule" begin
@@ -6,8 +8,22 @@ using Rewrite: PatternRule, EvalRule
         @test normalize(@term(y + 1), PatternRule{Term}(@term(a + 0), @term(a))) == @term(y + 1)
         @test normalize(@term(y), PatternRule{Term}(@term(a + 0), @term(a))) == @term(y)
         @test normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x)))) == @term(g(a))
-        @test_throws ArgumentError("Divergent normalization paths") normalize(@term(f(a, b) where {f::C}), TRS(@term(f(x, y) where {f::C}) => @term(g(x))))
+        with_context(AlgebraContext(Dict(:f => Commutative))) do
+            @test_throws ArgumentError("Divergent normalization paths") normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x))))
+        end
         @test normalize(@term(x + 0 + 0), TRS(@term(a + 0) => @term(a))) == @term(x)
+
+        @testset "Predicates" begin
+            nz = Variable(:nz, Nonzero)
+            odd = Variable(:odd, Odd)
+
+            @test normalize(@term(3 / 3), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one(3))
+            @test normalize(@term(2 / 3), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(2 / 3)
+            @test normalize(@term(x / x), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(x / x)
+            @test normalize(@term((2^x) / (2^x)), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one(2^x))
+            @test normalize(@term($odd / $odd), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one($odd))
+            @test_skip normalize(@term(($odd + 2) / ($odd + 2)), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one($odd + 2))
+        end
     end
     @testset "EvalRule" begin
         @test normalize(@term(f(2, 3)), EvalRule(:f, *)) == @term(6)
@@ -31,6 +47,7 @@ end
     end
 
     @testset "ABSOLUTE_VALUE" begin
+        @test normalize(@term(abs(x))) == @term(abs(x))
         @test normalize(@term(abs(-x))) == @term(abs(x))
         @test normalize(@term(abs(0))) == @term(0)
         @test normalize(@term(abs(-3))) == @term(3)
@@ -39,6 +56,12 @@ end
         @test normalize(@term(abs(-(5x)))) == @term(5abs(x))
         @test normalize(@term(abs(x * y))) == @term(abs(x) * abs(y))
         @test normalize(@term(abs(x / y))) == @term(abs(x) / abs(y))
+        @test normalize(@term(abs(abs(x)))) == @term(abs(x))
+        @test normalize(@term(abs(x^2))) == @term(x^2)
+
+        d1, d2 = Variable.([:d1, :d2], [Set([1,2]), Set([-1,1])])
+        @test normalize(@term(abs($d1))) == @term($d1)
+        @test normalize(@term(abs($d2))) == @term(abs($d2))
     end
 
     @testset "BOOLEAN" begin

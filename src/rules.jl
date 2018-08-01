@@ -87,12 +87,13 @@ rules(::Val{:STANDARD}) = [
         EvalRule(-),
         EvalRule(*),
     );
+    rules(:ABSOLUTE_VALUE)
     rules(:BOOLEAN);
     rules(:TRIGONOMETRY);
 ]
 
 
-rules(::Val{ABSOLUTE_VALUE}) = @term RULES [
+rules(::Val{:ABSOLUTE_VALUE}) = @term RULES [
     # abs(a) => a ≥ 0 ? a : -a # FIXME
     abs(-a) => abs(a)
     abs(a * b) => abs(a) * abs(b)

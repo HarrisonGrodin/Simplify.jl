@@ -11,7 +11,7 @@ abstract type AbstractImages end
 
 struct StandardImages <: AbstractImages end
 function (i::StandardImages)(fn::Fn)
-    sig = fn_name(fn), length(fn)
+    sig = fn.name, length(fn)
     sig == (:^, 2) && i(fn[1]) ⊆ Positive && return Positive
     sig == (:^, 2) && i(fn[1]) ⊆ Zero && return Set([0, 1])
     sig == (:^, 2) && i(fn[2]) ⊆ Even && return Nonnegative
@@ -31,7 +31,7 @@ abstract type AbstractContext end
 Base.broadcastable(ctx::AbstractContext) = Ref(ctx)
 
 struct AlgebraContext <: AbstractContext
-    props::Dict{Symbol,Type}
+    props::Dict{Symbol,Vector{Property}}
     consts::Dict{Symbol,Any}
     images::AbstractImages
     AlgebraContext(props = Dict(), consts = Dict(), images = StandardImages()) =
@@ -39,11 +39,7 @@ struct AlgebraContext <: AbstractContext
 end
 
 
-function Base.convert(::Type{Term}, ex::Expr, ctx::AlgebraContext)
-    ex.head === :call || throw(ArgumentError("Invalid expression head: $(repr(ex.head))"))
-    typ = get(ctx.props, ex.args[1], Fn)
-    convert(typ, ex)
-end
+Base.convert(::Type{Term}, ex::Expr, ctx::AlgebraContext) = convert(Fn, ex)
 Base.convert(::Type{Term}, x::Symbol, ctx::AlgebraContext) =
     haskey(ctx.consts, x) ? convert(Constant, ctx.consts[x]) : convert(Variable, x)
 Base.convert(::Type{Term}, t::Term, ::AlgebraContext) = t
@@ -54,9 +50,9 @@ image(x, ctx::AlgebraContext) = image(x, ctx.images)
 
 const DEFAULT_CONTEXT = AlgebraContext(
     Dict(
-        :+  => Commutative{Associative},
-        :++ => Associative,
-        :*  => Associative,
+        :+  => [Flat, Orderless],
+        :++ => [Flat],
+        :*  => [Flat],
     ),
     Dict(
         :π  => π,
@@ -81,3 +77,6 @@ function with_context(f, context::AbstractContext)
         CONTEXT = old
     end
 end
+
+
+hasproperty(p::Property, fn::Fn) = haskey(CONTEXT.props, fn.name) && p ∈ CONTEXT.props[fn.name]

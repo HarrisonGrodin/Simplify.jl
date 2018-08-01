@@ -61,35 +61,45 @@ Match(Set(Dict{Term,Term}[Dict(@term(x)=>@term(a))]))
 ```
 """
 match(pattern::Term, subject::Term) = match(pattern, subject, one(Match))
-function match(pattern::Term, subject::Term, Θ)
-    image(subject) ⊆ image(pattern) || return zero(Match)
-    Θ(pattern, subject)
-end
-function match(pattern::Term, subject::Term, Θ, f)
-    image(subject) ⊆ image(pattern) || return zero(Match)
-    Θ(pattern, subject, f)
-end
 
-(Θ::Match)(p::Term, s::Term, f) = Θ(p, s)
-(Θ::Match)(x::Variable, t::Term) = merge(Θ, Match(x => t))
-(Θ::Match)(a::Constant{T}, b::Constant{<:T}) where {T} =
+function match(x::Variable, t::Term, Θ)
+    image(t) ⊆ image(x) || return zero(Match)
+    merge(Θ, Match(x => t))
+end
+match(a::Constant{T}, b::Constant{<:T}, Θ) where {T} =
     get(a) == get(b) ? Θ : zero(Match)
-function (Θ::Match)(f::Fn, g::Fn)
-    f.name == g.name || return zero(Match)
+function match(f::Fn, g::Fn, Θ)
+    f.name === g.name || return zero(Match)
+    image(g) ⊆ image(f) || return zero(Match)
+
+    flat = hasproperty(Flat, f) && hasproperty(Flat, g)
+    orderless = hasproperty(Orderless, f) && hasproperty(Orderless, g)
+
+    callback = flat ? match_flat : match_standard
+    if orderless
+        match_orderless(f, g, Θ, callback)
+    else
+        callback(f, g, Θ)
+    end
+end
+match(::Term, ::Term, Θ) = zero(Match)
+
+
+function match_standard(f, g, Θ)
+    length(f) == length(g) || return zero(Match)
+
     for (x, y) ∈ zip(f, g)
         Θ = match(x, y, Θ)
     end
     Θ
 end
 """
-    (Θ::Match)(p::F, s::F) where {F<:Associative} -> Match
+    match_flat(p::Fn, s::Fn, Θ::Match) -> Match
 
 Match an associative function call to another associative function call, based on the
 algorithm by [Krebber](https://arxiv.org/abs/1705.00907).
 """
-function (Θ::Match)(p::Associative, s::Associative, f = (xs...) -> Associative(p.name, xs...))
-    p.name == s.name || return zero(Match)
-
+function match_flat(p::Fn, s::Fn, Θ)
     m, n = length(p), length(s)
     m > n && return zero(Match)
     n_free = n - m
@@ -106,7 +116,7 @@ function (Θ::Match)(p::Associative, s::Associative, f = (xs...) -> Associative(
                 l_sub += k[j]
                 j += 1
             end
-            s′ = l_sub > 0 ? f(s[i:i+l_sub]...) : s[i]
+            s′ = l_sub > 0 ? Fn(p.name, s[i:i+l_sub]...) : s[i]
             Θ′ = match(pₗ, s′, Θ′)
             isempty(Θ′) && break
             i += l_sub + 1
@@ -115,14 +125,13 @@ function (Θ::Match)(p::Associative, s::Associative, f = (xs...) -> Associative(
     end
     Θᵣ
 end
-function (Θ::Match)(p::F, s::F) where {F<:Commutative}
+function match_orderless(p, s, Θ, callback)
     results = map(permutations(s)) do perm  # FIXME: efficiency
-        s_fn = setindex(s.fn, perm)
-        match(p.fn, s_fn, Θ, (args...) -> F(setindex(s.fn, args)))
-    end 
+        s_fn = Fn(s.name, perm...; clean=false)
+        callback(p, s_fn, Θ)
+    end
     reduce(union, results)
 end
-(Θ::Match)(::Term, ::Term) = zero(Match)
 
 
 

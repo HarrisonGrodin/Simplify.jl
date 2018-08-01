@@ -2,8 +2,6 @@ export TermRewritingSystem, TRS
 export rules
 
 import .Patterns: @term
-using .Patterns: fn_name
-
 
 abstract type Rule{T} end
 
@@ -35,12 +33,13 @@ struct EvalRule <: Rule{Term}
     f
 end
 EvalRule(f::Function) = EvalRule(nameof(f), f)
-function normalize(t::Term, r::EvalRule)
-    fn_name(t) == r.name || return t
-    all_constants(t...) || return t
-    args = get.(collect(t))
+function normalize(fn::Fn, r::EvalRule)
+    fn.name == r.name || return fn
+    all_constants(fn...) || return fn
+    args = get.(collect(fn))
     Constant(r.f(args...))
 end
+normalize(t::Term, ::EvalRule) = t
 all_constants(::Constant...) = true
 all_constants(::Term...) = false
 

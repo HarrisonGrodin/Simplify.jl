@@ -1,14 +1,6 @@
-export Variable, Constant, Fn, Associative, Commutative
+export Variable, Constant, Fn
 
 import Base: setindex
-
-
-"""
-    fn_name(::Term) -> Union{Symbol, Nothing}
-
-Return the name of a given function, or `nothing` if the argument is not a function.
-"""
-fn_name(::Term) = nothing
 
 
 struct Variable{I<:AbstractSet} <: Term
@@ -73,87 +65,49 @@ Base.parse(x::Constant) = get(x)
 struct Fn <: Term
     name::Symbol
     args::Vector{Term}
-    Fn(name, args...) = new(name, collect(args))
+    function Fn(name, args...; clean=true)
+        fn = new(name, collect(args))
+
+        if clean
+            hasproperty(Flat, fn) && flatten!(fn)
+            hasproperty(Orderless, fn) && sort!(fn)
+        end
+
+        fn
+    end
 end
 function Base.convert(::Type{Fn}, ex::Expr)
     ex.head === :call || throw(ArgumentError("Unable to convert $ex to an Fn; not a function call"))
-    Fn(ex.args[1], convert.(Term, ex.args[2:end])...)
+    fn = Fn(ex.args[1], convert.(Term, ex.args[2:end])...)
+    if hasproperty(Flat, fn)
+        flatten!(fn)
+        length(fn) == 1 && return convert(Term, first(fn))
+    end
+    hasproperty(Orderless, fn) && sort!(fn)
+    fn
 end
 Base.:(==)(f::Fn, g::Fn) = (f.name == g.name) && (f.args == g.args)
-fn_name(fn::Fn) = fn.name
 Base.iterate(fn::Fn) = iterate(fn.args)
 Base.iterate(fn::Fn, start) = iterate(fn.args, start)
 Base.length(fn::Fn) = length(fn.args)
 Base.hash(fn::Fn, h::UInt) = hash(hash((fn.name, fn.args), hash(Fn)), h)
 Base.getindex(fn::Fn, key) = fn.args[key]
-Base.setindex(fn::Fn, val) = length(val) == length(fn) ? Fn(fn.name, val...) :
-    throw(ArgumentError("Invalid number of arguments for $(fn.name)"))
 Base.setindex(fn::Fn, val, key...) = Fn(fn.name, setindex!(copy(fn.args), val, key...))
-Base.map(f, fn::Fn) = setindex(fn, map(f, fn.args))
+Base.map(f, fn::Fn) = Fn(fn.name, map(f, fn.args)...)
 Base.parse(fn::Fn) = Expr(:call, fn.name, parse.(fn.args)...)
 
 
-struct Associative <: Term
-    name::Symbol
-    args::Vector{Term}
-    function Associative(name, args...)
-        flat = flatten(name, args)
-        length(flat) ≥ 2 || throw(ArgumentError("Not enough arguments to construct an Associative"))
-        new(name, collect(flat))
-    end
+function flatten!(fn::Fn)
+    flat = flatten!(fn.name, fn)
+    append!(empty!(fn.args), flat)
+    fn
 end
-function Base.convert(::Type{Associative}, ex::Expr)
-    ex.head === :call || throw(ArgumentError("Unable to convert $ex to an Associative; not a function call"))
-    args = ex.args[2:end]
-    length(args) == 1 && return convert(Term, args[1])
-    Associative(ex.args[1], map(x -> convert(Term, x), args)...)
-end
-Base.:(==)(f::Associative, g::Associative) = (f.name == g.name) && (f.args == g.args)
-fn_name(fn::Associative) = fn.name
-Base.iterate(fn::Associative) = iterate(fn.args)
-Base.iterate(fn::Associative, state) = iterate(fn.args, state)
-Base.length(fn::Associative) = length(fn.args)
-Base.hash(fn::Associative, h::UInt) = hash(hash((fn.name, fn.args), hash(Associative)), h)
-Base.getindex(fn::Associative, inds...) = getindex(fn.args, inds...)
-Base.setindex(fn::Associative, val) = Associative(fn.name, val...)
-Base.setindex(fn::Associative, val, key...) = Associative(fn.name, setindex!(copy(fn.args), val, key...))
-Base.map(f, fn::Associative) = setindex(fn, map(f, fn.args))
-Base.parse(fn::Associative) = Expr(:call, fn.name, parse.(fn.args)...)
+flatten!(name, fn::Fn) = fn.name === name ? [flatten!.(name, fn.args)...;] : [fn]
+flatten!(name, x) = x
 
-flatten(name, args) = [_flatten.(name, args)...;]
-_flatten(name, fn::Associative) = fn.name === name ? [_flatten.(name, fn.args)...;] : fn
-_flatten(name, x) = x
-
-
-struct Commutative{T<:Term} <: Term
-    fn::T
-    function Commutative{T}(fn) where {T}
-        args = collect(fn)
-        new{T}(setindex(fn, sort(args, lt=_sort_lt)))
-    end
-end
-Commutative(fn) = Commutative{typeof(fn)}(fn)
-Base.convert(::Type{Commutative{T}}, ex::Expr) where {T} = Commutative{T}(convert(T, ex))
-Base.convert(::Type{Commutative}, ex::Expr) = convert(Commutative{Fn}, ex)
-Base.:(==)(f::F, g::F) where {F<:Commutative} = f.fn == g.fn
-Base.:(==)(::Commutative, ::Commutative) = false
-fn_name(fn::Commutative) = fn_name(fn.fn)
-Base.iterate(fn::Commutative) = iterate(fn.fn)
-Base.iterate(fn::Commutative, state) = iterate(fn.fn, state)
-Base.length(fn::Commutative) = length(fn.fn)
-Base.hash(fn::Commutative, h::UInt) = hash(hash(fn.fn, hash(typeof(fn))), h)
-Base.getindex(fn::Commutative, inds...) = getindex(fn.fn, inds...)
-Base.setindex(fn::Commutative{T}, val, key...) where {T} = Commutative{T}(setindex(fn.fn, val, key...))
-Base.map(f, fn::Commutative) = setindex(fn, map(f, fn.fn))
-Base.parse(fn::Commutative) = parse(fn.fn)
-
+Base.sort!(fn::Fn) = (sort!(fn.args; lt = _sort_lt); fn)
 # FIXME
-const _order = [Commutative, Associative, Fn, Variable, Constant]
-_sort_lt(f::Commutative, g::Commutative) = _sort_lt(f.fn, g.fn)
-function _sort_lt(f::Associative, g::Associative)
-    f.name == g.name || return f.name < g.name
-    length(f) > length(g) ? true : all(p -> _sort_lt(p...), zip(f, g))
-end
+const _order = [Fn, Variable, Constant]
 function _sort_lt(f::Fn, g::Fn)
     f.name == g.name || return f.name < g.name
     length(f) == length(g) || return length(f) > length(g)

@@ -8,7 +8,7 @@ using SpecialSets
         @test normalize(@term(y + 1), PatternRule{Term}(@term(a + 0), @term(a))) == @term(y + 1)
         @test normalize(@term(y), PatternRule{Term}(@term(a + 0), @term(a))) == @term(y)
         @test normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x)))) == @term(g(a))
-        with_context(AlgebraContext(Dict(:f => Commutative))) do
+        with_context(AlgebraContext(Dict(:f => [Orderless]))) do
             @test_throws ArgumentError("Divergent normalization paths") normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x))))
         end
         @test normalize(@term(x + 0 + 0), TRS(@term(a + 0) => @term(a))) == @term(x)

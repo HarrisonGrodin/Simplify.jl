@@ -21,6 +21,7 @@ Base.string(t::Term) = string(parse(t))
 Base.replace(t::Term, σ::AbstractDict) = haskey(σ, t) ? σ[t] : map(x -> replace(x, σ), t)
 
 
+include("property.jl")
 include("types.jl")
 
 

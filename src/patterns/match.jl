@@ -97,9 +97,12 @@ match(a::Constant{T}, b::Constant{<:T}, Θ) where {T} =
     get(a) == get(b) ? Θ : zero(Match)
 function match(f::Fn, g::Fn, Θ)
     f.name == g.name || return zero(Match)
+    length(f) == length(g) || return zero(Match)
+
     for (x, y) ∈ zip(f, g)
         Θ = match(x, y, Θ)
     end
+
     Θ
 end
 """

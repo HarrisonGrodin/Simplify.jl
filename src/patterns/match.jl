@@ -122,7 +122,7 @@ function (Θ::Match)(p::F, s::F) where {F<:Commutative}
     results = map(permutations(s)) do perm  # FIXME: efficiency
         s_fn = setindex(s.fn, perm)
         match(p.fn, s_fn, Θ, (args...) -> F(setindex(s.fn, args)))
-    end 
+    end
     reduce(union, results)
 end
 (Θ::Match)(::Term, ::Term) = zero(Match)

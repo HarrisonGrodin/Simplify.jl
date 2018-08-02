@@ -79,7 +79,15 @@ function with_context(f, context::AbstractContext)
 end
 
 
-hasproperty(::Type{Flat}, fn::Fn) =
-    length(fn) ≥ 2 && haskey(CONTEXT.props, fn.name) && Flat ∈ CONTEXT.props[fn.name]
-hasproperty(::Type{Orderless}, fn::Fn) =
-    length(fn) ≥ 2 && haskey(CONTEXT.props, fn.name) && Orderless ∈ CONTEXT.props[fn.name]
+function property(::Type{Flat}, fn::Fn)
+    length(fn) ≥ 2 || return nothing
+    haskey(CONTEXT.props, fn.name) || return nothing
+    Flat ∈ CONTEXT.props[fn.name] || return nothing
+    Flat()
+end
+function property(::Type{Orderless}, fn::Fn)
+    length(fn) ≥ 2 || return nothing
+    haskey(CONTEXT.props, fn.name) || return nothing
+    Orderless ∈ CONTEXT.props[fn.name] || return nothing
+    Orderless()
+end

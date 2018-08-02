@@ -8,4 +8,5 @@ struct Flat <: Property end
 struct Orderless <: Property end
 
 
-hasproperty(::Property, x) = false
+property(::Type{<:Property}, x) = nothing
+hasproperty(P::Type{<:Property}, x) = property(P, x) !== nothing

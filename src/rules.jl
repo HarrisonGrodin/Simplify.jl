@@ -242,7 +242,7 @@ rules(::Val{:TRIGONOMETRY}) = @term RULES [
     # Negative angles
     sin(-θ) => -sin(θ)
     cos(-θ) => cos(θ)
-    tan(-θ) => tan(θ)
+    tan(-θ) => -tan(θ)
     csc(-θ) => -csc(θ)
     sec(-θ) => sec(θ)
     cot(-θ) => -cot(θ)

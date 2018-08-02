@@ -8,3 +8,19 @@
 
 ## Motivation
 Term rewriting is essential to a wide variety of fields, including elementary, boolean, and abstract algebras. Because existing symbolic simplification tools in Julia typically operate within fixed domains, it is difficult to obtain a level of control which allows for flexible inclusion and exclusion of specific mathematical properties. Rewrite.jl is a term rewriting library for Julia that simplifies algebraic expressions based on custom, domain-specific axioms.
+
+## Approach
+Rewrite.jl uses matching, normalization, and completion, which will be elaborated in the next sections.
+
+### Matching
+An expression can be matched against a user-defined pattern.
+
+#### Predicates
+
+
+#### Properties
+
+### Normalization
+
+
+### Completion

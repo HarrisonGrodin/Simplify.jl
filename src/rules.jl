@@ -2,6 +2,7 @@ export TermRewritingSystem, TRS
 export rules
 
 import .Patterns: @term
+using .Patterns: hasproperty, Flat, Orderless
 using SpecialSets
 
 
@@ -35,11 +36,44 @@ struct EvalRule <: Rule{Term}
     f
 end
 EvalRule(f::Function) = EvalRule(nameof(f), f)
+(r::EvalRule)(args...) = Constant(r.f(args...))
 function normalize(fn::Fn, r::EvalRule)
     fn.name == r.name || return fn
-    all_constants(fn...) || return fn
-    args = get.(collect(fn))
-    Constant(r.f(args...))
+    args = collect(fn)
+
+    if hasproperty(Flat, fn)
+
+        if hasproperty(Orderless, fn)
+            inds = findall(x -> x isa Constant, args)
+            length(inds) ≥ 2 || return fn
+            consts = get.(args[inds])
+            result = r(consts...)
+
+            length(inds) == length(fn) && return result
+
+            deleteat!(args, inds)
+            return Fn(fn.name, result, args...)
+        else
+            i = firstindex(args)
+
+            while i ≤ lastindex(args) - 1
+                a, b = args[i:i+1]
+
+                if a isa Constant && b isa Constant
+                    deleteat!(args, i)
+                    args[i] = r(get(a), get(b))
+                else
+                    i += 1
+                end
+            end
+
+            length(args) == 1 && return first(args)
+            return Fn(fn.name, args...)
+        end
+    end
+
+    all_constants(args...) || return fn
+    r(get.(args)...)
 end
 normalize(t::Term, ::EvalRule) = t
 all_constants(::Constant...) = true

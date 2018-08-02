@@ -34,6 +34,20 @@ using SpecialSets
         @test normalize(@term(x + 2 * 3), TRS(EvalRule(*))) == @term(x + 6)
         @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(*))) == @term(6 + 20)
         @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(+), EvalRule(*))) == @term(26)
+
+        with_context(AlgebraContext(Dict(:f => [Flat]))) do
+            @test normalize(@term(f(a, 1, 2, b, 3, c)), EvalRule(:f, +)) == @term(f(a, 3, b, 3, c))
+            @test normalize(@term(f(1, 2, 3, 4, 5)), EvalRule(:f, +)) == @term(15)
+            @test normalize(@term(f(1, 2, x, 3, 4, 5)), EvalRule(:f, +)) == @term(f(3, x, 12))
+            @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), EvalRule(:f, +)) == @term(f(3, x, y, 12))
+        end
+
+        with_context(AlgebraContext(Dict(:f => [Flat, Orderless]))) do
+            @test normalize(@term(f(a, 1, 2, b, 3, c)), EvalRule(:f, +)) == @term(f(6, a, b, c))
+            @test normalize(@term(f(1, 2, 3, 4, 5)), EvalRule(:f, +)) == @term(15)
+            @test normalize(@term(f(1, 2, x, 3, 4, 5)), EvalRule(:f, +)) == @term(f(15, x))
+            @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), EvalRule(:f, +)) == @term(f(15, x, y))
+        end
     end
 end
 

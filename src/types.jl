@@ -1,6 +1,27 @@
+export Term
 export Variable, Constant, Fn
+export @term
 
-import Base: setindex
+
+macro term(ex)
+    :(convert(Term, $(Meta.quot(ex))))
+end
+
+
+abstract type Term end
+Base.convert(::Type{Term}, ex::Term) = ex
+Base.convert(::Type{T}, ex::T) where {T<:Term} = ex
+Base.getindex(t::Term, key, key′, keys...) = getindex(t[key], key′, keys...)
+Base.occursin(a::Term, b::Term) = a == b || any(x -> occursin(a, x), b)
+Base.length(::Term) = 0
+Base.iterate(::Term) = nothing
+Base.iterate(::Term, ::Any) = nothing
+Base.map(f, t::Term) = t
+Base.issubset(a::Term, b::Term) = !isempty(match(b, a))
+Base.show(io::IO, t::Term) = print(io, "@term(", string(t), ")")
+Base.string(t::Term) = string(parse(t))
+
+Base.replace(t::Term, σ::AbstractDict) = haskey(σ, t) ? σ[t] : map(x -> replace(x, σ), t)
 
 
 struct Variable{I<:AbstractSet} <: Term
@@ -86,7 +107,6 @@ Base.iterate(fn::Fn, start) = iterate(fn.args, start)
 Base.length(fn::Fn) = length(fn.args)
 Base.hash(fn::Fn, h::UInt) = hash(hash((fn.name, fn.args), hash(Fn)), h)
 Base.getindex(fn::Fn, key) = fn.args[key]
-Base.setindex(fn::Fn, val, key...) = Fn(fn.name, setindex!(copy(fn.args), val, key...))
 Base.map(f, fn::Fn) = Fn(fn.name, map(f, fn.args)...)
 Base.parse(fn::Fn) = Expr(:call, fn.name, parse.(fn.args)...)
 
@@ -102,12 +122,16 @@ flatten!(name, x) = x
 Base.sort!(fn::Fn) = (sort!(fn.args; lt = _sort_lt); fn)
 # FIXME
 const _order = [Fn, Variable, Constant]
-function _sort_lt(f::Fn, g::Fn)
-    f.name == g.name || return f.name < g.name
-    length(f) == length(g) || return length(f) > length(g)
-    all(p -> _sort_lt(p...), zip(f, g))
-end
-_sort_lt(a::Constant, b::Constant) = repr(get(a)) < repr(get(b))
-_sort_lt(a::Variable, b::Variable) = a.name < b.name ? true : a.index < b.index
-_sort_lt(::A, ::B) where {A<:Term,B<:Term} =
-    findfirst((T -> A <: T), _order) < findfirst((T -> B <: T), _order)
+_sort_lt(a, b) = sprint(show, a) < sprint(show, b)
+# function _sort_lt(f::Fn, g::Fn)
+#     @show f g
+#     f.name == g.name || return f.name < g.name
+#     @show 'a'
+#     length(f) == length(g) || return length(f) > length(g)
+#     @show 'b'
+#     all(p -> _sort_lt(p...), zip(f, g))
+# end
+# _sort_lt(a::Constant, b::Constant) = repr(get(a)) < repr(get(b))
+# _sort_lt(a::Variable, b::Variable) = a.name < b.name ? true : a.index < b.index
+# _sort_lt(::A, ::B) where {A<:Term,B<:Term} =
+#     findfirst((T -> A <: T), _order) < findfirst((T -> B <: T), _order)

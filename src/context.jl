@@ -1,4 +1,7 @@
+using SpecialSets
+
 export with_context, set_context!, AlgebraContext
+
 
 """
     image(x, t::T) -> AbstractSet

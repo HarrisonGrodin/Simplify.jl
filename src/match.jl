@@ -1,4 +1,4 @@
-import Base: match, setindex
+import Base: match
 using Combinatorics: permutations
 
 export match, unify

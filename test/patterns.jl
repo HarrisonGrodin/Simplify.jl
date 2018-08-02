@@ -1,5 +1,4 @@
-using Rewrite.Patterns
-using Rewrite.Patterns: Match, Unify, AlgebraContext
+using Rewrite: Match, Unify, AlgebraContext
 using SpecialSets
 
 

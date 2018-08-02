@@ -14,7 +14,7 @@ Rewrite.jl uses matching, normalization, and completion, which will be elaborate
 
 ### Matching
 An expression can be matched against a user-defined pattern. The expression matches the pattern if:
-1.  Name of expression matches name of pattern.
+1.  Function name of expression matches function name of pattern.
 2.  All children of expression match corresponding children of pattern.
 ##### Examples
 ```
@@ -40,15 +40,26 @@ match(f(a, a), f(cos(y), 15)) => no match
 It is often useful to include specific range of values for variables, such as even numbers, nonzero numbers, or integers in the set `{1,3,7}`, to more precisely represent some matching rules. These predicates can be attached to both patterns and expressions.
 ##### Examples
 ```
-match(√(a) where a ≥ 0, √(abs(-y ^ 2 - 108))) => match
+Let a ≥ 0.
+match(√(a), √(abs(-y ^ 2 - 108))) => match
   a => abs(-y ^ 2 - 108)
 ```
 ```
-match(b where b ∈ Odd, x - 1 where x ∈ [2, 4]) => match
+Let b ∈ Odd, x ∈ {2, 4}
+match(b, x - 1) => match
   b => x - 1
 ```
 
 #### Properties
+Orderless (commutative) functions are matched without order, while flat (associative) functions are matched so that a variable in pattern can match multiple children expressions. Many functions by default have one or both of the properties. For example, `+` is by default orderless and flat, and `*` is by default flat. Properties are configurable and may be derived from the rewrite domain.
+##### Examples
+```
+Orderless and flat:
+match(f(a) + g(b) + c, x ^ 4 + g(tan(y)) + 3 + log(√(x)) + f(y)) => match
+  a => y
+  b => tan(y)
+  c => x ^ 4 + 3 + log(√(x))
+```
 
 ### Normalization
 

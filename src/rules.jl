@@ -47,9 +47,10 @@ function rules(::Val{:BASIC})
             x + -y     => x - y
             0 - x      => -x
             x - x      => 0
-            x * inv(y) => x / y
+            inv(y)     => 1 / y
             x / 1      => x
             $nz / $nz  => one($nz)
+            1/(1/$nz)  => $nz
             -x / y     => -(x / y)
             x / -y     => -(x / y)
             x ^ 0      => one(x)
@@ -228,7 +229,15 @@ function rules(::Val{:TYPES})
     for T ∈ types
         x = Variable(:x, TypeSet(T))
         push!(rules, @term(zero($x)) => @term(zero($T)))
+        push!(rules, @term($x + zero($x)) => @term($T))
+        push!(rules, @term($(zero(T)) + $x) => @term($T))
+        push!(rules, @term($x + $(zero(T))) => @term($T))
+
         push!(rules, @term(one($x)) => @term(one($T)))
+        push!(rules, @term($x * one($x)) => @term($x))
+        push!(rules, @term(one($x) * $x) => @term($x))
+        push!(rules, @term($x * $(one(T))) => @term($x))
+        push!(rules, @term($(one(T)) * $x) => @term($x))
     end
 
     TRS(

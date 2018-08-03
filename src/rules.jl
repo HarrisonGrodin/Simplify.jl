@@ -30,6 +30,7 @@ rules(::Val{:STANDARD}) = [
     rules(:BOOLEAN)
     rules(:LOGARITHM)
     rules(:TRIGONOMETRY)
+    rules(:TYPES)
 ]
 
 function rules(::Val{:BASIC})
@@ -114,6 +115,7 @@ rules(::Val{:LAPLACE}) = @term RULES [
     laplace(t^n) where n isa Int => factorial(n) / s^(n+1)
 ]
 =#
+
 
 rules(::Val{:LOGARITHM}) = @term RULES [
     log(b, b) => 1
@@ -218,3 +220,20 @@ rules(::Val{:TRIGONOMETRY}) = @term RULES [
     tan(π/2-θ) => cot(θ)
     cot(π/2-θ) => tan(θ)
 ]
+
+function rules(::Val{:TYPES})
+    rules = []
+
+    types = [Int, Float64]
+    for T ∈ types
+        x = Variable(:x, TypeSet(T))
+        push!(rules, @term(zero($x)) => @term(zero($T)))
+        push!(rules, @term(one($x)) => @term(one($T)))
+    end
+
+    TRS(
+        rules...,
+        EvalRule(zero),
+        EvalRule(one),
+    )
+end

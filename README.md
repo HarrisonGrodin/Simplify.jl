@@ -81,5 +81,6 @@ normalize(log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z), TRS)
   => log(2, y + 1) * log(y + 1, z)                            + is orderless
   => log(2, z)                                                rule 2
 ```
-In this example, `log(2, z)` is the normal form of `log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z)` given the set of rules `TRS`.
+In this example, `log(2, z)` is the normal form of `log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z)` given the rule set `TRS`.
 ### Completion
+A set of equations can be transformed into a confluent rewrite system using Knuth-Bendix Completion Algorithm.

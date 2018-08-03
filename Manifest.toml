@@ -96,7 +96,7 @@ uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [[SpecialSets]]
 deps = ["Combinatorics"]
-git-tree-sha1 = "06817ae52d1d6534fc747790e904eae0e2d0ab4d"
+git-tree-sha1 = "bc75653a5662e05d17517aa87c4be39d10fb5a62"
 repo-rev = "master"
 repo-url = "https://github.com/HarrisonGrodin/SpecialSets.jl"
 uuid = "c6b63f46-9023-11e8-3b28-1f7d8c94880d"

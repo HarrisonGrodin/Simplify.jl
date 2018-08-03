@@ -1,4 +1,4 @@
-using Rewrite: PatternRule, EvalRule
+using Rewrite: PatternRule, EvalRule, DivergentError
 using SpecialSets
 
 
@@ -8,8 +8,8 @@ using SpecialSets
         @test normalize(@term(y + 1), PatternRule{Term}(@term(a + 0), @term(a))) == @term(y + 1)
         @test normalize(@term(y), PatternRule{Term}(@term(a + 0), @term(a))) == @term(y)
         @test normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x)))) == @term(g(a))
-        with_context(AlgebraContext(Dict(:f => Commutative))) do
-            @test_throws ArgumentError("Divergent normalization paths") normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x))))
+        with_context(AlgebraContext(props=Dict(:f => [Orderless]))) do
+            @test_throws DivergentError normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x))))
         end
         @test normalize(@term(x + 0 + 0), TRS(@term(a + 0) => @term(a))) == @term(x)
 
@@ -34,6 +34,30 @@ using SpecialSets
         @test normalize(@term(x + 2 * 3), TRS(EvalRule(*))) == @term(x + 6)
         @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(*))) == @term(6 + 20)
         @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(+), EvalRule(*))) == @term(26)
+
+        with_context(AlgebraContext(props=Dict(:f => [Flat]))) do
+            rule = EvalRule(:f, +)
+            @test normalize(@term(f(a, 1, 2, b, 3, c)), rule) == @term(f(a, 3, b, 3, c))
+            @test normalize(@term(f(1, 2, 3, 4, 5)), rule) == @term(15)
+            @test normalize(@term(f(1, 2, x, 3, 4, 5)), rule) == @term(f(3, x, 12))
+            @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), rule) == @term(f(3, x, y, 12))
+        end
+
+        with_context(AlgebraContext(props=Dict(:f => [Flat, Orderless]))) do
+            rule = EvalRule(:f, +)
+            @test normalize(@term(f(a, 1, 2, b, 3, c)), rule) == @term(f(6, a, b, c))
+            @test normalize(@term(f(1, 2, 3, 4, 5)), rule) == @term(15)
+            @test normalize(@term(f(1, 2, x, 3, 4, 5)), rule) == @term(f(15, x))
+            @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), rule) == @term(f(15, x, y))
+        end
+
+        with_context(AlgebraContext(props=Dict(:f => [Flat]), orderless=Dict(:f => Set([2])))) do
+            rule = EvalRule(:f, +)
+            @test normalize(@term(f(2, x, y, 1, 3)), rule) == @term(f(x, y, 6))
+            @test_throws DivergentError normalize(@term(f(1, x, y, 2, 3)), rule)
+            @test normalize(@term(f(x, y, 1, 3)), rule) == @term(f(x, y, 4))
+            @test normalize(@term(f(1, x, y, 3)), rule) == @term(f(1, x, y, 3))
+        end
     end
 end
 
@@ -56,6 +80,7 @@ end
         @test normalize(@term(abs(-(5x)))) == @term(5abs(x))
         @test normalize(@term(abs(x * y))) == @term(abs(x) * abs(y))
         @test normalize(@term(abs(x / y))) == @term(abs(x) / abs(y))
+        @test normalize(@term(abs(x / 1))) == @term(abs(x))
         @test normalize(@term(abs(abs(x)))) == @term(abs(x))
         @test normalize(@term(abs(x^2))) == @term(x^2)
 
@@ -92,7 +117,7 @@ end
         @test normalize(@term(tan(π / 6))) == @term(√3 / 3)
         @test normalize(@term(1 / (sin(-θ) / cos(-θ)))) == @term(-cot(θ))
         @test normalize(@term(2 * cos((α + β) / 2) * cos(α - β / 2))) == @term(cos(α) + cos(β))
-        @test normalize(@term((tan(α) * tan(β)) / (1 + tan(α) * tan(β)))) == @term(tan(α - β))
+        @test normalize(@term((tan(α) - tan(β)) / (1 + tan(α) * tan(β)))) == @term(tan(α - β))
         @test normalize(@term(csc(π/2 - θ))) == @term(sec(θ))
     end
 

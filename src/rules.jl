@@ -36,6 +36,7 @@ rules(::Val{:STANDARD}) = [
         0 - x      => -x
         x - x      => 0
         x * inv(y) => x / y
+        x / 1      => x
         -x / y     => -(x / y)
         x / -y     => -(x / y)
         x ^ 0      => one(x)
@@ -187,8 +188,8 @@ rules(::Val{:TRIGONOMETRY}) = @term RULES [
     sin(α)cos(β) - cos(α)sin(β) => sin(α - β)
     cos(α)cos(β) - sin(α)sin(β) => cos(α + β)
     cos(α)cos(β) + sin(α)sin(β) => cos(α - β)
-    (tan(α)tan(β)) / (1 - tan(α)tan(β)) => tan(α + β)
-    (tan(α)tan(β)) / (1 + tan(α)tan(β)) => tan(α - β)
+    (tan(α) + tan(β)) / (1 - tan(α)tan(β)) => tan(α + β)
+    (tan(α) - tan(β)) / (1 + tan(α)tan(β)) => tan(α - β)
 
     # Product to sum formulae
     cos(α - β) - cos(α + β) => 2sin(α)sin(β)

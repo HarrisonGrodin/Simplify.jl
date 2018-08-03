@@ -72,6 +72,7 @@ end
         @test normalize(@term(abs(-(5x)))) == @term(5abs(x))
         @test normalize(@term(abs(x * y))) == @term(abs(x) * abs(y))
         @test normalize(@term(abs(x / y))) == @term(abs(x) / abs(y))
+        @test normalize(@term(abs(x / 1))) == @term(abs(x))
         @test normalize(@term(abs(abs(x)))) == @term(abs(x))
         @test normalize(@term(abs(x^2))) == @term(x^2)
 
@@ -108,7 +109,7 @@ end
         @test normalize(@term(tan(π / 6))) == @term(√3 / 3)
         @test normalize(@term(1 / (sin(-θ) / cos(-θ)))) == @term(-cot(θ))
         @test normalize(@term(2 * cos((α + β) / 2) * cos(α - β / 2))) == @term(cos(α) + cos(β))
-        @test normalize(@term((tan(α) * tan(β)) / (1 + tan(α) * tan(β)))) == @term(tan(α - β))
+        @test normalize(@term((tan(α) - tan(β)) / (1 + tan(α) * tan(β)))) == @term(tan(α - β))
         @test normalize(@term(csc(π/2 - θ))) == @term(sec(θ))
     end
 

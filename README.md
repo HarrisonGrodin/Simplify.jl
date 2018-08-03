@@ -60,8 +60,26 @@ match(f(a) + g(b) + c, x ^ 4 + g(tan(y)) + 3 + log(√(x)) + f(y)) => match
   b => tan(y)
   c => x ^ 4 + 3 + log(√(x))
 ```
+```
+Flat only:
+match(a * f(b), x * y^z * f(w)) => match
+  a => x * y^z
+  b => w
+```
 
 ### Normalization
+An expression can be **normalized** to a normal form given a set of rewrite rules.
+##### Example
+```
+Let TRS contain two rules:
+  rule 1: sin(a)^2 + cos(a)^2 => one(a)
+  rule 2: log(a, b) * log(b, c) => log(a, c)
 
-
+normalize(log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z), TRS)
+  => log(2, (sin(x)^2 + cos(x)^2) + y) * log(y + 1, z)        + is flat
+  => log(2, 1 + y) * log(y + 1, z)                            rule 1
+  => log(2, y + 1) * log(y + 1, z)                            + is orderless
+  => log(2, z)                                                rule 2
+```
+In this example, `log(2, z)` is the normal form of `log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z)` given the set of rules `TRS`.
 ### Completion

@@ -28,6 +28,7 @@ function image(fn::Fn, i::StandardImages)
     sig == (:sqrt, 1) && return Nonnegative
     sig == (:sin, 1) && return GreaterThan{Number}(-1, true) ∩ LessThan{Number}(1, true)
     sig == (:cos, 1) && return GreaterThan{Number}(-1, true) ∩ LessThan{Number}(1, true)
+    sig == (:log, 1) && return TypeSet(Float64)
     TypeSet(Number)
 end
 

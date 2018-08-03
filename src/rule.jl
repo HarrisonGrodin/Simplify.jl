@@ -1,3 +1,5 @@
+using DiffRules
+
 export TermRewritingSystem, TRS
 export normalize
 
@@ -117,3 +119,20 @@ function _apply_flat!(r::EvalRule, args)
 end
 all_constants(::Constant...) = true
 all_constants(::Term...) = false
+
+
+struct DiffRule <: Rule{Term}
+    diff::Symbol
+    zero::Symbol
+    DiffRule(diff=:diff, zero=:zero) = new(diff, zero)
+end
+function normalize(fn::Fn, r::DiffRule)::Term
+    (fn.name, length(fn)) == (r.diff, 2) || return fn
+    f, x = fn
+    vars_f, vars_x = vars.((f, x))
+    isempty(vars_f ∩ vars_x) && return Fn(:zero, x)
+    fn
+end
+normalize(t::Term, ::DiffRule) = t
+vars(x::Variable) = [x]
+vars(t::Term) = [map(vars, collect(t))...;]

@@ -28,6 +28,7 @@ rules(::Val{:STANDARD}) = [
     rules(:BASIC)
     rules(:ABSOLUTE_VALUE)
     rules(:BOOLEAN)
+    rules(:CALCULUS)
     rules(:LOGARITHM)
     rules(:TRIGONOMETRY)
     rules(:TYPES)
@@ -107,6 +108,43 @@ rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!) = [
         EvalRule(neg, !),
     );
 ]
+
+
+function diff(M, fn, arity)
+    M === :Base || return
+    args = Symbol.(:_, 1:arity)
+    f = Expr(:call, fn, args...)
+
+    partials = DiffRules.diffrule(M, fn, args...)
+
+    if arity == 1
+        rhs = _diff(partials, args[1])
+    else
+        rhs = Expr(:call, :+, _diff.(partials, args)...)
+    end
+
+    lhs = :(diff($f, x))
+    convert(Term, lhs) => convert(Term, rhs)
+end
+_diff(p, a, x=:x) = :($p * diff($a, $x))
+function rules(::Val{:CALCULUS})
+    rules = []
+    for (M, fn, arity) ∈ DiffRules.diffrules()
+        try
+            rule = diff(M, fn, arity)
+            rule === nothing && continue
+            push!(rules, rule)
+        catch
+        end
+    end
+
+    TRS(
+        rules...,
+        @term(diff(x, x)) => @term(one(x)),
+        DiffRule(),
+    )
+end
+
 
 #=
 FIXME Notation

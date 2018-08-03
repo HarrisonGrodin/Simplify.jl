@@ -1,5 +1,5 @@
 import Base: match
-using Combinatorics: permutations
+using Combinatorics: combinations, permutations
 
 export match, unify
 
@@ -73,11 +73,14 @@ function match(f::Fn, g::Fn, Θ)
     image(g) ⊆ image(f) || return zero(Match)
 
     flat = hasproperty(Flat, f) && hasproperty(Flat, g)
-    orderless = hasproperty(Orderless, f) && hasproperty(Orderless, g)
+    f′, g′ = property(Orderless, f), property(Orderless, g)
+    orderless = f′ !== nothing || g′ !== nothing
 
     callback = flat ? match_flat : match_standard
     if orderless
-        match_orderless(f, g, Θ, callback)
+        f′ === nothing && (f′ = f)
+        g′ === nothing && (g′ = g)
+        match_orderless(f′, g′, Θ, callback)
     else
         callback(f, g, Θ)
     end
@@ -129,14 +132,34 @@ function match_flat(p::Fn, s::Fn, Θ)
     end
     Θᵣ
 end
-function match_orderless(p::Fn, s::Fn, Θ, callback)
-    @assert p.name === s.name
-
-    results = map(permutations(s)) do perm  # FIXME: efficiency
-        s_fn = Fn(s.name, perm...; clean=false)
-        callback(p, s_fn, Θ)
-    end
+function match_orderless(p::Orderless, s::Fn, Θ, callback)
+    results = map(fn -> callback(fn, s, Θ), perms(p))
     reduce(union, results)
+end
+function match_orderless(p::Fn, s::Orderless, Θ, callback)
+    results = map(fn -> callback(p, fn, Θ), perms(s))
+    reduce(union, results)
+end
+function match_orderless(p::Orderless, s::Orderless, Θ, callback)
+    results = map(fn -> match_orderless(fn, s, Θ, callback), perms(p))
+    reduce(union, results)
+end
+function perms(o::Orderless)
+    l₊, l₋ = length(o.ordered), length(o.orderless)
+    l = l₊ + l₋
+    result = []
+
+    for comb ∈ combinations(1:l, l₊)
+        comb′ = setdiff(1:l, comb)
+        for perm ∈ permutations(o.orderless)
+            args = Array{Term}(undef, l)
+            args[comb] = o.ordered
+            args[comb′] = perm
+            push!(result, Fn(o.name, args...; clean=false))
+        end
+    end
+
+    result
 end
 
 

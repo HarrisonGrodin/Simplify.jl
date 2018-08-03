@@ -38,8 +38,9 @@ struct AlgebraContext <: AbstractContext
     props::Dict{Symbol,Vector{Type{<:Property}}}
     consts::Dict{Symbol,Any}
     images::AbstractImages
-    AlgebraContext(; props=Dict(), consts=Dict(), images=EmptyImages()) =
-        new(props, consts, images)
+    orderless::Dict{Symbol,AbstractSet}
+    AlgebraContext(; props=Dict(), consts=Dict(), images=EmptyImages(), orderless=Dict()) =
+        new(props, consts, images, orderless)
 end
 
 
@@ -62,6 +63,9 @@ const DEFAULT_CONTEXT = AlgebraContext(
         :π  => π,
     ),
     images = StandardImages(),
+    orderless = Dict(
+        :* => TypeSet(Number),
+    ),
 )
 
 
@@ -91,7 +95,14 @@ function property(::Type{Flat}, fn::Fn)
 end
 function property(::Type{Orderless}, fn::Fn)
     length(fn) ≥ 2 || return nothing
-    haskey(CONTEXT.props, fn.name) || return nothing
-    Orderless ∈ CONTEXT.props[fn.name] || return nothing
-    Orderless()
+    Orderless ∈ get(CONTEXT.props, fn.name, []) && return Orderless(fn.name, collect(fn), [])
+
+    if haskey(CONTEXT.orderless, fn.name)
+        args = collect(fn)
+        inds = image.(args) .⊆ Ref(CONTEXT.orderless[fn.name])
+        any(inds) || return nothing
+        return Orderless(fn.name, args[inds], args[(!).(inds)])
+    end
+
+    nothing
 end

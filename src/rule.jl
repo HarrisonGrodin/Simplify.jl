@@ -33,6 +33,10 @@ normalize(t::Term) = normalize(t, rules())
 
 
 
+struct DivergentError <: Exception end
+Base.showerror(io::IO, ::DivergentError) = print(io, "DivergentError: divergent normalization paths")
+
+
 struct PatternRule{T} <: Rule{T}
     left::T
     right::T
@@ -52,7 +56,7 @@ function normalize(t::T, (l, r)::PatternRule{U}) where {U,T<:U}
     Θ = match(l, t)
     isempty(Θ) && return t
     xs = Set(replace(r, σ) for σ ∈ Θ)
-    length(xs) == 1 || throw(ArgumentError("Divergent normalization paths"))
+    length(xs) == 1 || throw(DivergentError())
     first(xs)
 end
 
@@ -61,45 +65,55 @@ struct EvalRule <: Rule{Term}
     f
 end
 EvalRule(f::Function) = EvalRule(nameof(f), f)
-(r::EvalRule)(args...) = Constant(r.f(args...))
+(r::EvalRule)(args::Constant...) = Constant(r.f(get.(args)...))
 function normalize(fn::Fn, r::EvalRule)
     fn.name == r.name || return fn
-    args = collect(fn)
 
     if hasproperty(Flat, fn)
+        o = property(Orderless, fn)
+        if o !== nothing
+            ordered = _apply_flat!(r, collect(o.ordered))
+            ord_inds = findall(x -> x isa Constant, ordered)
+            length(ord_inds) > 1 && throw(DivergentError())
 
-        if hasproperty(Orderless, fn)
-            inds = findall(x -> x isa Constant, args)
-            length(inds) ≥ 2 || return fn
-            consts = get.(args[inds])
-            result = r(consts...)
-
-            length(inds) == length(fn) && return result
-
-            deleteat!(args, inds)
-            return Fn(fn.name, result, args...)
-        else
-            i = firstindex(args)
-
-            while i ≤ lastindex(args) - 1
-                a, b = args[i:i+1]
-
-                if a isa Constant && b isa Constant
-                    deleteat!(args, i)
-                    args[i] = r(get(a), get(b))
-                else
-                    i += 1
-                end
+            orderless = collect(o.orderless)
+            inds = findall(x -> x isa Constant, orderless)
+            if !isempty(ord_inds)
+                ind = first(ord_inds)
+                ordered[ind] = r(ordered[ind], orderless[inds]...)
+            else
+                isempty(inds) || push!(ordered, r(orderless[inds]...))
             end
+            deleteat!(orderless, inds)
 
-            length(args) == 1 && return first(args)
-            return Fn(fn.name, args...)
+            args = [ordered; orderless]
+        else
+            args = _apply_flat!(r, collect(fn))
+        end
+
+        length(args) == 1 && return first(args)
+        return Fn(fn.name, args...)
+    end
+
+    all_constants(fn...) || return fn
+    r(fn...)
+end
+normalize(t::Term, ::EvalRule) = t
+function _apply_flat!(r::EvalRule, args)
+    i = firstindex(args)
+
+    while i ≤ lastindex(args) - 1
+        a, b = args[i:i+1]
+
+        if a isa Constant && b isa Constant
+            deleteat!(args, i)
+            args[i] = r(a, b)
+        else
+            i += 1
         end
     end
 
-    all_constants(args...) || return fn
-    r(get.(args)...)
+    args
 end
-normalize(t::Term, ::EvalRule) = t
 all_constants(::Constant...) = true
 all_constants(::Term...) = false

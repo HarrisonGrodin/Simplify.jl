@@ -1,8 +1,7 @@
 module Rewrite
 
-include("property.jl")
-
 include("types.jl")
+include("property.jl")
 include("match.jl")
 include("rule.jl")
 

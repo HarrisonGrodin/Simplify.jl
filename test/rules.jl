@@ -1,4 +1,4 @@
-using Rewrite: PatternRule, EvalRule
+using Rewrite: PatternRule, EvalRule, DivergentError
 using SpecialSets
 
 
@@ -9,7 +9,7 @@ using SpecialSets
         @test normalize(@term(y), PatternRule{Term}(@term(a + 0), @term(a))) == @term(y)
         @test normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x)))) == @term(g(a))
         with_context(AlgebraContext(props=Dict(:f => [Orderless]))) do
-            @test_throws ArgumentError("Divergent normalization paths") normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x))))
+            @test_throws DivergentError normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x))))
         end
         @test normalize(@term(x + 0 + 0), TRS(@term(a + 0) => @term(a))) == @term(x)
 
@@ -49,6 +49,14 @@ using SpecialSets
             @test normalize(@term(f(1, 2, 3, 4, 5)), rule) == @term(15)
             @test normalize(@term(f(1, 2, x, 3, 4, 5)), rule) == @term(f(15, x))
             @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), rule) == @term(f(15, x, y))
+        end
+
+        with_context(AlgebraContext(props=Dict(:f => [Flat]), orderless=Dict(:f => Set([2])))) do
+            rule = EvalRule(:f, +)
+            @test normalize(@term(f(2, x, y, 1, 3)), rule) == @term(f(x, y, 6))
+            @test_throws DivergentError normalize(@term(f(1, x, y, 2, 3)), rule)
+            @test normalize(@term(f(x, y, 1, 3)), rule) == @term(f(x, y, 4))
+            @test normalize(@term(f(1, x, y, 3)), rule) == @term(f(1, x, y, 3))
         end
     end
 end

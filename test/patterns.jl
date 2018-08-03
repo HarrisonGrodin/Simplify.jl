@@ -108,37 +108,41 @@ using SpecialSets
 
                 @test match(@term(f(g(X), g(Y), Z)), @term(f(g(a), g(b), g(c), g(d), g(e)))) ==
                     Match(Dict(@term(X)=>@term(a), @term(Y)=>@term(b), @term(Z)=>@term(f(g(c), g(d), g(e)))))
+
+                @test match(@term(f(x, y)), @term(f(1, b))) ==
+                    Match(Dict(@term(x) => @term(1), @term(y) => @term(b)))
             end
 
-            @test match(@term(x), @term(a * b)) ==
-                Match(@term(x) => @term(a * b))
+            with_context(AlgebraContext(props=Dict(:* => [Flat]))) do
+                @test match(@term(x), @term(a * b)) ==
+                    Match(@term(x) => @term(a * b))
 
-            @test match(@term(x * y), @term(a() * b()))::Match ==
-                Match(Dict(@term(x) => @term(a()), @term(y) => @term(b())))
+                @test match(@term(x * y), @term(a() * b()))::Match ==
+                    Match(Dict(@term(x) => @term(a()), @term(y) => @term(b())))
 
-            @test match(@term(x * y), @term(1 * b)) ==
-                Match(Dict(@term(x) => @term(1), @term(y) => @term(b)))
+                @test match(@term(x * y), @term(a * b * c)) == Match(
+                    Dict(@term(x) => @term(a * b), @term(y) => @term(c)),
+                    Dict(@term(x) => @term(a), @term(y) => @term(b * c)),
+                )
 
-            @test match(@term(x * y), @term(a * b * c)) == Match(
-                Dict(@term(x) => @term(a * b), @term(y) => @term(c)),
-                Dict(@term(x) => @term(a), @term(y) => @term(b * c)),
-            )
+                @test match(@term(x * "_" * y), @term(f() * g() * "_" * h())) ==
+                    Match(Dict(@term(x) => @term(f() * g()), @term(y) => @term(h())))
 
-            @test match(@term(x * 1 * y), @term(f() * g() * 1 * h())) ==
-                Match(Dict(@term(x) => @term(f() * g()), @term(y) => @term(h())))
+                with_context(AlgebraContext(props=Dict(:* => [Flat]))) do
+                    @test match(@term(f() * g()), @term(f() * g())) ==
+                        one(Match)
 
-            @test match(@term(f() * g()), @term(f() * g())) ==
-                one(Match)
+                    @test match(@term(g() * f()), @term(f() * g())) ==
+                        zero(Match)
+                end
 
-            @test match(@term(g() * f()), @term(f() * g())) ==
-                zero(Match)
-
-            @test replace(@term(w * x * (y * x)), Dict(@term(x) => @term(z))) == @term(w * z * y * z)
-            @test_skip replace(@term(x * y * z), Dict(@term(y * z) => @term(2))) == @term(x * 2)
+                @test replace(@term(w * x * (y * x)), Dict(@term(x) => @term(z))) == @term(w * z * y * z)
+                @test_skip replace(@term(x * y * z), Dict(@term(y * z) => @term(2))) == @term(x * 2)
+            end
 
         end
 
-        @testset "commutative" begin
+        @testset "orderless" begin
 
             @testset "standard" begin
 
@@ -155,6 +159,21 @@ using SpecialSets
                     @test replace(@term(f(f(x, y), z)), Dict(@term(f(x, y)) => 2)) == @term(f(z, 2))
                 end
 
+            end
+
+            @testset "partial" begin
+                @test match(@term(f() * g()), @term(g() * f())) ==
+                    one(Match)
+
+                @test match(@term(x * y), @term(1 * b)) == Match(
+                    Dict(@term(x) => @term(1), @term(y) => @term(b)),
+                    Dict(@term(x) => @term(b), @term(y) => @term(1)),
+                )
+
+                t = @term(3 * (x * 2) * y)
+                args = collect(t)
+                @test findfirst(==(@term x), args) < findfirst(==(@term y), args)
+                @test t == @term(2 * 3 * x * y)
             end
 
             @testset "flat" begin

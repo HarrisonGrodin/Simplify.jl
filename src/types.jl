@@ -91,7 +91,10 @@ struct Fn <: Term
 
         if clean
             hasproperty(Flat, fn) && flatten!(fn)
-            hasproperty(Orderless, fn) && sort!(fn)
+            o = property(Orderless, fn)
+            if o !== nothing
+                fn = Fn(o.name, sort(o.orderless; lt=_sort_lt)..., o.ordered...; clean=false)
+            end
         end
 
         fn
@@ -119,19 +122,5 @@ end
 flatten!(name, fn::Fn) = fn.name === name ? [flatten!.(name, fn.args)...;] : [fn]
 flatten!(name, x) = x
 
-Base.sort!(fn::Fn) = (sort!(fn.args; lt = _sort_lt); fn)
 # FIXME
-const _order = [Fn, Variable, Constant]
 _sort_lt(a, b) = sprint(show, a) < sprint(show, b)
-# function _sort_lt(f::Fn, g::Fn)
-#     @show f g
-#     f.name == g.name || return f.name < g.name
-#     @show 'a'
-#     length(f) == length(g) || return length(f) > length(g)
-#     @show 'b'
-#     all(p -> _sort_lt(p...), zip(f, g))
-# end
-# _sort_lt(a::Constant, b::Constant) = repr(get(a)) < repr(get(b))
-# _sort_lt(a::Variable, b::Variable) = a.name < b.name ? true : a.index < b.index
-# _sort_lt(::A, ::B) where {A<:Term,B<:Term} =
-#     findfirst((T -> A <: T), _order) < findfirst((T -> B <: T), _order)

@@ -14,6 +14,9 @@ abstract type AbstractImages end
 image(x::Variable, ::AbstractImages) = x.image
 image(x::Constant, ::AbstractImages) = Set([get(x)])
 
+struct EmptyImages <: AbstractImages end
+image(::Fn, ::EmptyImages) = TypeSet(Any)
+
 struct StandardImages <: AbstractImages end
 function image(fn::Fn, i::StandardImages)
     sig = fn.name, length(fn)
@@ -35,7 +38,7 @@ struct AlgebraContext <: AbstractContext
     props::Dict{Symbol,Vector{Type{<:Property}}}
     consts::Dict{Symbol,Any}
     images::AbstractImages
-    AlgebraContext(; props=Dict(), consts=Dict(), images=StandardImages()) =
+    AlgebraContext(; props=Dict(), consts=Dict(), images=EmptyImages()) =
         new(props, consts, images)
 end
 

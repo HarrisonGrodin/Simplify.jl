@@ -25,35 +25,42 @@ rules(set::Symbol=:STANDARD, args...; kwargs...) = rules(Val(set), args...; kwar
 
 
 rules(::Val{:STANDARD}) = [
-    @term RULES [
-        x + 0      => x
-        0 + x      => x
-        x * 1      => x
-        1 * x      => x
-        x * 0      => 0
-        0 * x      => 0
-        x + -y     => x - y
-        0 - x      => -x
-        x - x      => 0
-        x * inv(y) => x / y
-        x / 1      => x
-        -x / y     => -(x / y)
-        x / -y     => -(x / y)
-        x ^ 0      => one(x)
-        # x^(a + b)  => x^a * x^b  # FIXME
-    ]
-    TRS(
-        EvalRule(+),
-        EvalRule(-),
-        EvalRule(*),
-        EvalRule(zero),
-        EvalRule(one),
-    )
+    rules(:BASIC)
     rules(:ABSOLUTE_VALUE)
     rules(:BOOLEAN)
     rules(:LOGARITHM)
     rules(:TRIGONOMETRY)
 ]
+
+function rules(::Val{:BASIC})
+    nz = Variable(:nz, Nonzero)
+
+    [
+        @term RULES [
+            x + 0      => x
+            0 + x      => x
+            x * 1      => x
+            1 * x      => x
+            x * 0      => 0
+            0 * x      => 0
+            x + -y     => x - y
+            0 - x      => -x
+            x - x      => 0
+            x * inv(y) => x / y
+            x / 1      => x
+            $nz / $nz  => one($nz)
+            -x / y     => -(x / y)
+            x / -y     => -(x / y)
+            x ^ 0      => one(x)
+            # x^(a + b)  => x^a * x^b  # FIXME
+        ]
+        TRS(
+            EvalRule(+),
+            EvalRule(-),
+            EvalRule(*),
+        )
+    ]
+end
 
 
 function rules(::Val{:ABSOLUTE_VALUE})

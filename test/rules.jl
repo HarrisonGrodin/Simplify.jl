@@ -8,7 +8,7 @@ using SpecialSets
         @test normalize(@term(y + 1), PatternRule{Term}(@term(a + 0), @term(a))) == @term(y + 1)
         @test normalize(@term(y), PatternRule{Term}(@term(a + 0), @term(a))) == @term(y)
         @test normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x)))) == @term(g(a))
-        with_context(AlgebraContext(Dict(:f => [Orderless]))) do
+        with_context(AlgebraContext(props=Dict(:f => [Orderless]))) do
             @test_throws ArgumentError("Divergent normalization paths") normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x))))
         end
         @test normalize(@term(x + 0 + 0), TRS(@term(a + 0) => @term(a))) == @term(x)
@@ -35,18 +35,20 @@ using SpecialSets
         @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(*))) == @term(6 + 20)
         @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(+), EvalRule(*))) == @term(26)
 
-        with_context(AlgebraContext(Dict(:f => [Flat]))) do
-            @test normalize(@term(f(a, 1, 2, b, 3, c)), EvalRule(:f, +)) == @term(f(a, 3, b, 3, c))
-            @test normalize(@term(f(1, 2, 3, 4, 5)), EvalRule(:f, +)) == @term(15)
-            @test normalize(@term(f(1, 2, x, 3, 4, 5)), EvalRule(:f, +)) == @term(f(3, x, 12))
-            @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), EvalRule(:f, +)) == @term(f(3, x, y, 12))
+        with_context(AlgebraContext(props=Dict(:f => [Flat]))) do
+            rule = EvalRule(:f, +)
+            @test normalize(@term(f(a, 1, 2, b, 3, c)), rule) == @term(f(a, 3, b, 3, c))
+            @test normalize(@term(f(1, 2, 3, 4, 5)), rule) == @term(15)
+            @test normalize(@term(f(1, 2, x, 3, 4, 5)), rule) == @term(f(3, x, 12))
+            @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), rule) == @term(f(3, x, y, 12))
         end
 
-        with_context(AlgebraContext(Dict(:f => [Flat, Orderless]))) do
-            @test normalize(@term(f(a, 1, 2, b, 3, c)), EvalRule(:f, +)) == @term(f(6, a, b, c))
-            @test normalize(@term(f(1, 2, 3, 4, 5)), EvalRule(:f, +)) == @term(15)
-            @test normalize(@term(f(1, 2, x, 3, 4, 5)), EvalRule(:f, +)) == @term(f(15, x))
-            @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), EvalRule(:f, +)) == @term(f(15, x, y))
+        with_context(AlgebraContext(props=Dict(:f => [Flat, Orderless]))) do
+            rule = EvalRule(:f, +)
+            @test normalize(@term(f(a, 1, 2, b, 3, c)), rule) == @term(f(6, a, b, c))
+            @test normalize(@term(f(1, 2, 3, 4, 5)), rule) == @term(15)
+            @test normalize(@term(f(1, 2, x, 3, 4, 5)), rule) == @term(f(15, x))
+            @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), rule) == @term(f(15, x, y))
         end
     end
 end

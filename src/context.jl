@@ -11,23 +11,21 @@ Given image generator `t`, return the image of `x`.
 function image end
 
 abstract type AbstractImages end
+image(x::Variable, ::AbstractImages) = x.image
+image(x::Constant, ::AbstractImages) = Set([get(x)])
 
 struct StandardImages <: AbstractImages end
-function (i::StandardImages)(fn::Fn)
+function image(fn::Fn, i::StandardImages)
     sig = fn.name, length(fn)
-    sig == (:^, 2) && i(fn[1]) ⊆ Positive && return Positive
-    sig == (:^, 2) && i(fn[1]) ⊆ Zero && return Set([0, 1])
-    sig == (:^, 2) && i(fn[2]) ⊆ Even && return Nonnegative
+    sig == (:^, 2) && image(fn[1], i) ⊆ Positive && return Positive
+    sig == (:^, 2) && image(fn[1], i) ⊆ Zero && return Set([0, 1])
+    sig == (:^, 2) && image(fn[2], i) ⊆ Even && return Nonnegative
     sig == (:abs, 1) && return Nonnegative
     sig == (:sqrt, 1) && return Nonnegative
     sig == (:sin, 1) && return GreaterThan{Number}(-1, true) ∩ LessThan{Number}(1, true)
     sig == (:cos, 1) && return GreaterThan{Number}(-1, true) ∩ LessThan{Number}(1, true)
     TypeSet(Number)
 end
-(::StandardImages)(x::Constant) = Set([get(x)])
-(::StandardImages)(x::Variable) = x.image
-(::StandardImages)(x) = TypeSet(Number)
-image(x, i::StandardImages) = i(x)
 
 
 abstract type AbstractContext end
@@ -37,7 +35,7 @@ struct AlgebraContext <: AbstractContext
     props::Dict{Symbol,Vector{Type{<:Property}}}
     consts::Dict{Symbol,Any}
     images::AbstractImages
-    AlgebraContext(props = Dict(), consts = Dict(), images = StandardImages()) =
+    AlgebraContext(; props=Dict(), consts=Dict(), images=StandardImages()) =
         new(props, consts, images)
 end
 
@@ -52,15 +50,15 @@ image(x, ctx::AlgebraContext) = image(x, ctx.images)
 
 
 const DEFAULT_CONTEXT = AlgebraContext(
-    Dict(
+    props = Dict(
         :+  => [Flat, Orderless],
         :++ => [Flat],
         :*  => [Flat],
     ),
-    Dict(
+    consts = Dict(
         :π  => π,
     ),
-    StandardImages(),
+    images = StandardImages(),
 )
 
 

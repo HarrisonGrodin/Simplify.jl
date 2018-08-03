@@ -102,7 +102,7 @@ using SpecialSets
 
         @testset "flat" begin
 
-            with_context(AlgebraContext(Dict(:f => [Flat]))) do
+            with_context(AlgebraContext(props=Dict(:f => [Flat]))) do
                 @test @term(f(w, x, f(y, z))) == @term(f(w, x, y, z))
                 @test length(@term(f(w, x, g(y, z)))) == 3
 
@@ -142,7 +142,7 @@ using SpecialSets
 
             @testset "standard" begin
 
-                with_context(AlgebraContext(Dict(:f => [Orderless]))) do
+                with_context(AlgebraContext(props=Dict(:f => [Orderless]))) do
                     @test match(@term(f(x, 1)), @term(f(1, y))) ==
                         Match(@term(x) => @term(y))
 
@@ -159,12 +159,12 @@ using SpecialSets
 
             @testset "flat" begin
 
-                with_context(AlgebraContext(Dict(:f => [Flat, Orderless]))) do
+                with_context(AlgebraContext(props=Dict(:f => [Flat, Orderless]))) do
                     @test replace(@term(f(x, y, z)), Dict(@term(y) => @term(x^3))) == @term(f(x, x^3, z))
                     @test_skip replace(@term(f(x, y, z)), Dict(@term(f(x, z)) => :w)) == @term(f(w, y))
                 end
 
-                with_context(AlgebraContext(Dict(:+ => [Flat, Orderless], :* => [Flat, Orderless]))) do
+                with_context(AlgebraContext(props=Dict(:+ => [Flat, Orderless], :* => [Flat, Orderless]))) do
                     @test @term((x+y+b*a)) == @term((a*b+x+y))
                 end
 

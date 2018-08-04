@@ -93,11 +93,13 @@ end
         @test normalize(@term(x & true)) == @term(x)
         @test normalize(@term(x | (x & y))) == @term(x)
         @test normalize(@term(y | !y)) == @term(true)
+        @test normalize(@term(!y | y)) == @term(true)
         @test normalize(@term(y & y)) == @term(y)
         @test normalize(@term(!(!x))) == @term(x)
         @test normalize(@term(!(!x & !x))) == @term(x)
         @test normalize(@term(!(!x & !x) & !x)) == @term(false)
         @test normalize(@term(!(!x & !x) | x)) == @term(x)
+        @test normalize(@term(!x & x | (y & (y | true)))) == @term(y)
     end
 
     @testset "CALCULUS" begin

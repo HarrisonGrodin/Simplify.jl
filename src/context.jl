@@ -60,6 +60,8 @@ const DEFAULT_CONTEXT = AlgebraContext(
         :+  => [Flat, Orderless],
         :++ => [Flat],
         :*  => [Flat],
+        :&  => [Flat, Orderless],
+        :|  => [Flat, Orderless],
     ),
     consts = Dict(
         :π  => π,

@@ -21,10 +21,10 @@ macro term(::Val{:RULES}, ex)
 end
 
 
-rules(set::Symbol=:STANDARD, args...; kwargs...) = rules(Val(set), args...; kwargs...)
+rules(set::Symbol, args...; kwargs...) = rules(Val(set), args...; kwargs...)
 
 
-rules(::Val{:STANDARD}) = [
+rules() = [
     rules(:BASIC)
     rules(:ABSOLUTE_VALUE)
     rules(:BOOLEAN)
@@ -35,25 +35,27 @@ rules(::Val{:STANDARD}) = [
 ]
 
 function rules(::Val{:BASIC})
-    nz = Variable(:nz, Nonzero)
+    a, b = Variable.([:a, :b], Ref(Nonzero))
 
     [
         @term RULES [
             x + 0      => x
-            0 + x      => x
-            x * 1      => x
-            1 * x      => x
-            x * 0      => 0
-            0 * x      => 0
             x + -y     => x - y
+
             0 - x      => -x
             x - x      => 0
+
+            x * 1      => x
+            x * 0      => 0
+            -1 * x     => -x
+
             inv(y)     => 1 / y
             x / 1      => x
-            $nz / $nz  => one($nz)
-            1/(1/$nz)  => $nz
+            $a / $a    => one($a)
+            1/($a/$b)  => $b / $a
             -x / y     => -(x / y)
             x / -y     => -(x / y)
+
             x ^ 0      => one(x)
             # x^(a + b)  => x^a * x^b  # FIXME
         ]
@@ -263,7 +265,7 @@ rules(::Val{:TRIGONOMETRY}) = @term RULES [
 function rules(::Val{:TYPES})
     rules = []
 
-    types = [Int, Float64]
+    types = [Number, Int, Float64]
     for T ∈ types
         x = Variable(:x, TypeSet(T))
         push!(rules, @term(zero($x)) => @term(zero($T)))

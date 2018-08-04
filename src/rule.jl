@@ -30,7 +30,7 @@ function normalize(t::Term, trs::TermRewritingSystem)
     end
 end
 normalize(::T, ::R) where {T,R<:Rule} = error("normalize undefined for rule type $R on term type $T")
-normalize(t::Term, set::Symbol) = normalize(t, rules(set))
+normalize(t::Term, sets::Symbol...) = normalize(t, vcat(rules.(sets)...))
 normalize(t::Term) = normalize(t, rules())
 
 

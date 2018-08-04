@@ -25,35 +25,45 @@ rules(set::Symbol=:STANDARD, args...; kwargs...) = rules(Val(set), args...; kwar
 
 
 rules(::Val{:STANDARD}) = [
-    @term RULES [
-        x + 0      => x
-        0 + x      => x
-        x * 1      => x
-        1 * x      => x
-        x * 0      => 0
-        0 * x      => 0
-        x + -y     => x - y
-        0 - x      => -x
-        x - x      => 0
-        x * inv(y) => x / y
-        x / 1      => x
-        -x / y     => -(x / y)
-        x / -y     => -(x / y)
-        x ^ 0      => one(x)
-        # x^(a + b)  => x^a * x^b  # FIXME
-    ]
-    TRS(
-        EvalRule(+),
-        EvalRule(-),
-        EvalRule(*),
-        EvalRule(zero),
-        EvalRule(one),
-    )
+    rules(:BASIC)
     rules(:ABSOLUTE_VALUE)
     rules(:BOOLEAN)
+    rules(:CALCULUS)
     rules(:LOGARITHM)
     rules(:TRIGONOMETRY)
+    rules(:TYPES)
 ]
+
+function rules(::Val{:BASIC})
+    nz = Variable(:nz, Nonzero)
+
+    [
+        @term RULES [
+            x + 0      => x
+            0 + x      => x
+            x * 1      => x
+            1 * x      => x
+            x * 0      => 0
+            0 * x      => 0
+            x + -y     => x - y
+            0 - x      => -x
+            x - x      => 0
+            inv(y)     => 1 / y
+            x / 1      => x
+            $nz / $nz  => one($nz)
+            1/(1/$nz)  => $nz
+            -x / y     => -(x / y)
+            x / -y     => -(x / y)
+            x ^ 0      => one(x)
+            # x^(a + b)  => x^a * x^b  # FIXME
+        ]
+        TRS(
+            EvalRule(+),
+            EvalRule(-),
+            EvalRule(*),
+        )
+    ]
+end
 
 
 function rules(::Val{:ABSOLUTE_VALUE})
@@ -99,6 +109,43 @@ rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!) = [
     );
 ]
 
+
+function diff(M, fn, arity)
+    M === :Base || return
+    args = Symbol.(:_, 1:arity)
+    f = Expr(:call, fn, args...)
+
+    partials = DiffRules.diffrule(M, fn, args...)
+
+    if arity == 1
+        rhs = _diff(partials, args[1])
+    else
+        rhs = Expr(:call, :+, _diff.(partials, args)...)
+    end
+
+    lhs = :(diff($f, x))
+    convert(Term, lhs) => convert(Term, rhs)
+end
+_diff(p, a, x=:x) = :($p * diff($a, $x))
+function rules(::Val{:CALCULUS})
+    rules = []
+    for (M, fn, arity) ∈ DiffRules.diffrules()
+        try
+            rule = diff(M, fn, arity)
+            rule === nothing && continue
+            push!(rules, rule)
+        catch
+        end
+    end
+
+    TRS(
+        rules...,
+        @term(diff(x, x)) => @term(one(x)),
+        DiffRule(),
+    )
+end
+
+
 #=
 FIXME Notation
 rules(::Val{:LAPLACE}) = @term RULES [
@@ -107,6 +154,7 @@ rules(::Val{:LAPLACE}) = @term RULES [
     laplace(t^n) where n isa Int => factorial(n) / s^(n+1)
 ]
 =#
+
 
 rules(::Val{:LOGARITHM}) = @term RULES [
     log(b, b) => 1
@@ -211,3 +259,28 @@ rules(::Val{:TRIGONOMETRY}) = @term RULES [
     tan(π/2-θ) => cot(θ)
     cot(π/2-θ) => tan(θ)
 ]
+
+function rules(::Val{:TYPES})
+    rules = []
+
+    types = [Int, Float64]
+    for T ∈ types
+        x = Variable(:x, TypeSet(T))
+        push!(rules, @term(zero($x)) => @term(zero($T)))
+        push!(rules, @term($x + zero($x)) => @term($T))
+        push!(rules, @term($(zero(T)) + $x) => @term($T))
+        push!(rules, @term($x + $(zero(T))) => @term($T))
+
+        push!(rules, @term(one($x)) => @term(one($T)))
+        push!(rules, @term($x * one($x)) => @term($x))
+        push!(rules, @term(one($x) * $x) => @term($x))
+        push!(rules, @term($x * $(one(T))) => @term($x))
+        push!(rules, @term($(one(T)) * $x) => @term($x))
+    end
+
+    TRS(
+        rules...,
+        EvalRule(zero),
+        EvalRule(one),
+    )
+end

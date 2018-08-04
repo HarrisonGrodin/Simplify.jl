@@ -100,6 +100,17 @@ end
         @test normalize(@term(!(!x & !x) | x)) == @term(x)
     end
 
+    @testset "CALCULUS" begin
+        x, y, z = Variable.([:x, :y, :z], Ref(TypeSet(Int)))
+        @test normalize(@term diff($x * $y, $x)) == @term($y)
+        @test normalize(@term diff(sin(2*$x + 3*$y), $x)) == @term(2cos(2*$x + 3*$y))
+        @test normalize(@term diff($x * $y + sin($x^$z), $x)) == @term($y + $x^($z-1)*cos($x^$z)*$z)
+        @test normalize(@term diff(2*$x + tan($x), $x)) == @term(3 + tan($x)^2)
+
+        w = Variable(:w, Nonzero ∩ TypeSet(Float64))
+        @test normalize(@term diff(log($w), $w)) == @term(1 / $w)
+    end
+
     @testset "LOGARITHM" begin
         @test normalize(@term(log(b, x * y))) == @term(log(b, x) + log(b, y))
         @test normalize(@term(log(b, 1))) == @term(0)

@@ -83,10 +83,19 @@ normalize(log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z), TRS)
 ```
 In this example, `log(2, z)` is the normal form of `log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z)` given the rule set `TRS`.
 ### Completion
-In Rewrite.jl, Knuth-Bendix Completion Algorithm is used to transform a given set of axioms into a confluent rewrite system with rules. One axiom is added to the rule set each time, when the user would define the reduction order between sides of the axiom. Then, critical pairs, which are patterns that yield different normal forms when two rules from the rule set are applied, are generated through unification. The user is required to determine the reduction order between the critical terms.
+In Rewrite.jl, Knuth-Bendix Completion Algorithm is used to transform a given set of axioms into a confluent rewrite system with rules. One axiom is added to the rule set each time, when the user would define the reduction order between sides of the axiom. Then, critical pairs, which are patterns that yield different normal forms when two rules are applied, are found through unification. The user is required to identify the more reduced form between the critical terms.
 
-##### Example
+##### Critical Pairs Example
+Suppose the rule set contains the following two rules:
+```
+rule 1: (x + y) + z => x + (y + z)
+rule 2: x + -x => 0
+rule 3: 0 + x => x
+```
+Given these rules, the term `(x + -x) + y` can be normalized to either `x + (-x + y)` from rule 1, or `0 + y` from rule 2 and then `y` from rule 3. In this case, the user must state which critical term is more reduced than the other. Supposing that `y` is more reduced than `x + (-x + y)`, a new rule is generated:
+```
+rule 4: x + (-x + y) => y
+```
 
-
-Since patterns represent sets of expressions, some expressions may satisfy two distinct patterns simultaneously. To ensure completion of the rules
+Once all axioms have been transformed and added to the rule set, the rule set is called **complete** and ready for rewriting expressions.
 

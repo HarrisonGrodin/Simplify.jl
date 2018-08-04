@@ -21,6 +21,12 @@ uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 deps = ["Mmap"]
 uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
+[[DiffRules]]
+deps = ["Random", "Test"]
+git-tree-sha1 = "6b7b910f2b64784420fbb346b27ac39f71030f29"
+uuid = "b552c78f-8df3-52c6-915a-8e097449b14b"
+version = "0.0.6"
+
 [[Distributed]]
 deps = ["LinearAlgebra", "Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
@@ -96,7 +102,7 @@ uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [[SpecialSets]]
 deps = ["Combinatorics"]
-git-tree-sha1 = "bc75653a5662e05d17517aa87c4be39d10fb5a62"
+git-tree-sha1 = "7235afc4b2561f0388a0972eeb5f4ab3d98a7149"
 repo-rev = "master"
 repo-url = "https://github.com/HarrisonGrodin/SpecialSets.jl"
 uuid = "c6b63f46-9023-11e8-3b28-1f7d8c94880d"

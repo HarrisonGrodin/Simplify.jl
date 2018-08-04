@@ -206,6 +206,7 @@ using SpecialSets
                 )
 
                 @test length(match(@term(x + y), @term(a + b + c))) == 6
+                @test match(@term(a + b + c), @term(x + y)) == zero(Match)
 
                 @test match(@term(x + 0), @term(f() + 0 + g())) == Match(
                     Dict(@term(x) => @term(f() + g())),

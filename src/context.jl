@@ -20,6 +20,7 @@ image(::Fn, ::EmptyImages) = TypeSet(Any)
 struct StandardImages <: AbstractImages end
 function image(fn::Fn, i::StandardImages)
     sig = fn.name, length(fn)
+    sig == (:/, 2) && return TypeSet(Float64)
     sig == (:^, 2) && image(fn[1], i) ⊆ Positive && return Positive
     sig == (:^, 2) && image(fn[1], i) ⊆ Zero && return Set([0, 1])
     sig == (:^, 2) && image(fn[2], i) ⊆ Even && return Nonnegative
@@ -27,6 +28,7 @@ function image(fn::Fn, i::StandardImages)
     sig == (:sqrt, 1) && return Nonnegative
     sig == (:sin, 1) && return GreaterThan{Number}(-1, true) ∩ LessThan{Number}(1, true)
     sig == (:cos, 1) && return GreaterThan{Number}(-1, true) ∩ LessThan{Number}(1, true)
+    sig == (:log, 1) && return TypeSet(Float64)
     TypeSet(Number)
 end
 

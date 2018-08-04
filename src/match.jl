@@ -73,14 +73,12 @@ function match(f::Fn, g::Fn, Θ)
     image(g) ⊆ image(f) || return zero(Match)
 
     flat = hasproperty(Flat, f) && hasproperty(Flat, g)
-    f′, g′ = property(Orderless, f), property(Orderless, g)
-    orderless = f′ !== nothing || g′ !== nothing
 
     callback = flat ? match_flat : match_standard
-    if orderless
-        f′ === nothing && (f′ = f)
-        g′ === nothing && (g′ = g)
-        match_orderless(f′, g′, Θ, callback)
+    if (g′ = property(Orderless, g)) !== nothing
+        match_orderless(f, g′, Θ, callback)
+    elseif (f′ = property(Orderless, f)) !== nothing
+        match_orderless(f′, g, Θ, callback)
     else
         callback(f, g, Θ)
     end

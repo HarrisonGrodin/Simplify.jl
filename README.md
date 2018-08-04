@@ -9,7 +9,7 @@
 ## Examples
 Term rewriting can be applied to a wide variety of fields, including elementary, boolean, and abstract algebras.
 
-*Normalization* involves determining the unique normal form of an expression ("simplest" equivalent expression) through repeated application of rules. Rewrite will use its [internal set of algebraic rules](src/rules) by default, which includes trigonometry, logarithms, differentiation (based on [DiffRules.jl](https://github.com/JuliaDiff/DiffRules.jl)), and more.
+Normalization involves determining the unique normal form of an expression ("simplest" equivalent expression) through repeated application of rules. *Rewrite.jl* will use its [internal set of algebraic rules](./src/rules.jl) by default, which includes trigonometry, logarithms, differentiation (based on [DiffRules.jl](https://github.com/JuliaDiff/DiffRules.jl)), and more.
 ```julia
 julia> normalize(@term(1 / (sin(-θ) / cos(-θ))))
 @term(-(cot(θ)))
@@ -81,12 +81,20 @@ julia> normalize(@term(abs($z)))
 
 
 ## Approach
-Rewrite.jl uses matching, normalization, and completion, which will be elaborated in the next sections.
+*Rewrite.jl* uses matching, normalization, and completion, which will be elaborated in the next sections.
+
+ - [Matching](#matching) is used to compare the expression being normalized to the left side of normalization rules.
+ - [Normalization](#normalization) involves the transformation of an expression based on one or more applications of rules.
+ - [Completion](#completion) is a process used to generate a *canonical* rewrite system from a list of axioms, which acts like a compilation step for axioms to rules.
 
 ### Matching
-An expression can be matched against a user-defined pattern. The expression matches the pattern if:
-1.  Function name of expression matches function name of pattern.
-2.  All children of expression match corresponding children of pattern.
+An subject expression can be matched against a pattern expression to determine whether or not the subject is structurally similar to the pattern. If the matching process succeeds, it generates one or more substitutions which transform the pattern into the subject.
+
+Semantic matching succeeds if and only if:
+  1. The pattern is a variable.
+  2. The pattern and subject are equivalent constants.
+  3. The pattern and subject are functions with the same name and arity and every argument of the pattern matches the corresponding argument of the subject.
+
 ##### Examples
 ```
 match(a - b, sin(x + y) ^ 2 - 10) => match
@@ -107,22 +115,9 @@ match(f(a, a), f(cos(y), 15)) => no match
   cos(y) != 15
 ```
 
-#### Predicates
-It is often useful to include specific range of values for variables, such as even numbers, nonzero numbers, or integers in the set `{1,3,7}`, to more precisely represent some matching rules. These predicates can be attached to both patterns and expressions.
-##### Examples
-```
-Let a ≥ 0.
-match(√(a), √(abs(-y ^ 2 - 108))) => match
-  a => abs(-y ^ 2 - 108)
-```
-```
-Let b ∈ Odd, x ∈ {2, 4}
-match(b, x - 1) => match
-  b => x - 1
-```
-
 #### Properties
-Orderless (commutative) functions are matched without order, while flat (associative) functions are matched so that a variable in pattern can match multiple children expressions. Many functions by default have one or both of the properties. For example, `+` is by default orderless and flat, and `*` is by default flat. Properties are configurable and may be derived from the rewrite domain.
+Many functions have implicit properties which affect the ways in which they should be matched. Orderless (commutative) functions are matched without respect to argument order, while flat (associative) functions are matched such that a variable in the pattern can match multiple arguments in the subject. Many functions have one or both of these properties. For example, `+` is by default orderless and flat, and `*` is by default flat. Properties are configurable and may be derived from the rewrite domain.
+
 ##### Examples
 ```
 Orderless and flat:
@@ -138,9 +133,25 @@ match(a * f(b), x * y^z * f(w)) => match
   b => w
 ```
 
+#### Constraints
+It is often useful to specify a range of values which variables may take, such as even numbers, nonzero numbers, or integers in the set `{1, 3, 7}`, to more precisely represent some matching rules. These [images](https://en.wikipedia.org/wiki/Image_(mathematics)) can be attached to any term.
+
+##### Examples
+```
+Let a ≥ 0.
+match(√(a), √(abs(-y ^ 2 - 108))) => match
+  a => abs(-y ^ 2 - 108)
+```
+```
+Let b be odd, x ∈ {2, 4}.
+match(b, x - 1) => match
+  b => x - 1
+```
+
 ### Normalization
 An expression can be **normalized** to a normal form given a set of rewrite rules.
-##### Example
+
+#### Example
 ```
 Let TRS contain two rules:
   rule 1: sin(a)^2 + cos(a)^2 => one(a)
@@ -153,19 +164,20 @@ normalize(log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z), TRS)
   => log(2, z)                                                rule 2
 ```
 In this example, `log(2, z)` is the normal form of `log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z)` given the rule set `TRS`.
+
 ### Completion
-In Rewrite.jl, Knuth-Bendix Completion Algorithm is used to transform a given set of axioms into a confluent rewrite system with rules. One axiom is added to the rule set each time, when the user would define the reduction order between sides of the axiom. Then, critical pairs, which are patterns that yield different normal forms when two rules are applied, are found through unification. The user is required to identify the more reduced form between the critical terms.
+In *Rewrite.jl*, the Knuth-Bendix Completion Algorithm is used to transform a given set of axioms into a confluent term rewriting system. One axiom is oriented and added to the rule set during each iteration, given a reduction order between terms. Then, critical pairs, which are unique terms derived through the application of different rules to an initial expression, are found by normalizing the superpositions of the left sides of the existing rules.
 
 ##### Critical Pairs Example
-Suppose the rule set contains the following two rules:
+Suppose the rule set contains the following three rules, derived from the axioms of Group Theory.
 ```
-rule 1: (x + y) + z => x + (y + z)
-rule 2: x + -x => 0
-rule 3: 0 + x => x
+R1: (x + y) + z => x + (y + z)
+R2: x + -x      => 0
+R3: 0 + x       => x
 ```
-Given these rules, the term `(x + -x) + y` can be normalized to either `x + (-x + y)` from rule 1, or `0 + y` from rule 2 and then `y` from rule 3. In this case, the user must state which critical term is more reduced than the other. Supposing that `y` is more reduced than `x + (-x + y)`, a new rule is generated:
+Given these rules, the term `(x + -x) + y` can be normalized to either `x + (-x + y)` by R1, or `0 + y` by R2 and then `y` by R3. Using a reduction order, `y` is found to be more simple than `x + (-x + y)`, and a new rule is generated:
 ```
-rule 4: x + (-x + y) => y
+R4: x + (-x + y) => y
 ```
 
-Once all axioms have been transformed and added to the rule set, the rule set is called **complete** and ready for rewriting expressions. According to Knuth-Bendix Completion Algorithm, if the rule set is confluent and terminating, every expression can be rewritten to a unique normal form.
+Once all axioms have been oriented and added to the rule set and no critical pairs remain, the rule set is called **canonical** and is ready to rewrite expressions. According to Knuth-Bendix Completion Algorithm, if the rule set is confluent and terminating, every expression can be rewritten to a unique normal form.

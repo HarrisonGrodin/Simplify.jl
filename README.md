@@ -17,8 +17,8 @@ julia> normalize(@term(1 / (sin(-θ) / cos(-θ))))
 julia> normalize(@term(log(b, 1 / (b^abs(x^2)))))
 @term(-(x ^ 2))
 
-julia> normalize(@term(diff(sin(2*$x) - log($x+$y), $x)))
-@term(2 * cos(2x) - 1 / (x + y))
+julia> normalize(@term(diff(sin(2x) - log(x+y), x)))
+@term((2 * one(x) + zero(x) * x) * cos(2x) - (1 / (x + y)) * (one(x) + zero(x)))
 
 julia> normalize(@term(!x & x | (y & (y | true))))
 @term(y)
@@ -77,6 +77,13 @@ julia> normalize(@term(abs($y)))
 
 julia> normalize(@term(abs($z)))
 @term(-z)
+```
+
+```julia
+julia> x, y = Variable.([:x, :y], Ref(TypeSet(Int)));
+
+julia> normalize(@term(diff(sin(2*$x) - log($x+$y), $x)))
+@term(2 * cos(2x) - 1 / (x + y))
 ```
 
 

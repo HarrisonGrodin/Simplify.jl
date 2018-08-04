@@ -6,8 +6,79 @@
 
 **Rewrite.jl** implements methods for rewriting symbolic terms in the Julia language based on custom, domain-specific axioms and properties.
 
-## Motivation
-Term rewriting is essential to a wide variety of fields, including elementary, boolean, and abstract algebras. Because existing symbolic simplification tools in Julia typically operate within fixed domains, it is difficult to obtain a level of control which allows for flexible inclusion and exclusion of specific mathematical properties. Rewrite.jl is a term rewriting library for Julia that simplifies algebraic expressions based on custom, domain-specific axioms.
+## Examples
+Term rewriting can be applied to a wide variety of fields, including elementary, boolean, and abstract algebras.
+
+*Normalization* involves determining the unique normal form of an expression ("simplest" equivalent expression) through repeated application of rules. Rewrite will use its [internal set of algebraic rules](src/rules) by default, which includes trigonometry, logarithms, differentiation (based on [DiffRules.jl](https://github.com/JuliaDiff/DiffRules.jl)), and more.
+```julia
+julia> normalize(@term(1 / (sin(-θ) / cos(-θ))))
+@term(-(cot(θ)))
+
+julia> normalize(@term(log(b, 1 / (b^abs(x^2)))))
+@term(-(x ^ 2))
+
+julia> normalize(@term(diff(sin(2*$x) - log($x+$y), $x)))
+@term(2 * cos(2x) - 1 / (x + y))
+
+julia> normalize(@term(!x & x | (y & (y | true))))
+@term(y)
+
+julia> normalize(@term(y^(6 - 3log(x, x^2))))
+@term(one(y))
+```
+
+If only specific sets of predefined rules are desired, they may be specified as follows.
+```julia
+julia> normalize(@term(sin(α)cos(α) - cos(α)sin(α)), :TRIGONOMETRY)
+@term(sin(α - α))
+
+julia> normalize(@term(sin(α)cos(α) - cos(α)sin(α)), :BASIC, :TRIGONOMETRY)
+@term(0)
+```
+
+In many cases, it is useful to specify entirely custom rules by passing a Term Rewriting System as the second argument to `normalize`. This may be done either by manually constructing a `TRS` object or by using the `RULES` strategy for `@term`.
+```julia
+julia> normalize(@term(f(x, f(y, y))), @term RULES [
+           f(x, x) => 1
+           f(x, 1) => x
+       ])
+@term(x)
+
+julia> normalize(@term(f(g(f(1), h()))), TRS(
+           @term(f(x)) => @term(x),
+           @term(h())  => @term(3),
+       ))
+@term(g(1, 3))
+
+julia> using Rewrite: EvalRule
+
+julia> normalize(@term(f(g(f(1), h()))), TRS(
+           @term(f(x)) => @term(x),
+           @term(h())  => @term(3),
+           EvalRule(:g, (a, b) -> 2a + b)
+       ))
+@term(5)
+```
+
+Variables may contain information about their domain, which may result in more specific normalizations.
+```julia
+julia> using SpecialSets
+
+julia> x = Variable(:x)
+       y = Variable(:y, GreaterThan(3))
+       z = Variable(:z, Even ∩ LessThan(0))
+@term(z)
+
+julia> normalize(@term(abs($x)))
+@term(abs(x))
+
+julia> normalize(@term(abs($y)))
+@term(y)
+
+julia> normalize(@term(abs($z)))
+@term(-z)
+```
+
 
 ## Approach
 Rewrite.jl uses matching, normalization, and completion, which will be elaborated in the next sections.
@@ -98,4 +169,3 @@ rule 4: x + (-x + y) => y
 ```
 
 Once all axioms have been transformed and added to the rule set, the rule set is called **complete** and ready for rewriting expressions. According to Knuth-Bendix Completion Algorithm, if the rule set is confluent and terminating, every expression can be rewritten to a unique normal form.
-

@@ -83,4 +83,10 @@ normalize(log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z), TRS)
 ```
 In this example, `log(2, z)` is the normal form of `log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z)` given the rule set `TRS`.
 ### Completion
-A set of equations can be transformed into a confluent rewrite system using Knuth-Bendix Completion Algorithm.
+In Rewrite.jl, Knuth-Bendix Completion Algorithm is used to transform a given set of axioms into a confluent rewrite system with rules. One axiom is added to the rule set each time, when the user would define the reduction order between sides of the axiom. Then, critical pairs, which are patterns that yield different normal forms when two rules from the rule set are applied, are generated through unification. The user is required to determine the reduction order between the critical terms.
+
+##### Example
+
+
+Since patterns represent sets of expressions, some expressions may satisfy two distinct patterns simultaneously. To ensure completion of the rules
+

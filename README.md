@@ -97,5 +97,5 @@ Given these rules, the term `(x + -x) + y` can be normalized to either `x + (-x 
 rule 4: x + (-x + y) => y
 ```
 
-Once all axioms have been transformed and added to the rule set, the rule set is called **complete** and ready for rewriting expressions.
+Once all axioms have been transformed and added to the rule set, the rule set is called **complete** and ready for rewriting expressions. According to Knuth-Bendix Completion Algorithm, if the rule set is confluent and terminating, every expression can be rewritten to a unique normal form.
 

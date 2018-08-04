@@ -1,5 +1,5 @@
-import Base: match, setindex
-using Combinatorics: permutations
+import Base: match
+using Combinatorics: combinations, permutations
 
 export match, unify
 
@@ -61,21 +61,35 @@ Match(Set(Dict{Term,Term}[Dict(@term(x)=>@term(a))]))
 ```
 """
 match(pattern::Term, subject::Term) = match(pattern, subject, one(Match))
-function match(pattern::Term, subject::Term, Θ)
-    image(subject) ⊆ image(pattern) || return zero(Match)
-    Θ(pattern, subject)
-end
-function match(pattern::Term, subject::Term, Θ, f)
-    image(subject) ⊆ image(pattern) || return zero(Match)
-    Θ(pattern, subject, f)
-end
 
-(Θ::Match)(p::Term, s::Term, f) = Θ(p, s)
-(Θ::Match)(x::Variable, t::Term) = merge(Θ, Match(x => t))
-(Θ::Match)(a::Constant{T}, b::Constant{<:T}) where {T} =
+function match(x::Variable, t::Term, Θ)
+    image(t) ⊆ image(x) || return zero(Match)
+    merge(Θ, Match(x => t))
+end
+match(a::Constant{T}, b::Constant{<:T}, Θ) where {T} =
     get(a) == get(b) ? Θ : zero(Match)
-function (Θ::Match)(f::Fn, g::Fn)
-    f.name == g.name || return zero(Match)
+function match(f::Fn, g::Fn, Θ)
+    f.name === g.name || return zero(Match)
+    image(g) ⊆ image(f) || return zero(Match)
+
+    flat = hasproperty(Flat, f) && hasproperty(Flat, g)
+    f′, g′ = property(Orderless, f), property(Orderless, g)
+    orderless = f′ !== nothing || g′ !== nothing
+
+    callback = flat ? match_flat : match_standard
+    if orderless
+        f′ === nothing && (f′ = f)
+        g′ === nothing && (g′ = g)
+        match_orderless(f′, g′, Θ, callback)
+    else
+        callback(f, g, Θ)
+    end
+end
+match(::Term, ::Term, Θ) = zero(Match)
+
+
+function match_standard(f::Fn, g::Fn, Θ)
+    @assert f.name === g.name
     length(f) == length(g) || return zero(Match)
 
     for (x, y) ∈ zip(f, g)
@@ -85,13 +99,13 @@ function (Θ::Match)(f::Fn, g::Fn)
     Θ
 end
 """
-    (Θ::Match)(p::F, s::F) where {F<:Associative} -> Match
+    match_flat(p::Fn, s::Fn, Θ::Match) -> Match
 
 Match an associative function call to another associative function call, based on the
 algorithm by [Krebber](https://arxiv.org/abs/1705.00907).
 """
-function (Θ::Match)(p::Associative, s::Associative, f = (xs...) -> Associative(p.name, xs...))
-    p.name == s.name || return zero(Match)
+function match_flat(p::Fn, s::Fn, Θ)
+    @assert p.name === s.name
 
     m, n = length(p), length(s)
     m > n && return zero(Match)
@@ -109,7 +123,7 @@ function (Θ::Match)(p::Associative, s::Associative, f = (xs...) -> Associative(
                 l_sub += k[j]
                 j += 1
             end
-            s′ = l_sub > 0 ? f(s[i:i+l_sub]...) : s[i]
+            s′ = l_sub > 0 ? Fn(p.name, s[i:i+l_sub]...) : s[i]
             Θ′ = match(pₗ, s′, Θ′)
             isempty(Θ′) && break
             i += l_sub + 1
@@ -118,14 +132,35 @@ function (Θ::Match)(p::Associative, s::Associative, f = (xs...) -> Associative(
     end
     Θᵣ
 end
-function (Θ::Match)(p::F, s::F) where {F<:Commutative}
-    results = map(permutations(s)) do perm  # FIXME: efficiency
-        s_fn = setindex(s.fn, perm)
-        match(p.fn, s_fn, Θ, (args...) -> F(setindex(s.fn, args)))
-    end
+function match_orderless(p::Orderless, s::Fn, Θ, callback)
+    results = map(fn -> callback(fn, s, Θ), perms(p))
     reduce(union, results)
 end
-(Θ::Match)(::Term, ::Term) = zero(Match)
+function match_orderless(p::Fn, s::Orderless, Θ, callback)
+    results = map(fn -> callback(p, fn, Θ), perms(s))
+    reduce(union, results)
+end
+function match_orderless(p::Orderless, s::Orderless, Θ, callback)
+    results = map(fn -> match_orderless(fn, s, Θ, callback), perms(p))
+    reduce(union, results)
+end
+function perms(o::Orderless)
+    l₊, l₋ = length(o.ordered), length(o.orderless)
+    l = l₊ + l₋
+    result = []
+
+    for comb ∈ combinations(1:l, l₊)
+        comb′ = setdiff(1:l, comb)
+        for perm ∈ permutations(o.orderless)
+            args = Array{Term}(undef, l)
+            args[comb] = o.ordered
+            args[comb′] = perm
+            push!(result, Fn(o.name, args...; clean=false))
+        end
+    end
+
+    result
+end
 
 
 

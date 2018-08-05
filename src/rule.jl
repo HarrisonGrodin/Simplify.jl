@@ -12,12 +12,20 @@ struct AbstractRewritingSystem{T}
 end
 AbstractRewritingSystem{T}(rs::Union{Rule,Pair}...) where {T} =
     AbstractRewritingSystem{T}(collect(rs))
+Base.:(==)(a::AbstractRewritingSystem, b::AbstractRewritingSystem) = a.rules == b.rules
+Base.iterate(ars::AbstractRewritingSystem) = iterate(ars.rules)
+Base.iterate(ars::AbstractRewritingSystem, state) = iterate(ars.rules, state)
+Base.length(ars::AbstractRewritingSystem) = length(ars.rules)
+Base.getindex(ars::AbstractRewritingSystem, ind) = getindex(ars.rules, ind)
+Base.push!(ars::AbstractRewritingSystem, rule) = (push!(ars.rules, rule); ars)
+Base.pushfirst!(ars::AbstractRewritingSystem, rule) = (push!(ars.rules, rule); ars)
+Base.pop!(ars::AbstractRewritingSystem) = pop!(ars.rules)
+Base.popfirst!(ars::AbstractRewritingSystem) = popfirst!(ars.rules)
+Base.deleteat!(ars::AbstractRewritingSystem, ind) = (deleteat!(ars.rules, ind); ars)
+Base.vcat(arss::AbstractRewritingSystem{T}...) where {T} = AbstractRewritingSystem([(ars.rules for ars ∈ arss)...;])
+
 const TermRewritingSystem = AbstractRewritingSystem{Term}
 const TRS = TermRewritingSystem
-Base.union(R₁::TRS, R₂::TRS) = TRS([R₁.rules; R₂.rules])
-Base.vcat(trss::TRS...) = TermRewritingSystem([(trs.rules for trs ∈ trss)...;])
-Base.iterate(trs::TRS) = iterate(trs.rules)
-Base.iterate(trs::TRS, state) = iterate(trs.rules, state)
 
 
 normalize(trs::TermRewritingSystem) = Base.Fix2(normalize, trs)
@@ -49,11 +57,14 @@ PatternRule((l, r)::Pair) = PatternRule(l, r)
 Base.convert(::Type{PR}, p::Pair) where {PR<:PatternRule} = PR(p)
 Base.convert(::Type{Rule{T}}, p::Pair) where {T} = convert(PatternRule{T}, p)
 Base.convert(::Type{Rule}, p::Pair) = convert(PatternRule, p)
+Base.:(==)(a::PatternRule, b::PatternRule) = (a.left, a.right) == (b.left, b.right)
+Base.hash(p::PatternRule{T}, h::UInt) where {T} = hash((p.left, p.right), hash(PatternRule{T}, h))
 function Base.iterate(r::PatternRule, state=:left)
     state === :left  && return (r.left, :right)
     state === :right && return (r.right, nothing)
     nothing
 end
+Base.map(f, r::PatternRule{T}) where {T} = PatternRule{T}(f(r.left), f(r.right))
 function normalize(t::T, (l, r)::PatternRule{U}) where {U,T<:U}
     Θ = match(l, t)
     isempty(Θ) && return t

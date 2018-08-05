@@ -10,6 +10,15 @@ macro term(strategy::Symbol, expr)
     esc(:(@term $(Val(strategy)) $expr))
 end
 
+macro term(::Val{:AXIOMS}, ex)
+    args = map(ex.args) do axiom
+        @assert axiom.head == :tuple
+        a, b = axiom.args
+        a, b = Meta.quot(a), Meta.quot(b)
+        :(convert.(Term, ($a, $b)))
+    end
+    Expr(ex.head, args...)
+end
 macro term(::Val{:RULES}, ex)
     args = map(ex.args) do pair
         p, a, b = pair.args

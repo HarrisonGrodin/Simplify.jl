@@ -46,7 +46,7 @@ function Variable(name::String)
 
     Variable(Symbol(name[1:i]...), index)
 end
-Base.convert(::Type{Variable}, name::Symbol) = Variable(name)
+Base.convert(::Type{Variable}, name::Symbol) = Variable(string(name))
 Base.:(==)(x::Variable{T}, y::Variable{T}) where {T} =
     (x.name, x.index, x.image) == (y.name, y.index, y.image)
 Base.string(x::Variable) = x.index == 0 ? string(x.name) : string(x.name, subscript(x.index))
@@ -108,8 +108,9 @@ Base.:(==)(f::Fn, g::Fn) = (f.name == g.name) && (f.args == g.args)
 Base.iterate(fn::Fn) = iterate(fn.args)
 Base.iterate(fn::Fn, start) = iterate(fn.args, start)
 Base.length(fn::Fn) = length(fn.args)
-Base.hash(fn::Fn, h::UInt) = hash(hash((fn.name, fn.args), hash(Fn)), h)
+Base.hash(fn::Fn, h::UInt) = hash((fn.name, fn.args), hash(Fn, h))
 Base.getindex(fn::Fn, key) = fn.args[key]
+Base.setindex(fn::Fn, t, key) = Fn(fn.name, setindex!(copy(fn.args), t, key)...)
 Base.map(f, fn::Fn) = Fn(fn.name, map(f, fn.args)...)
 Base.parse(fn::Fn) = Expr(:call, fn.name, parse.(fn.args)...)
 

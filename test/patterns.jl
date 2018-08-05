@@ -10,6 +10,7 @@ using SpecialSets
         @test x == x
         @test x ≠ y
         @test a == @term a
+        @test @term(x₁₂).index == 12
 
         @test unify(x, x) == Unify()
         @test unify(x, y) == Unify(x => y)

@@ -8,20 +8,21 @@ Generates lexicographic path order based on given signature order.
 
 # Examples
 ```jldoctest
-julia> >ₗₚₒ = LPO(Fn{:f,2}, Fn{:i,1}, Fn{:e,0});
+julia> >ₗₚₒ = LPO((:i, 1), (:f, 2), (:e, 0));
 ```
 """
 struct LexicographicPathOrder <: AbstractOrder
-    order::Vector{Type}
+    order::Vector{Tuple{Symbol,Int}}
 end
-LexicographicPathOrder(order::Type...) = LexicographicPathOrder(collect(order))
-Base.in(t::Type, lpo::LexicographicPathOrder) = t ∈ lpo.order
+LexicographicPathOrder(order::Tuple...) = LexicographicPathOrder(collect(order))
+Base.in(t, lpo::LexicographicPathOrder) = t ∈ lpo.order
 const LPO = LexicographicPathOrder
 
 (>ₗₚₒ::LPO)(s, t) = false
 (>ₗₚₒ::LPO)(s::Term, t::Variable) = occursin(t, s)
 
-function (>ₗₚₒ::LPO)(s::F, t::G) where {F<:Fn,G<:Fn}
+function (>ₗₚₒ::LPO)(s::Fn, t::Fn)
+    F, G = (s.name, length(s)), (t.name, length(t))
     F ∈ >ₗₚₒ || throw(ArgumentError("$F is not contained in order"))
     G ∈ >ₗₚₒ || throw(ArgumentError("$G is not contained in order"))
 

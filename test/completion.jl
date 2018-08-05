@@ -1,114 +1,100 @@
-using SymReduce.Completion: normalize, critical_pairs, add_rule!, size, orient!, choose!, complete, LPO
+using Rewrite.Completion: normalize, critical_pairs, add_rule!, size, orient!, choose!, complete, LPO
+using Rewrite: PatternRule
 
 @testset "Completion" begin
 
     @testset "critical_pairs" begin
-        f(xs...) = Fn{:f}(xs...)
-        g(xs...) = Fn{:g}(xs...)
-        h(xs...) = Fn{:h}(xs...)
-        x, y, z = Variable.([:x, :y, :z])
-        x1, y1, z1 = Variable.([:x, :y, :z], 1)
-
         @test critical_pairs(
-            f(f(x, y), z) => f(x, f(y, z)),
-            f(f(x, y), z) => f(x, f(y, z)),
+            PatternRule{Term}(@term(f(f(x, y), z)), @term(f(x, f(y, z)))),
+            PatternRule{Term}(@term(f(f(x, y), z)), @term(f(x, f(y, z)))),
         ) == [
-            (f(x, f(y, z)), f(x, f(y, z))),
-            (f(f(x, y), f(z, z1)), f(f(x, f(y, z)), z1)),
+            (@term(f(x, f(y, z))), @term(f(x, f(y, z)))),
+            (@term(f(f(x, y), f(z, z₁))), @term(f(f(x, f(y, z)), z₁))),
         ]
 
         @test critical_pairs(
-            f(f(x, y), z) => f(x, f(y, z)),
-            f(g(x), x) => h(),
+            PatternRule{Term}(@term(f(f(x, y), z)), @term(f(x, f(y, z)))),
+            PatternRule{Term}(@term(f(g(x), x)), @term(h())),
         ) == [
-            (f(g(x), f(x, z1)), f(h(), z1))
+            (@term(f(g(x), f(x, z₁))), @term(f(h(), z₁)))
         ]
 
         @test critical_pairs(
-            f(x, g(x)) => h(),
-            f(h(), x) => x,
+            PatternRule{Term}(@term(f(x, g(x))), @term(h())),
+            PatternRule{Term}(@term(f(h(), x)), @term(x)),
         ) == [
-            (h(), g(h()))
+            (@term(h()), @term(g(h())))
         ]
     end
 
     @testset "add_rule!" begin
-    f(xs...) = Fn{:f}(xs...)
-    g(xs...) = Fn{:g}(xs...)
-    h(xs...) = Fn{:h}(xs...)
-        x, y, z = Variable.([:x, :y, :z])
-        x1, y1, z1 = Variable.([:x, :y, :z], 1)
-
-        es, ss, rs = [], [], []
-        @test add_rule!(f() => g(), es, ss, rs) == ([], [f() => g()], [])
+        es, ss, rs = [], TRS(), TRS()
+        @test add_rule!(PatternRule{Term}(@term(f()), @term(g())), es, ss, rs) ==
+            ([], TRS(@term(f()) => @term(g())), TRS())
         @test isempty(es)
-        @test !isempty(ss) && ss == [f() => g()]
+        @test !isempty(ss) && ss == TRS(@term(f()) => @term(g()))
         @test isempty(rs)
 
-        @test add_rule!(f(x, y) => g(x, y), [], Pair[f(x, x) => x], []) ==
-            ([(g(x, x), x)], [f(x, y) => g(x, y)], [])
-        @test add_rule!(f(x, y) => g(x, y), [], [], Pair[f(x, x) => x]) ==
-            ([(g(x, x), x)], [f(x, y) => g(x, y)], [])
+        @test add_rule!(PatternRule{Term}(@term(f(x, y)), @term(g(x, y))), [], [PatternRule{Term}(@term(f(x, x)), @term(x))], []) ==
+            ([(@term(g(x, x)), @term(x))], [PatternRule{Term}(@term(f(x, y)), @term(g(x, y)))], [])
+        @test add_rule!(PatternRule{Term}(@term(f(x, y)), @term(g(x, y))), [], [], Pair[@term(f(x, x)) => @term(x)]) ==
+            ([(@term(g(x, x)), @term(x))], [PatternRule{Term}(@term(f(x, y)), @term(g(x, y)))], [])
     end
 
     @testset "orient!" begin
         a >ᵣ b = size(a) > size(b)
 
-        f(xs...) = Fn{:f}(xs...)
-        g(xs...) = Fn{:g}(xs...)
-        h(xs...) = Fn{:h}(xs...)
-        x, y, z = Variable.([:x, :y, :z])
-        x1, y1, z1 = Variable.([:x, :y, :z], 1)
-
-        @test orient!(>ᵣ, [(f(x), f(x))], [], Pair[g(x) => x]) == ([], [g(x) => x])
-        @test orient!(>ᵣ, [(f(x), x)], [], Pair[f(x) => x]) == ([], [f(x) => x])
-        @test orient!(>ᵣ, [(f(x, x), x)], [], Pair[f(x, y) => g(x)]) ==
-            ([g(x) => x], [f(x, y) => x])
-        @test orient!(>ᵣ, [(x, f(x, x))], [], Pair[f(x, y) => g(x)]) ==
-            ([g(x) => x], [f(x, y) => x])
-        @test (@test_logs (:warn, "Unable to determine preferred form") orient!(>ᵣ, [(f(x, x), h(x, x))], [], [])) === nothing
+        @test orient!(>ᵣ, [(@term(f(x)), @term(f(x)))], TRS(), TRS(@term(g(x)) => @term(x))) ==
+            (TRS(), TRS(@term(g(x)) => @term(x)))
+        @test orient!(>ᵣ, [(@term(f(x)), @term(x))], TRS(), TRS(@term(f(x)) => @term(x))) ==
+            (TRS(), TRS(@term(f(x)) => @term(x)))
+        @test orient!(>ᵣ, [(@term(f(x, x)), @term(x))], TRS(), TRS(@term(f(x, y)) => @term(g(x)))) ==
+            (TRS(@term(g(x)) => @term(x)), TRS(@term(f(x, y)) => @term(x)))
+        @test orient!(>ᵣ, [(@term(x), @term(f(x, x)))], TRS(), TRS(@term(f(x, y)) => @term(g(x)))) ==
+            (TRS(@term(g(x)) => @term(x)), TRS(@term(f(x, y)) => @term(x)))
+        @test (@test_logs (:warn, "Unable to determine preferred form") orient!(
+            >ᵣ, [(@term(f(x, x)), @term(h(x, x)))], TRS(), TRS()
+        )) === nothing
     end
 
     @testset "choose!" begin
-        f(xs...) = Fn{:f}(xs...)
-        g(xs...) = Fn{:g}(xs...)
-        x, y, z = Variable.([:x, :y, :z])
+        rs = TRS(@term(f(f(f(x)))) => @term(x), @term(g(x)) => @term(x))
+        @test choose!(rs) == PatternRule{Term}(@term(g(x)), @term(x))
+        @test rs == TRS(@term(f(f(f(x)))) => @term(x))
 
-        rs = [f(f(f(x))) => x, g(x) => x]
-        @test choose!(rs) == (g(x) => x)
-        @test rs == [f(f(f(x))) => x]
+        rs = TRS(@term(f(x)) => @term(x), @term(g(x)) => @term(x))
+        @test choose!(rs) == PatternRule{Term}(@term(f(x)), @term(x))
 
-        rs = [f(x) => x, g(x) => x]
-        @test choose!(rs) == (f(x) => x)
-
-        rs = [g(x) => x, f(x) => x]
-        @test choose!(rs) == (g(x) => x)
+        rs = TRS(@term(g(x)) => @term(x), @term(f(x)) => @term(x))
+        @test choose!(rs) == PatternRule{Term}(@term(g(x)), @term(x))
 
         @test_throws ArgumentError choose!([])
     end
 
     @testset "complete" begin
-        >ᵣ = LPO(Fn{:i,1}, Fn{:*,2}, Fn{:e,0})
-        @test Set(complete(>ᵣ, @term [
-            ((x * y) * z  , x * (y * z)  ),
-            (i(x) * x     , e()          ),
-            (e() * x      , x            ),
-        ])) == Set(@term PAIRS [
-                (x * y) * z  =>  x * (y * z),
-                    e() * x  =>  x,
-                    x * e()  =>  x,
-                   x * i(x)  =>  e(),
-                   i(x) * x  =>  e(),
-                     i(e())  =>  e(),
-                    i(i(x))  =>  x,
-                 i(x₁ * y₁)  =>  i(y₁) * i(x₁),
-            x * (i(x) * z₃)  =>  z₃,
-            i(x) * (x * z₁)  =>  z₁,
-        ])
+        >ᵣ = LPO((:i, 1), (:*, 2), (:e, 0))
+        with_context(AlgebraContext()) do
+            @test Set(complete(>ᵣ, @term AXIOMS [
+                ((x * y) * z  , x * (y * z)  )
+                (i(x) * x     , e()          )
+                (e() * x      , x            )
+            ])) == Set(@term RULES [
+                    (x * y) * z  =>  x * (y * z)
+                        e() * x  =>  x
+                        x * e()  =>  x
+                       x * i(x)  =>  e()
+                       i(x) * x  =>  e()
+                         i(e())  =>  e()
+                        i(i(x))  =>  x
+                     i(x₁ * y₁)  =>  i(y₁) * i(x₁)
+                x * (i(x) * z₃)  =>  z₃
+                i(x) * (x * z₁)  =>  z₁
+            ])
+        end
     end
 
     @testset "lpo" begin
-        >ₗₚₒ = LPO(Fn{:i,1}, Fn{:f,2}, Fn{:e,0})
+        >ₗₚₒ = LPO((:i, 1), (:f, 2), (:e, 0))
         @test !(@term(x) >ₗₚₒ @term(y))
         @test @term(f(x, e())) >ₗₚₒ @term(x)
         @test @term(i(e())) >ₗₚₒ @term(e())
@@ -116,8 +102,8 @@ using SymReduce.Completion: normalize, critical_pairs, add_rule!, size, orient!,
         @test @term(f(f(x, y), z)) >ₗₚₒ @term(f(x, f(y, z)))
         @test @term(f(x, y)) >ₗₚₒ @term(x)
 
-        @test_throws ArgumentError("Fn{:f,1} is not contained in order") LPO(Fn{:i,1})(@term(f(x)), @term(i(x)))
-        @test_throws ArgumentError("Fn{:g,1} is not contained in order") LPO(Fn{:i,1})(@term(i(x)), @term(g(x)))
+        @test_throws ArgumentError("(:f, 1) is not contained in order") LPO((:i, 1))(@term(f(x)), @term(i(x)))
+        @test_throws ArgumentError("(:g, 1) is not contained in order") LPO((:i, 1))(@term(i(x)), @term(g(x)))
     end
 
 end

@@ -1,25 +1,22 @@
 module Completion
 
 using Base: setindex
-using SymReduce: normalize
-using SymReduce.Patterns
+using Rewrite
+using Rewrite: Rule, PatternRule
 
 export complete
 
 
 maxindex(x::Variable) = x.index
-maxindex(xs) = isempty(xs) ? UInt(0) : maximum(maxindex, xs)
+maxindex(xs) = isempty(xs) ? 0 : maximum(maxindex, xs)
 
-rename(n::Integer) = Base.Fix2(rename, n)
-rename(x::Variable, n::Integer) = Variable(x.name, x.index + n)
-rename(f::Fn, n::Integer) = map(x -> rename(x, n), f)
-rename(t::Term, ::Integer) = t
-rename((a, b)::Pair{A,B}, n::Integer) where {A,B} = Pair{A,B}(rename(a, n), rename(b, n))
+rename(n) = Base.Fix2(rename, n)
+rename(x::Variable, n) = Variable(x.name, x.index + n)
+rename(xs, n) = map(x -> rename(x, n), xs)
 
 _critical_pairs(::Function, ::Pair, rs) = []
-function _critical_pairs(rebuild::Function, (l, r)::Pair{<:Fn}, rs)
+function _critical_pairs(rebuild::Function, (l, r)::Pair{Fn}, rs)
     result = Tuple{Term,Term}[]
-
     for (l′, r′) ∈ rs
         σ = unify(l, l′)
         σ === nothing && continue
@@ -36,26 +33,28 @@ function _critical_pairs(rebuild::Function, (l, r)::Pair{<:Fn}, rs)
     result
 end
 
-function critical_pairs(rule::Pair, rs)
+function critical_pairs(rule::PatternRule, rs::TRS)
     m = 1 + maxindex(rs)
-    _critical_pairs(identity, rename(rule, m), rs)
+    rule = rename(rule, m)
+    _critical_pairs(identity, rule.left => rule.right, rs)
 end
-critical_pairs(rs, rule::Pair) = critical_pairs(rs, [rule])
-critical_pairs(r₁::Pair, r₂::Pair) = critical_pairs(r₁, [r₂])
+critical_pairs(rs::TRS, rule::PatternRule) = critical_pairs(rs, TRS(rule))
+critical_pairs(r₁::PatternRule, r₂::PatternRule) = critical_pairs(r₁, TRS(r₂))
 
 critical_pairs(rs, rs′) = [map(r -> critical_pairs(r, rs′), rs)...;]
 
 
 
-function add_rule!((l, r)::Pair, es, ss, rs)
+function add_rule!(rule::PatternRule, es, ss, rs)
+    l, r = rule
 
     for us ∈ (ss, rs)
         for _ ∈ 1:length(us)
             (m, n) = popfirst!(us)
 
-            m′ = normalize(m, [l => r])
+            m′ = normalize(m, TRS(rule))
             if m′ == m
-                n′ = normalize(n, [l => r; rs; ss])
+                n′ = normalize(n, [TRS(rule); rs; ss])
                 push!(us, m => n′)
             else
                 push!(es, (m′, n))
@@ -63,7 +62,7 @@ function add_rule!((l, r)::Pair, es, ss, rs)
         end
     end
 
-    push!(ss, l => r)
+    push!(ss, rule)
 
     es, ss, rs
 end
@@ -75,8 +74,8 @@ function orient!(>ᵣ, es, ss, rs)
         (m, n) = pop!(es)
         (m′, n′) = normalize([rs; ss]).((m, n))
         m′ == n′ && continue
-        m′ >ᵣ n′ && (add_rule!(m′ => n′, es, ss, rs); continue)
-        n′ >ᵣ m′ && (add_rule!(n′ => m′, es, ss, rs); continue)
+        m′ >ᵣ n′ && (add_rule!(PatternRule{Term}(m′, n′), es, ss, rs); continue)
+        n′ >ᵣ m′ && (add_rule!(PatternRule{Term}(n′, m′), es, ss, rs); continue)
 
         @warn "Unable to determine preferred form" s=m′ t=n′
         return nothing
@@ -98,8 +97,8 @@ end
 
 
 function complete!(>ᵣ, es)
-    ss = Pair[]
-    rs = Pair[]
+    ss = TRS()
+    rs = TRS()
 
     while true
         orient!(>ᵣ, es, ss, rs) === nothing && return nothing

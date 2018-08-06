@@ -52,18 +52,20 @@ function rules(::Val{:BASIC})
             x + -y     => x - y
 
             0 - x      => -x
-            x - x      => 0
+            x - x      => zero(x)
+            -(x + y)   => -y + -x
+            -x * y     => -(x * y)
+            -(-x)      => x
 
             x * 1      => x
             x * 0      => 0
             -1 * x     => -x
 
-            inv(y)     => 1 / y
-            x / 1      => x
-            $a / $a    => one($a)
-            1/($a/$b)  => $b / $a
-            -x / y     => -(x / y)
-            x / -y     => -(x / y)
+            x / y      => x * inv(y)
+            $a*inv($a) => one($a)
+            inv(x * y) => inv(x) * inv(y)
+            inv(inv($a)) => $a
+            inv(-x)    => -inv(x)
 
             x ^ 0      => one(x)
             # x^(a + b)  => x^a * x^b  # FIXME
@@ -85,7 +87,7 @@ function rules(::Val{:ABSOLUTE_VALUE})
             abs($neg)  => -$neg
             abs(-a)    => abs(a)
             abs(a * b) => abs(a) * abs(b)
-            abs(a / b) => abs(a) / abs(b)
+            abs(inv(a)) => inv(abs(a))
         ]
         TRS(
             EvalRule(abs),
@@ -177,7 +179,7 @@ rules(::Val{:LOGARITHM}) = @term RULES [
     log(b, x ^ r) => r * log(b, x)
 
     log(b, x * y) => log(b, x) + log(b, y)
-    log(b, x / y) => log(b, x) - log(b, y)
+    log(b, inv(x)) => -log(b, x)
 ]
 
 rules(::Val{:TRIGONOMETRY}) = @term RULES [
@@ -186,32 +188,32 @@ rules(::Val{:TRIGONOMETRY}) = @term RULES [
     cos(0) => 1
     tan(0) => 0
 
-    sin(π / 6) => 1 / 2
-    cos(π / 6) => √3 / 2
-    tan(π / 6) => √3 / 3
+    sin(π * inv(6)) => 1 / 2
+    cos(π * inv(6)) => √3 / 2
+    tan(π * inv(6)) => √3 / 3
 
-    sin(π / 4) => √2 / 2
-    cos(π / 4) => √2 / 2
-    tan(π / 4) => 1
+    sin(π * inv(4)) => √2 / 2
+    cos(π * inv(4)) => √2 / 2
+    tan(π * inv(4)) => 1
 
-    sin(π / 3) => √3 / 2
-    cos(π / 3) => 1 / 2
-    tan(π / 3) => √3
+    sin(π * inv(3)) => √3 / 2
+    cos(π * inv(3)) => 1 / 2
+    tan(π * inv(3)) => √3
 
-    sin(π / 2) => 1
-    cos(π / 2) => 0
-    # tan(π / 2) => # TODO: infinite/undefined
+    sin(π * inv(2)) => 1
+    cos(π * inv(2)) => 0
+    # tan(π * inv(2)) => # TODO: infinite/undefined
 
 
     # Definitions of relations
-    sin(θ) / cos(θ) => tan(θ)
-    cos(θ) / sin(θ) => cot(θ)
-    1 / cos(θ) => sec(θ)
-    1 / sec(θ) => cos(θ)
-    1 / sin(θ) => csc(θ)
-    1 / csc(θ) => sin(θ)
-    1 / tan(θ) => cot(θ)
-    1 / cot(θ) => tan(θ)
+    sin(θ) * sec(θ) => tan(θ)
+    cos(θ) * csc(θ) => cot(θ)
+    inv(cos(θ)) => sec(θ)
+    inv(sec(θ)) => cos(θ)
+    inv(sin(θ)) => csc(θ)
+    inv(csc(θ)) => sin(θ)
+    inv(tan(θ)) => cot(θ)
+    inv(cot(θ)) => tan(θ)
 
     # Pythagorean identities
     sin(θ)^2 + cos(θ)^2 => one(θ)
@@ -247,8 +249,8 @@ rules(::Val{:TRIGONOMETRY}) = @term RULES [
     sin(α)cos(β) - cos(α)sin(β) => sin(α - β)
     cos(α)cos(β) - sin(α)sin(β) => cos(α + β)
     cos(α)cos(β) + sin(α)sin(β) => cos(α - β)
-    (tan(α) + tan(β)) / (1 - tan(α)tan(β)) => tan(α + β)
-    (tan(α) - tan(β)) / (1 + tan(α)tan(β)) => tan(α - β)
+    (tan(α) + tan(β)) * inv(1 - tan(α)tan(β)) => tan(α + β)
+    (tan(α) - tan(β)) * inv(1 + tan(α)tan(β)) => tan(α - β)
 
     # Product to sum formulae
     cos(α - β) - cos(α + β) => 2sin(α)sin(β)
@@ -257,18 +259,18 @@ rules(::Val{:TRIGONOMETRY}) = @term RULES [
     sin(α + β) - sin(α - β) => 2cos(α)sin(β)
 
     # Sum to product formulae
-    2sin((α + β) / 2)cos(α - β / 2) => sin(α) + sin(β)
-    2cos((α + β) / 2)sin(α - β / 2) => sin(α) - sin(β)
-    2cos((α + β) / 2)cos(α - β / 2) => cos(α) + cos(β)
-    -2sin((α + β) / 2)sin(α - β / 2) => cos(α) - cos(β)
+    2sin((α + β) * inv(2))cos(α - β * inv(2)) => sin(α) + sin(β)
+    2cos((α + β) * inv(2))sin(α - β * inv(2)) => sin(α) - sin(β)
+    2cos((α + β) * inv(2))cos(α - β * inv(2)) => cos(α) + cos(β)
+    -2sin((α + β) * inv(2))sin(α - β * inv(2)) => cos(α) - cos(β)
 
     # Cofunction formulae
-    sin(π/2-θ) => cos(θ)
-    cos(π/2-θ) => sin(θ)
-    csc(π/2-θ) => sec(θ)
-    sec(π/2-θ) => csc(θ)
-    tan(π/2-θ) => cot(θ)
-    cot(π/2-θ) => tan(θ)
+    sin(π * inv(2) - θ) => cos(θ)
+    cos(π * inv(2) - θ) => sin(θ)
+    csc(π * inv(2) - θ) => sec(θ)
+    sec(π * inv(2) - θ) => csc(θ)
+    tan(π * inv(2) - θ) => cot(θ)
+    cot(π * inv(2) - θ) => tan(θ)
 ]
 
 function rules(::Val{:TYPES})
@@ -281,12 +283,14 @@ function rules(::Val{:TYPES})
         push!(rules, @term($x + zero($x)) => @term($T))
         push!(rules, @term($(zero(T)) + $x) => @term($T))
         push!(rules, @term($x + $(zero(T))) => @term($T))
+        push!(rules, @term(-($(zero(T)))) => @term($(zero(T))))
 
         push!(rules, @term(one($x)) => @term(one($T)))
         push!(rules, @term($x * one($x)) => @term($x))
         push!(rules, @term(one($x) * $x) => @term($x))
         push!(rules, @term($x * $(one(T))) => @term($x))
         push!(rules, @term($(one(T)) * $x) => @term($x))
+        push!(rules, @term(inv($(one(T)))) => @term($(one(T))))
     end
 
     TRS(

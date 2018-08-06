@@ -79,7 +79,7 @@ end
         @test normalize(@term(abs(2x))) == @term(2abs(x))
         @test normalize(@term(abs(-(5x)))) == @term(5abs(x))
         @test normalize(@term(abs(x * y))) == @term(abs(x) * abs(y))
-        @test normalize(@term(abs(x / y))) == @term(abs(x) / abs(y))
+        @test normalize(@term(abs(x / y))) == @term(abs(x) * inv(abs(y)))
         @test normalize(@term(abs(x / 1))) == @term(abs(x))
         @test normalize(@term(abs(abs(x)))) == @term(abs(x))
         @test normalize(@term(abs(x^2))) == @term(x^2)
@@ -110,7 +110,7 @@ end
         @test normalize(@term diff(2*$x + tan($x), $x)) == @term(3 + tan($x)^2)
 
         w = Variable(:w, Nonzero ∩ TypeSet(Float64))
-        @test normalize(@term diff(log($w), $w)) == @term(1 / $w)
+        @test normalize(@term diff(log($w), $w)) == @term(inv($w))
     end
 
     @testset "LOGARITHM" begin
@@ -125,9 +125,9 @@ end
 
     @testset "TRIGONOMETRY" begin
         @test normalize(@term(sin(0) * tan(π / 4))) == @term(0)
-        @test normalize(@term(sin(π/3)cos(0) + cos(π/3)sin(0))) == @term(√3 / 2)
+        @test normalize(@term(sin(π/3)cos(0) + cos(π/3)sin(0))) == @term(√3 * inv(2))
         @test normalize(@term(one(θ) + tan(θ) ^ 2)) == @term(sec(θ) ^ 2)
-        @test normalize(@term(tan(π / 6))) == @term(√3 / 3)
+        @test normalize(@term(tan(π / 6))) == @term(√3 * inv(3))
         @test normalize(@term(1 / (sin(-θ) / cos(-θ)))) == @term(-cot(θ))
         @test normalize(@term(2 * cos((α + β) / 2) * cos(α - β / 2))) == @term(cos(α) + cos(β))
         @test normalize(@term((tan(α) - tan(β)) / (1 + tan(α) * tan(β)))) == @term(tan(α - β))

@@ -133,6 +133,9 @@ end
         @test normalize(@term(2 * cos((α + β) / 2) * cos((α - β) / 2))) == @term(cos(α) + cos(β))
         @test normalize(@term((tan(α) - tan(β)) / (1 + tan(α) * tan(β)))) == @term(tan(α + -β))
         @test normalize(@term(csc(π/2 - θ))) == @term(sec(θ))
+
+        x = Variable(:x, TypeSet(Int))
+        @test_broken normalize(@term sin($x)^2 + cos($x)^2 + 1) == 2
     end
 
 

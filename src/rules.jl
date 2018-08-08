@@ -68,6 +68,7 @@ function rules(::Val{:BASIC})
             inv(-x)    => -inv(x)
 
             x ^ 0      => one(x)
+            x ^ 1      => x
             # x^(a + b)  => x^a * x^b  # FIXME
         ]
         TRS(
@@ -180,6 +181,8 @@ rules(::Val{:LOGARITHM}) = @term RULES [
 
     log(b, x * y) => log(b, x) + log(b, y)
     log(b, inv(x)) => -log(b, x)
+
+    log(a, b) * log(b, c) => log(a, c)
 ]
 
 rules(::Val{:TRIGONOMETRY}) = @term RULES [

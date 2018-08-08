@@ -57,6 +57,7 @@ PatternRule((l, r)::Pair) = PatternRule(l, r)
 Base.convert(::Type{PR}, p::Pair) where {PR<:PatternRule} = PR(p)
 Base.convert(::Type{Rule{T}}, p::Pair) where {T} = convert(PatternRule{T}, p)
 Base.convert(::Type{Rule}, p::Pair) = convert(PatternRule, p)
+Base.convert(::Type{Pair}, r::PatternRule) = r.left => r.right
 Base.:(==)(a::PatternRule, b::PatternRule) = (a.left, a.right) == (b.left, b.right)
 Base.hash(p::PatternRule{T}, h::UInt) where {T} = hash((p.left, p.right), hash(PatternRule{T}, h))
 function Base.iterate(r::PatternRule, state=:left)

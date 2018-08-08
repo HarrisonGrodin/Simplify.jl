@@ -106,8 +106,9 @@ end
         x, y, z = Variable.([:x, :y, :z], Ref(TypeSet(Int)))
         @test normalize(@term diff($x * $y, $x)) == @term($y)
         @test normalize(@term diff(sin(2*$x + 3*$y), $x)) == @term(2cos(2*$x + 3*$y))
-        @test normalize(@term diff($x * $y + sin($x^$z), $x)) == @term($y + $x^($z-1)*cos($x^$z)*$z)
+        @test normalize(@term diff($x * $y + sin($x^$z), $x)) == @term($y + $x^($z + -1)*cos($x^$z)*$z)
         @test normalize(@term diff(2*$x + tan($x), $x)) == @term(3 + tan($x)^2)
+        @test normalize(@term diff(f($x) + sin($x^2), $x)) == @term(2*$x*cos($x^2) + diff(f($x), $x))
 
         w = Variable(:w, Nonzero ∩ TypeSet(Float64))
         @test normalize(@term diff(log($w), $w)) == @term(inv($w))
@@ -129,9 +130,12 @@ end
         @test normalize(@term(one(θ) + tan(θ) ^ 2)) == @term(sec(θ) ^ 2)
         @test normalize(@term(tan(π / 6))) == @term(√3 * inv(3))
         @test normalize(@term(1 / (sin(-θ) / cos(-θ)))) == @term(-cot(θ))
-        @test normalize(@term(2 * cos((α + β) / 2) * cos(α - β / 2))) == @term(cos(α) + cos(β))
-        @test normalize(@term((tan(α) - tan(β)) / (1 + tan(α) * tan(β)))) == @term(tan(α - β))
+        @test normalize(@term(2 * cos((α + β) / 2) * cos((α - β) / 2))) == @term(cos(α) + cos(β))
+        @test normalize(@term((tan(α) - tan(β)) / (1 + tan(α) * tan(β)))) == @term(tan(α + -β))
         @test normalize(@term(csc(π/2 - θ))) == @term(sec(θ))
+
+        x = Variable(:x, TypeSet(Int))
+        @test_broken normalize(@term sin($x)^2 + cos($x)^2 + 1) == 2
     end
 
 

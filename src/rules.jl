@@ -49,7 +49,7 @@ function rules(::Val{:BASIC})
     [
         @term RULES [
             x + 0      => x
-            x + -y     => x - y
+            x - y     => x + -y
 
             0 - x      => -x
             x - x      => zero(x)

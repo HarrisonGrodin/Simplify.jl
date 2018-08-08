@@ -108,6 +108,7 @@ end
         @test normalize(@term diff(sin(2*$x + 3*$y), $x)) == @term(2cos(2*$x + 3*$y))
         @test normalize(@term diff($x * $y + sin($x^$z), $x)) == @term($y + $x^($z-1)*cos($x^$z)*$z)
         @test normalize(@term diff(2*$x + tan($x), $x)) == @term(3 + tan($x)^2)
+        @test normalize(@term diff(f($x) + sin($x^2), $x)) == @term(2*$x*cos($x^2) + diff(f($x), x))
 
         w = Variable(:w, Nonzero ∩ TypeSet(Float64))
         @test normalize(@term diff(log($w), $w)) == @term(inv($w))

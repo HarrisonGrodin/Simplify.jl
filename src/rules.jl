@@ -51,8 +51,8 @@ function rules(::Val{:BASIC})
             x + 0      => x
             x - y     => x + -y
 
-            0 - x      => -x
-            x - x      => zero(x)
+            0 + -x      => -x
+            x + -x      => zero(x)
             -(x + y)   => -y + -x
             -x * y     => -(x * y)
             -(-x)      => x
@@ -244,36 +244,36 @@ rules(::Val{:TRIGONOMETRY}) = @term RULES [
 
     # Double-angle formulae
     2sin(θ)cos(θ) => sin(2θ)
-    cos(θ)^2 - sin(θ)^2 => cos(2θ)
-    2cos(θ)^2 - 1 => cos(2θ)
+    cos(θ)^2 + -sin(θ)^2 => cos(2θ)
+    2cos(θ)^2 + -1 => cos(2θ)
 
     # Sum and difference formulae
     sin(α)cos(β) + cos(α)sin(β) => sin(α + β)
-    sin(α)cos(β) - cos(α)sin(β) => sin(α - β)
-    cos(α)cos(β) - sin(α)sin(β) => cos(α + β)
+    sin(α)cos(β) + -cos(α)sin(β) => sin(α - β)
+    cos(α)cos(β) + -sin(α)sin(β) => cos(α + β)
     cos(α)cos(β) + sin(α)sin(β) => cos(α - β)
-    (tan(α) + tan(β)) * inv(1 - tan(α)tan(β)) => tan(α + β)
-    (tan(α) - tan(β)) * inv(1 + tan(α)tan(β)) => tan(α - β)
+    (tan(α) + tan(β)) * inv(1 + -tan(α)tan(β)) => tan(α + β)
+    (tan(α) + -tan(β)) * inv(1 + tan(α)tan(β)) => tan(α - β)
 
     # Product to sum formulae
-    cos(α - β) - cos(α + β) => 2sin(α)sin(β)
-    cos(α - β) + cos(α + β) => 2cos(α)cos(β)
-    sin(α + β) + sin(α - β) => 2sin(α)cos(β)
-    sin(α + β) - sin(α - β) => 2cos(α)sin(β)
+    cos(α + -β) + -cos(α + β) => 2sin(α)sin(β)
+    cos(α + -β) + cos(α + β) => 2cos(α)cos(β)
+    sin(α + β) + sin(α + -β) => 2sin(α)cos(β)
+    sin(α + β) + -sin(α + -β) => 2cos(α)sin(β)
 
     # Sum to product formulae
-    2sin((α + β) * inv(2))cos(α - β * inv(2)) => sin(α) + sin(β)
-    2cos((α + β) * inv(2))sin(α - β * inv(2)) => sin(α) - sin(β)
-    2cos((α + β) * inv(2))cos(α - β * inv(2)) => cos(α) + cos(β)
-    -2sin((α + β) * inv(2))sin(α - β * inv(2)) => cos(α) - cos(β)
+    2sin((α + β) * inv(2))cos((α + -β) * inv(2)) => sin(α) + sin(β)
+    2cos((α + β) * inv(2))sin((α + -β) * inv(2)) => sin(α) - sin(β)
+    2cos((α + β) * inv(2))cos((α + -β) * inv(2)) => cos(α) + cos(β)
+    -2sin((α + β) * inv(2))sin((α + -β) * inv(2)) => cos(α) - cos(β)
 
     # Cofunction formulae
-    sin(π * inv(2) - θ) => cos(θ)
-    cos(π * inv(2) - θ) => sin(θ)
-    csc(π * inv(2) - θ) => sec(θ)
-    sec(π * inv(2) - θ) => csc(θ)
-    tan(π * inv(2) - θ) => cot(θ)
-    cot(π * inv(2) - θ) => tan(θ)
+    sin(π * inv(2) + -θ) => cos(θ)
+    cos(π * inv(2) + -θ) => sin(θ)
+    csc(π * inv(2) + -θ) => sec(θ)
+    sec(π * inv(2) + -θ) => csc(θ)
+    tan(π * inv(2) + -θ) => cot(θ)
+    cot(π * inv(2) + -θ) => tan(θ)
 ]
 
 function rules(::Val{:TYPES})

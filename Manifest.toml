@@ -2,30 +2,16 @@
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[Combinatorics]]
-deps = ["Compat", "IterTools", "Polynomials"]
-git-tree-sha1 = "60c82fafd63df8a8a2c08b29905c64a75fe8bacd"
+deps = ["LinearAlgebra", "Polynomials", "Test"]
+git-tree-sha1 = "50b3ae4d643dc27eaff69fb6be06ee094d5500c9"
 uuid = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
-version = "0.6.0"
-
-[[Compat]]
-deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", "LibGit2", "Libdl", "LinearAlgebra", "Markdown", "Mmap", "Pkg", "Printf", "REPL", "Random", "Serialization", "SharedArrays", "Sockets", "SparseArrays", "Statistics", "Test", "UUIDs", "Unicode"]
-git-tree-sha1 = "c478aec93ea90bb99c307a92df17a76131bf275f"
-uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "1.0.0"
-
-[[Dates]]
-deps = ["Printf"]
-uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
-
-[[DelimitedFiles]]
-deps = ["Mmap"]
-uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+version = "0.7.0"
 
 [[DiffRules]]
 deps = ["Random", "Test"]
-git-tree-sha1 = "6b7b910f2b64784420fbb346b27ac39f71030f29"
+git-tree-sha1 = "c49ec69428ffea0c1d1bbdc63d1a70f5df5860ad"
 uuid = "b552c78f-8df3-52c6-915a-8e097449b14b"
-version = "0.0.6"
+version = "0.0.7"
 
 [[Distributed]]
 deps = ["LinearAlgebra", "Random", "Serialization", "Sockets"]
@@ -34,15 +20,6 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 [[InteractiveUtils]]
 deps = ["LinearAlgebra", "Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
-
-[[IterTools]]
-deps = ["Pkg", "SparseArrays", "Test"]
-git-tree-sha1 = "ed0787e62dc46b8d8c7c3db54391d71e0da5fefd"
-uuid = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
-version = "1.0.0"
-
-[[LibGit2]]
-uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 
 [[Libdl]]
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
@@ -58,40 +35,18 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 deps = ["Base64"]
 uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
-[[Mmap]]
-uuid = "a63ad114-7e13-5084-954f-fe012c677804"
-
-[[Pkg]]
-deps = ["Dates", "LibGit2", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]
-uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
-
 [[Polynomials]]
-deps = ["Compat"]
-git-tree-sha1 = "23d095b4c1ecbacd78bb0eea6b85d6e0872ce3bd"
+deps = ["LinearAlgebra", "SparseArrays", "Test"]
+git-tree-sha1 = "af883752c4935425a3ab30031a2069254c451b8b"
 uuid = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
-version = "0.4.0"
-
-[[Printf]]
-deps = ["Unicode"]
-uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
-
-[[REPL]]
-deps = ["InteractiveUtils", "Markdown", "Sockets"]
-uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
+version = "0.5.0"
 
 [[Random]]
 deps = ["Serialization"]
 uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
-[[SHA]]
-uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
-
 [[Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
-
-[[SharedArrays]]
-deps = ["Distributed", "Mmap", "Random", "Serialization"]
-uuid = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
 
 [[Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
@@ -102,23 +57,12 @@ uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [[SpecialSets]]
 deps = ["Combinatorics"]
-git-tree-sha1 = "7235afc4b2561f0388a0972eeb5f4ab3d98a7149"
+git-tree-sha1 = "71a10914b75f5d6c18c55958e88df349fad6d28a"
 repo-rev = "master"
 repo-url = "https://github.com/HarrisonGrodin/SpecialSets.jl"
 uuid = "c6b63f46-9023-11e8-3b28-1f7d8c94880d"
 version = "0.1.0"
 
-[[Statistics]]
-deps = ["LinearAlgebra", "SparseArrays"]
-uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
-
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[[UUIDs]]
-deps = ["Random"]
-uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
-
-[[Unicode]]
-uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"

@@ -1,3 +1,5 @@
+using SpecialSets
+
 export rules
 
 
@@ -48,24 +50,21 @@ function rules(::Val{:BASIC})
 
     [
         @term RULES [
-            x + 0      => x
-            x - y     => x + -y
+            x - y  => x + -y
+            x / $a => x * inv($a)
 
-            0 + -x      => -x
-            x + -x      => zero(x)
+            x + -x       => zero(x)
+            $a * inv($a) => one($a)
+
             -(x + y)   => -y + -x
-            -x * y     => -(x * y)
+            inv($a * $b) => inv($b) * inv($a)
+
             -(-x)      => x
-
-            x * 1      => x
-            x * 0      => 0
-            -1 * x     => -x
-
-            x / y      => x * inv(y)
-            $a*inv($a) => one($a)
-            inv(x * y) => inv(x) * inv(y)
             inv(inv($a)) => $a
-            inv(-x)    => -inv(x)
+
+            -1 * x     => -x
+            -x * y     => -(x * y)
+            inv(-$a)     => -inv($a)
 
             x ^ 0      => one(x)
             x ^ 1      => x
@@ -97,31 +96,35 @@ function rules(::Val{:ABSOLUTE_VALUE})
 end
 
 
-rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!) = [
-    @term RULES [
-        $or(x, false) => x
-        $and(x, true) => x
+function rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!)
+    x, y = Variable.([:x, :y], Ref(TypeSet(Bool)))
 
-        $or(x, true) => true
-        $and(x, false) => false
+    [
+        @term RULES [
+            $or($x, false) => $x
+            $and($x, true) => $x
 
-        $or(x, x) => x
-        $and(x, x) => x
+            $or($x, true)   => true
+            $and($x, false) => false
 
-        $or(x, $and(x, y)) => x
-        $and(x, $or(x, y)) => x
+            $or($x, $x)  => $x
+            $and($x, $x) => $x
 
-        $or(x, $neg(x)) => true
-        $and(x, $neg(x)) => false
+            $or($x, $and($x, $y)) => $x
+            $and($x, $or($x, $y)) => $x
 
-        $neg($neg(x)) => x
-    ];
-    TRS(
-        EvalRule(and, &),
-        EvalRule(or,  |),
-        EvalRule(neg, !),
-    );
-]
+            $or($x, $neg($x))  => true
+            $and($x, $neg($x)) => false
+
+            $neg($neg($x)) => $x
+        ];
+        TRS(
+            EvalRule(and, &),
+            EvalRule(or,  |),
+            EvalRule(neg, !),
+        );
+    ]
+end
 
 
 function diff(M, fn, arity)
@@ -170,111 +173,120 @@ rules(::Val{:LAPLACE}) = @term RULES [
 =#
 
 
-rules(::Val{:LOGARITHM}) = @term RULES [
-    log(b, b) => 1
-    log(b, 1) => 0
+function rules(::Val{:LOGARITHM})
+    m = Variable(:m, NotEqual(1))
+    n = Variable(:n, NotEqual(0, 1))
 
-    log(b, b ^ x) => x
-    b ^ log(b, x) => x
+    @term RULES [
+        log($n, $n) => 1
+        log($m, 1) => 0
 
-    log(b, x ^ r) => r * log(b, x)
+        log($n, $n ^ x) => x
+        b ^ log(b, x) => x
 
-    log(b, x * y) => log(b, x) + log(b, y)
-    log(b, inv(x)) => -log(b, x)
+        log(b, x ^ r) => r * log(b, x)
 
-    log(a, b) * log(b, c) => log(a, c)
-]
+        log(b, x * y) => log(b, x) + log(b, y)
+        log(b, inv(x)) => -log(b, x)
 
-rules(::Val{:TRIGONOMETRY}) = @term RULES [
-    # Common angles
-    sin(0) => 0
-    cos(0) => 1
-    tan(0) => 0
+        log(a, b) * log(b, c) => log(a, c)
+    ]
+end
 
-    sin(π * inv(6)) => 1 / 2
-    cos(π * inv(6)) => √3 / 2
-    tan(π * inv(6)) => √3 / 3
+function rules(::Val{:TRIGONOMETRY})
+    x = Variable(:x, Nonzero)
 
-    sin(π * inv(4)) => √2 / 2
-    cos(π * inv(4)) => √2 / 2
-    tan(π * inv(4)) => 1
+    @term RULES [
+        # Common angles
+        sin(0) => 0
+        cos(0) => 1
+        tan(0) => 0
 
-    sin(π * inv(3)) => √3 / 2
-    cos(π * inv(3)) => 1 / 2
-    tan(π * inv(3)) => √3
+        sin(π * inv(6)) => 1 / 2
+        cos(π * inv(6)) => √3 / 2
+        tan(π * inv(6)) => √3 / 3
 
-    sin(π * inv(2)) => 1
-    cos(π * inv(2)) => 0
-    # tan(π * inv(2)) => # TODO: infinite/undefined
+        sin(π * inv(4)) => √2 / 2
+        cos(π * inv(4)) => √2 / 2
+        tan(π * inv(4)) => 1
+
+        sin(π * inv(3)) => √3 / 2
+        cos(π * inv(3)) => 1 / 2
+        tan(π * inv(3)) => √3
+
+        sin(π * inv(2)) => 1
+        cos(π * inv(2)) => 0
+        # tan(π * inv(2)) => # TODO: infinite/undefined
 
 
-    # Definitions of relations
-    sin(θ) * sec(θ) => tan(θ)
-    cos(θ) * csc(θ) => cot(θ)
-    inv(cos(θ)) => sec(θ)
-    inv(sec(θ)) => cos(θ)
-    inv(sin(θ)) => csc(θ)
-    inv(csc(θ)) => sin(θ)
-    inv(tan(θ)) => cot(θ)
-    inv(cot(θ)) => tan(θ)
+        # Definitions of relations
+        sin(θ) * sec(θ) => tan(θ)
+        cos(θ) * csc(θ) => cot(θ)
+        inv(cos(θ)) => sec(θ)
+        inv(sec(θ)) => cos(θ)
+        inv(sin(θ)) => csc(θ)
+        inv(csc(θ)) => sin(θ)
+        inv(tan(θ)) => cot(θ)
+        inv(cot(θ)) => tan(θ)
 
-    # Pythagorean identities
-    sin(θ)^2 + cos(θ)^2 => one(θ)
-    one(θ) + tan(θ)^2 => sec(θ)^2  # NOTE: will not match any one constants
-    one(θ) + cot(θ^2) => csc(θ)^2
+        # Pythagorean identities
+        sin(θ)^2 + cos(θ)^2 => one(θ)
+        one(θ) + tan(θ)^2 => sec(θ)^2  # NOTE: will not match any one constants
+        one(θ) + cot(θ)^2 => csc(θ)^2
 
-    # Negative angles
-    sin(-θ) => -sin(θ)
-    cos(-θ) => cos(θ)
-    tan(-θ) => -tan(θ)
-    csc(-θ) => -csc(θ)
-    sec(-θ) => sec(θ)
-    cot(-θ) => -cot(θ)
+        # Negative angles
+        sin(-θ) => -sin(θ)
+        cos(-θ) => cos(θ)
+        tan(-θ) => -tan(θ)
+        csc(-$x) => -csc($x)
+        sec(-θ) => sec(θ)
+        cot(-$x) => -cot($x)
 
-    # Periodic formulae
-    #=
-    FIXME where clause requires predicates
-    sin(θ + 2πn) where n isa Int => sin(θ)
-    cos(θ + 2πn) where n isa Int => cos(θ)
-    tan(θ + πn) where n isa Int => tan(θ)
-    csc(θ + 2πn) where n isa Int => csc(θ)
-    sec(θ + 2πn) where n isa Int => sec(θ)
-    cot(θ + πn) where n isa Int => cot(θ)
-    =#
+        # Periodic formulae
+        #=
+        FIXME where clause requires predicates
+        sin(θ + 2πn) where n isa Int => sin(θ)
+        cos(θ + 2πn) where n isa Int => cos(θ)
+        tan(θ + πn) where n isa Int => tan(θ)
+        csc(θ + 2πn) where n isa Int => csc(θ)
+        sec(θ + 2πn) where n isa Int => sec(θ)
+        cot(θ + πn) where n isa Int => cot(θ)
+        =#
 
-    # Double-angle formulae
-    2sin(θ)cos(θ) => sin(2θ)
-    cos(θ)^2 + -sin(θ)^2 => cos(2θ)
-    2cos(θ)^2 + -1 => cos(2θ)
+        # Double-angle formulae
+        2sin(θ)cos(θ) => sin(2θ)
+        cos(θ)^2 + -sin(θ)^2 => cos(2θ)
+        2cos(θ)^2 + -1 => cos(2θ)
 
-    # Sum and difference formulae
-    sin(α)cos(β) + cos(α)sin(β) => sin(α + β)
-    sin(α)cos(β) + -cos(α)sin(β) => sin(α - β)
-    cos(α)cos(β) + -sin(α)sin(β) => cos(α + β)
-    cos(α)cos(β) + sin(α)sin(β) => cos(α - β)
-    (tan(α) + tan(β)) * inv(1 + -tan(α)tan(β)) => tan(α + β)
-    (tan(α) + -tan(β)) * inv(1 + tan(α)tan(β)) => tan(α - β)
+        # Sum and difference formulae
+        sin(α)cos(β) + cos(α)sin(β) => sin(α + β)
+        sin(α)cos(β) + -cos(α)sin(β) => sin(α - β)
+        cos(α)cos(β) + -sin(α)sin(β) => cos(α + β)
+        cos(α)cos(β) + sin(α)sin(β) => cos(α - β)
+        (tan(α) + tan(β)) * inv(1 + -tan(α)tan(β)) => tan(α + β)
+        (tan(α) + -tan(β)) * inv(1 + tan(α)tan(β)) => tan(α - β)
 
-    # Product to sum formulae
-    cos(α + -β) + -cos(α + β) => 2sin(α)sin(β)
-    cos(α + -β) + cos(α + β) => 2cos(α)cos(β)
-    sin(α + β) + sin(α + -β) => 2sin(α)cos(β)
-    sin(α + β) + -sin(α + -β) => 2cos(α)sin(β)
+        # Product to sum formulae
+        cos(α + -β) + -cos(α + β) => 2sin(α)sin(β)
+        cos(α + -β) + cos(α + β) => 2cos(α)cos(β)
+        sin(α + β) + sin(α + -β) => 2sin(α)cos(β)
+        sin(α + β) + -sin(α + -β) => 2cos(α)sin(β)
 
-    # Sum to product formulae
-    2sin((α + β) * inv(2))cos((α + -β) * inv(2)) => sin(α) + sin(β)
-    2cos((α + β) * inv(2))sin((α + -β) * inv(2)) => sin(α) - sin(β)
-    2cos((α + β) * inv(2))cos((α + -β) * inv(2)) => cos(α) + cos(β)
-    -2sin((α + β) * inv(2))sin((α + -β) * inv(2)) => cos(α) - cos(β)
+        # Sum to product formulae
+        2sin((α + β) * inv(2))cos((α + -β) * inv(2)) => sin(α) + sin(β)
+        2cos((α + β) * inv(2))sin((α + -β) * inv(2)) => sin(α) - sin(β)
+        2cos((α + β) * inv(2))cos((α + -β) * inv(2)) => cos(α) + cos(β)
+        -2sin((α + β) * inv(2))sin((α + -β) * inv(2)) => cos(α) - cos(β)
 
-    # Cofunction formulae
-    sin(π * inv(2) + -θ) => cos(θ)
-    cos(π * inv(2) + -θ) => sin(θ)
-    csc(π * inv(2) + -θ) => sec(θ)
-    sec(π * inv(2) + -θ) => csc(θ)
-    tan(π * inv(2) + -θ) => cot(θ)
-    cot(π * inv(2) + -θ) => tan(θ)
-]
+        # Cofunction formulae
+        sin(π * inv(2) + -θ) => cos(θ)
+        cos(π * inv(2) + -θ) => sin(θ)
+        csc(π * inv(2) + -θ) => sec(θ)
+        sec(π * inv(2) + -$x) => csc($x)
+        tan(π * inv(2) + -$x) => cot($x)
+        cot(π * inv(2) + -θ) => tan(θ)
+    ]
+end
 
 function rules(::Val{:TYPES})
     rules = []
@@ -283,9 +295,8 @@ function rules(::Val{:TYPES})
     for T ∈ types
         x = Variable(:x, TypeSet(T))
         push!(rules, @term(zero($x)) => @term(zero($T)))
-        push!(rules, @term($x + zero($x)) => @term($T))
-        push!(rules, @term($(zero(T)) + $x) => @term($T))
-        push!(rules, @term($x + $(zero(T))) => @term($T))
+        push!(rules, @term($x + zero($x)) => @term($x))
+        push!(rules, @term($x + $(zero(T))) => @term($x))
         push!(rules, @term(-($(zero(T)))) => @term($(zero(T))))
 
         push!(rules, @term(one($x)) => @term(one($T)))
@@ -294,6 +305,11 @@ function rules(::Val{:TYPES})
         push!(rules, @term($x * $(one(T))) => @term($x))
         push!(rules, @term($(one(T)) * $x) => @term($x))
         push!(rules, @term(inv($(one(T)))) => @term($(one(T))))
+
+        push!(rules, @term($x * zero($x)) => @term(zero($x)))
+        push!(rules, @term(zero($x) * $x) => @term(zero($x)))
+        push!(rules, @term($x * $(zero(T))) => @term($(zero(T))))
+        push!(rules, @term($(zero(T)) * $x) => @term($(zero(T))))
     end
 
     TRS(

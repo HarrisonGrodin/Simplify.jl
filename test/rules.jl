@@ -61,16 +61,56 @@ using SpecialSets
     end
 end
 
+
+@testset "accuracy of standard rules" begin
+    @testset "$set" for set ∈ [:BASIC, :ABSOLUTE_VALUE, :BOOLEAN, :CALCULUS, :LOGARITHM, :TRIGONOMETRY, :TYPES]
+        CASES = [-10:10;]
+
+        set ∈ [:CALCULUS, :LOGARITHM] && continue
+
+        for rule ∈ rules(set)
+            rule isa PatternRule || continue
+            l, r = rule
+
+            @testset "$rule" begin
+                for case ∈ CASES
+                    vars = Rewrite.vars(l)
+                    all(vars) do var
+                        Set([case]) ⊆ Rewrite.image(var)
+                    end || continue
+
+                    args = [:($var = $case) for var ∈ parse.(vars)]
+
+                    lres = Expr(:let, Expr(:block, args...), parse(l)) |> eval
+                    rres = Expr(:let, Expr(:block, args...), parse(r)) |> eval
+
+                    success = isapprox(lres, rres, atol = 1e-12)
+                    success || @error "Case" case
+                    @test success
+                end
+            end
+        end
+    end
+end
+
+
 @testset "normalize" begin
+
     @testset "STANDARD" begin
-        @test normalize(@term(x)) == @term(x)
-        @test normalize(@term(x + 0)) == @term(x)
-        @test normalize(@term(y + 0 + 0)) == @term(y)
-        @test normalize(@term(y * (1 + 2 - 3))) == @term(0)
-        @test normalize(@term(0 + y + 0)) == @term(y)
+        x = Variable(:x, TypeSet(Number))
+        y = Variable(:y, TypeSet(Number))
+
+        @test normalize(@term(a)) == @term(a)
+        @test normalize(@term($x)) == @term($x)
+        @test normalize(@term($x + 0)) == @term($x)
+        @test normalize(@term($y + 0 + 0)) == @term($y)
+        @test normalize(@term($y * (1 + 2 - 3))) == @term(0)
+        @test normalize(@term(0 + $y + 0)) == @term($y)
     end
 
     @testset "ABSOLUTE_VALUE" begin
+        y = Variable(:y, Nonzero)
+
         @test normalize(@term(abs(x))) == @term(abs(x))
         @test normalize(@term(abs(-x))) == @term(abs(x))
         @test normalize(@term(abs(0))) == @term(0)
@@ -79,7 +119,7 @@ end
         @test normalize(@term(abs(2x))) == @term(2abs(x))
         @test normalize(@term(abs(-(5x)))) == @term(5abs(x))
         @test normalize(@term(abs(x * y))) == @term(abs(x) * abs(y))
-        @test normalize(@term(abs(x / y))) == @term(abs(x) * inv(abs(y)))
+        @test normalize(@term(abs(x / $y))) == @term(abs(x) * inv(abs($y)))
         @test normalize(@term(abs(x / 1))) == @term(abs(x))
         @test normalize(@term(abs(abs(x)))) == @term(abs(x))
         @test normalize(@term(abs(x^2))) == @term(x^2)
@@ -90,16 +130,18 @@ end
     end
 
     @testset "BOOLEAN" begin
-        @test normalize(@term(x & true)) == @term(x)
-        @test normalize(@term(x | (x & y))) == @term(x)
-        @test normalize(@term(y | !y)) == @term(true)
-        @test normalize(@term(!y | y)) == @term(true)
-        @test normalize(@term(y & y)) == @term(y)
-        @test normalize(@term(!(!x))) == @term(x)
-        @test normalize(@term(!(!x & !x))) == @term(x)
-        @test normalize(@term(!(!x & !x) & !x)) == @term(false)
-        @test normalize(@term(!(!x & !x) | x)) == @term(x)
-        @test normalize(@term(!x & x | (y & (y | true)))) == @term(y)
+        x, y = Variable.([:x, :y], Ref(TypeSet(Bool)))
+
+        @test normalize(@term($x & true)) == @term($x)
+        @test normalize(@term($x | ($x & $y))) == @term($x)
+        @test normalize(@term($y | !$y)) == @term(true)
+        @test normalize(@term(!$y | $y)) == @term(true)
+        @test normalize(@term($y & $y)) == @term($y)
+        @test normalize(@term(!(!$x))) == @term($x)
+        @test normalize(@term(!(!$x & !$x))) == @term($x)
+        @test normalize(@term(!(!$x & !$x) & !$x)) == @term(false)
+        @test normalize(@term(!(!$x & !$x) | $x)) == @term($x)
+        @test normalize(@term(!$x & $x | ($y & ($y | true)))) == @term($y)
     end
 
     @testset "CALCULUS" begin
@@ -115,11 +157,13 @@ end
     end
 
     @testset "LOGARITHM" begin
+        n = Variable(:n, GreaterThan(3))
+
         @test normalize(@term(log(b, x * y))) == @term(log(b, x) + log(b, y))
-        @test normalize(@term(log(b, 1))) == @term(0)
-        @test normalize(@term(log(b, b ^ x))) == @term(x)
-        @test normalize(@term(log(x, x * y))) == @term(1 + log(x, y))
-        @test normalize(@term(log(b, 1/x))) == @term(-log(b, x))
+        @test normalize(@term(log($n, 1))) == @term(0)
+        @test normalize(@term(log($n, $n ^ x))) == @term(x)
+        @test normalize(@term(log($n, $n * y))) == @term(1 + log($n, y))
+        @test normalize(@term(log(b, 1/$n))) == @term(-log(b, $n))
         @test_skip normalize(@term(b ^ log(b, x*b))) == @term(x * b)
         @test_skip normalize(@term(b ^ (log(b, x) + log(b, b)))) == @term(x * b)
     end
@@ -129,9 +173,9 @@ end
         @test normalize(@term(sin(π/3)cos(0) + cos(π/3)sin(0))) == @term(√3 * inv(2))
         @test normalize(@term(one(θ) + tan(θ) ^ 2)) == @term(sec(θ) ^ 2)
         @test normalize(@term(tan(π / 6))) == @term(√3 * inv(3))
-        @test normalize(@term(1 / (sin(-θ) / cos(-θ)))) == @term(-cot(θ))
+        @test_broken normalize(@term(1 / (sin(-3) / cos(-3)))) == @term(-cot(3))
         @test normalize(@term(2 * cos((α + β) / 2) * cos((α - β) / 2))) == @term(cos(α) + cos(β))
-        @test normalize(@term((tan(α) - tan(β)) / (1 + tan(α) * tan(β)))) == @term(tan(α + -β))
+        @test normalize(@term((tan(α) - tan(β)) * inv(1 + tan(α) * tan(β)))) == @term(tan(α + -β))
         @test normalize(@term(csc(π/2 - θ))) == @term(sec(θ))
 
         x = Variable(:x, TypeSet(Int))

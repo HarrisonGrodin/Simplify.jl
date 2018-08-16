@@ -68,7 +68,7 @@ function rules(::Val{:BASIC})
 
             x ^ 0      => one(x)
             x ^ 1      => x
-            # x^(a + b)  => x^a * x^b  # FIXME
+            x^a * x^b  => x^(a + b)
         ]
         TRS(
             EvalRule(+),

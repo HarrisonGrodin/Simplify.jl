@@ -106,7 +106,7 @@ end
         @test normalize(@term($y + 0 + 0)) == @term($y)
         @test normalize(@term($y * (1 + 2 - 3))) == @term(0)
         @test normalize(@term(0 + $y + 0)) == @term($y)
-        @test normalize(@term(x^0.5 * x^0.5)) == @term(x)
+        @test normalize(@term($x^0.5 * $x^0.5)) == @term($x)
     end
 
     @testset "ABSOLUTE_VALUE" begin

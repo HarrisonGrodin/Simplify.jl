@@ -74,7 +74,7 @@ end
 
             @testset "$rule" begin
                 for case ∈ CASES
-                    vars = Set(Rewrite.vars(l))
+                    vars = unique(Rewrite.vars(l))
                     all(vars) do var
                         Set([case]) ⊆ Rewrite.image(var)
                     end || continue

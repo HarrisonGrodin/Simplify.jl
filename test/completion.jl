@@ -1,7 +1,35 @@
-using Rewrite.Completion: normalize, critical_pairs, add_rule!, size, orient!, choose!, complete, LPO
+using Rewrite.Completion: unify, Unifier, critical_pairs
+using Rewrite.Completion: add_rule!, size, orient!, choose!, complete
+using Rewrite.Completion: LPO
 using Rewrite: PatternRule
 
 @testset "Completion" begin
+
+    @testset "unify" begin
+        x, y, z = Variable.([:x, :y, :z])
+        _1, _2 = Constant(1), Constant(2)
+        f(xs...) = Fn(:f, xs...)
+        g(xs...) = Fn(:g, xs...)
+
+        @test unify(x, x) == Unifier()
+        @test unify(x, y) == Unifier(x => y)
+        @test unify(y, x) == Unifier(y => x)
+
+        @test unify(_2, _2) == Unifier()
+        @test unify(Constant(2), Constant(3)) === nothing
+        @test unify(Constant(1), Constant("one")) === nothing
+
+        @test unify(x, f(y)) == Unifier(x => f(y))
+        @test unify(f(y), x) == Unifier(x => f(y))
+        @test unify(x, f(x)) == nothing
+        @test unify(f(x), f(y)) == Unifier(x => y)
+        @test unify(f(x), g(y)) == nothing
+        @test unify(g(x, x), g(y, z)) == Unifier(x => z, y => z)
+        @test unify(g(f(x), x), g(f(y), z)) == Unifier(x => z, y => z)
+        @test unify(g(f(x), x), g(y, y)) == nothing
+        @test unify(g(f(x), x), g(y, z)) == Unifier(y => f(z), x => z)
+        @test unify(f(x), f(x, y)) == nothing
+    end
 
     @testset "critical_pairs" begin
         @test critical_pairs(

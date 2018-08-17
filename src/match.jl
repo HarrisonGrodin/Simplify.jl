@@ -1,7 +1,7 @@
 import Base: match
 using Combinatorics: combinations, permutations
 
-export match, unify
+export match
 
 
 mutable struct Match <: AbstractSet{AbstractDict{Term,Term}}
@@ -158,90 +158,4 @@ function perms(o::Orderless)
     end
 
     result
-end
-
-
-
-struct Unify <: AbstractDict{Term,Term}
-    dict::Dict{Term,Term}
-end
-Unify(ps::Pair...) = Unify(Dict{Term,Term}(ps))
-Base.length(σ::Unify) = length(σ.dict)
-Base.iterate(σ::Unify) = iterate(σ.dict)
-Base.iterate(σ::Unify, state) = iterate(σ.dict, state)
-Base.getindex(σ::Unify, t::Term) = getindex(σ.dict, t)
-function Base.setindex!(σ::Unify, value::Term, key::Term)
-    value == key && return σ
-
-    occursin(key, value) && return nothing
-    σ.dict[key] = value
-
-    for (k, v) ∈ pairs(σ.dict)
-        σ.dict[k] = σ(v)
-    end
-
-    σ
-end
-Base.get(σ::Unify, t::Term, default) = get(σ.dict, t, default)
-
-(σ::Unify)(t::Term) = replace(t, σ)
-(σ::Unify)(xs) = map(σ, xs)
-
-function Base.merge!(σ::Unify, σs::Unify...)
-    for σ′ ∈ σs
-        for (k, v) in σ′
-            if haskey(σ, k)
-                σ[k] == v || return nothing
-            else
-                setindex!(σ, v, k) === nothing && return nothing
-            end
-        end
-    end
-    σ
-end
-Base.merge(σ::Unify, σs::Unify...) = merge!(Unify(), σ, σs...)
-
-
-"""
-    unify(t, u) -> Union{Unify, Nothing}
-
-Unify terms `t` and `u`, producing a `Unify` if the process succeeds.
-
-# Examples
-```jldoctest
-julia> unify(@term(f(y)), @term(x))
-Unify with 1 entry:
-  @term(x) => @term(f(y))
-
-julia> unify(@term(x), @term(x))
-Unify with 0 entries
-
-julia> unify(@term(x), @term(f(x)))
-
-julia> unify(@term(f(x)), @term(g(x)))
-
-julia> unify(@term(f(x, y)), @term(f(y, z)))
-Unify with 2 entries:
-  @term(x) => @term(z)
-  @term(y) => @term(z)
-```
-"""
-unify(t::Term, u::Term) = _unify((t, u))
-
-
-_unify(σ::Unify, (x, y)::Tuple{Variable,Variable}, ms...) =
-    x == y ? _unify(σ, ms...) : eliminate!(σ, (x, y), ms)
-_unify(σ::Unify, (x, t)::Tuple{Variable,Term}, ms...) = eliminate!(σ, (x, t), ms)
-_unify(σ::Unify, (t, x)::Tuple{Term,Variable}, ms...) = eliminate!(σ, (x, t), ms)
-_unify(σ::Unify, (f, g)::Tuple{Fn,Fn}, ms...) =
-    f.name == g.name && length(f) == length(g) ? _unify(σ, zip(f, g)..., ms...) : nothing
-_unify(σ::Unify, (a, b)::Tuple{T,T}, ms...) where {T<:Constant} =
-    get(a) == get(b) ? _unify(σ, ms...) : nothing
-_unify(σ::Unify, ms...) = nothing
-_unify(σ::Unify) = σ
-_unify(ms...) = _unify(Unify(), ms...)
-
-function eliminate!(σ::Unify, (x, t)::Tuple{Variable,Term}, ms)
-    setindex!(σ, t, x) === nothing && return nothing
-    _unify(σ, Unify(x => t).(ms)...)
 end

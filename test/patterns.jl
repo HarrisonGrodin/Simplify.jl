@@ -1,4 +1,4 @@
-using Rewrite: Match, Unify, AlgebraContext
+using Rewrite: Match, AlgebraContext
 using SpecialSets
 
 
@@ -11,10 +11,6 @@ using SpecialSets
         @test x ≠ y
         @test a == @term a
         @test @term(x₁₂).index == 12
-
-        @test unify(x, x) == Unify()
-        @test unify(x, y) == Unify(x => y)
-        @test unify(y, x) == Unify(y => x)
 
         @test match(a, b) == Match(a => b)
         @test b ⊆ a
@@ -47,10 +43,6 @@ using SpecialSets
 
         @test _1 == @term 1
 
-        @test unify(_2, _2) == Unify()
-        @test unify(Constant(2), Constant(3)) === nothing
-        @test unify(Constant(1), Constant("one")) === nothing
-
         @test match(_1, _1) == one(Match)
         @test _1 ⊆ _1
         @test match(_2, _1) == zero(Match)
@@ -74,17 +66,6 @@ using SpecialSets
         @test @term(f(x, g(h(y), f(z))))[2, 1] == @term(h(y))
         @test @term(f(x, g(h(y), f(z))))[2, 1, 1] == @term(y)
         @test_throws MethodError @term(f(x))[1, 1]
-
-        @test unify(x, f(y)) == Unify(x => f(y))
-        @test unify(f(y), x) == Unify(x => f(y))
-        @test unify(x, f(x)) == nothing
-        @test unify(f(x), f(y)) == Unify(x => y)
-        @test unify(f(x), g(y)) == nothing
-        @test unify(g(x, x), g(y, z)) == Unify(x => z, y => z)
-        @test unify(g(f(x), x), g(f(y), z)) == Unify(x => z, y => z)
-        @test unify(g(f(x), x), g(y, y)) == nothing
-        @test unify(g(f(x), x), g(y, z)) == Unify(y => f(z), x => z)
-        @test unify(f(x), f(x, y)) == nothing
 
         @test match(f(), f()) == one(Match)
         @test match(f(x), f(y)) == Match(x => y)

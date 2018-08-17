@@ -64,7 +64,7 @@ end
 
 @testset "accuracy of standard rules" begin
     @testset "$set" for set ∈ [:BASIC, :ABSOLUTE_VALUE, :BOOLEAN, :CALCULUS, :LOGARITHM, :TRIGONOMETRY, :TYPES]
-        CASES = [-10:10;]
+        CASES = [-10.:10;]
 
         set ∈ [:CALCULUS, :LOGARITHM] && continue
 
@@ -74,7 +74,7 @@ end
 
             @testset "$rule" begin
                 for case ∈ CASES
-                    vars = Rewrite.vars(l)
+                    vars = Set(Rewrite.vars(l))
                     all(vars) do var
                         Set([case]) ⊆ Rewrite.image(var)
                     end || continue
@@ -106,7 +106,7 @@ end
         @test normalize(@term($y + 0 + 0)) == @term($y)
         @test normalize(@term($y * (1 + 2 - 3))) == @term(0)
         @test normalize(@term(0 + $y + 0)) == @term($y)
-        @test normalize(@term($(float(x))^0.5 * $(float(x))^0.5)) == @term($(float(x)))
+        @test normalize(@term($x^0.5 * $x^0.5)) == @term($x)
     end
 
     @testset "ABSOLUTE_VALUE" begin

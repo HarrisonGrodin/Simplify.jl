@@ -14,4 +14,6 @@ include("rules.jl")
 include("completion/Completion.jl")
 using .Completion
 
+include("replmode.jl")
+
 end # module

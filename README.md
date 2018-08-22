@@ -86,6 +86,16 @@ julia> normalize(@term(diff(sin(2*$x) - log($x+$y), $x)))
 @term(2 * cos(2x) - 1 / (x + y))
 ```
 
+## REPL Mode
+Rewrite now exports a REPL mode which can be accessed by pressing the `=` key at an empty `julia>` prompt. Currently, this REPL mode simply takes code and wraps it with `@term` and `normalize`, ie.
+```julia
+@term> sin(θ)/cos(θ) 
+```
+is equivalent to
+```julia
+julia> normalize(@term sin(θ)/cos(θ))
+```
+
 
 ## Approach
 *Rewrite.jl* uses matching, normalization, and completion, which will be elaborated in the next sections.

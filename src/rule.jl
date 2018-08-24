@@ -148,3 +148,5 @@ end
 normalize(t::Term, ::DiffRule) = t
 vars(x::Variable) = [x]
 vars(t::Term) = [map(vars, collect(t))...;]
+
+normalize(t::Term, tup::Tuple) = normalize(t, tup...)

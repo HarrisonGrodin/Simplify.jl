@@ -8,7 +8,13 @@ if isdefined(Base, :active_repl)
         mode_name    = "Rewrite_mode",
     ) do s
         exs = [Meta.parse(i) for i in split(s, "with")]
-        :(normalize((@term $(exs[1])), $(exs[2])))
+        if length(exs) == 1
+            :(normalize((@term $(exs[1]))))
+        elseif length(exs) == 2
+            :(normalize((@term $(exs[1])), $(exs[2])))
+        else
+            throw("Only one `with` statement allowed.")
+        end
     end
 end
 

@@ -8,6 +8,6 @@ if isdefined(Base, :active_repl)
         mode_name    = "Rewrite_mode",
     ) do s
         ex = Meta.parse(s)
-        :(normalize((@term $(ex)), ruleset...))
+        :(normalize(@term $(ex)))
     end
 end

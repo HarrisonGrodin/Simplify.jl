@@ -4,7 +4,12 @@ export Flat, Orderless
 
 abstract type Property end
 
-struct Flat <: Property end
+struct Flat <: Property
+    name::Term
+    args::Vector{Term}
+end
+Base.getindex(p::Flat, inds...) = getindex(p.args, inds...)
+
 struct Orderless <: Property
     name::Symbol
     orderless::Vector{Term}

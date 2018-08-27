@@ -2,94 +2,66 @@ using Rewrite: PatternRule, EvalRule, DivergentError
 using SpecialSets
 
 
+@syms f g
+@syms a b c
+
 @testset "Rule" begin
+
     @testset "PatternRule" begin
-        @test normalize(@term(x + 0 + 0), PatternRule{Term}(@term(a + 0), @term(a))) == @term(x + 0)
-        @test normalize(@term(y + 1), PatternRule{Term}(@term(a + 0), @term(a))) == @term(y + 1)
-        @test normalize(@term(y), PatternRule{Term}(@term(a + 0), @term(a))) == @term(y)
-        @test normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x)))) == @term(g(a))
-        with_context(AlgebraContext(props=Dict(:f => [Orderless]))) do
-            @test_throws DivergentError normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x))))
-        end
-        @test normalize(@term(x + 0 + 0), TRS(@term(a + 0) => @term(a))) == @term(x)
+        @test normalize(@term(a + 0 + 0), PatternRule{Term}(@term(:x + 0), @term(:x))) == @term(a + 0)
+        @test normalize(@term(b + 1), PatternRule{Term}(@term(:x + 0), @term(:x))) == @term(b + 1)
+        @test normalize(@term(b), PatternRule{Term}(@term(:x + 0), @term(:x))) == @term(b)
+        @test normalize(@term(f(a, b)), TRS(@term(f(:x, :y)) => @term(g(:x)))) == @term(g(a))
+        # with_context(AlgebraContext(props=Dict(:f => [Orderless]))) do
+        #     @test_throws DivergentError normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x))))
+        # end
+        @test normalize(@term(a + 0 + 0), TRS(@term(:a + 0) => @term(:a))) == @term(a)
 
-        @testset "Predicates" begin
-            nz = Variable(:nz, Nonzero)
-            odd = Variable(:odd, Odd)
-
-            @test normalize(@term(3 / 3), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one(3))
-            @test normalize(@term(2 / 3), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(2 / 3)
-            @test normalize(@term(x / x), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(x / x)
-            @test normalize(@term((2^x) / (2^x)), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one(2^x))
-            @test normalize(@term($odd / $odd), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one($odd))
-            @test_skip normalize(@term(($odd + 2) / ($odd + 2)), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one($odd + 2))
-        end
+        # @testset "Predicates" begin
+        #     nz = Variable(:nz, Nonzero)
+        #     odd = Variable(:odd, Odd)
+        #
+        #     @test normalize(@term(3 / 3), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one(3))
+        #     @test normalize(@term(2 / 3), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(2 / 3)
+        #     @test normalize(@term(x / x), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(x / x)
+        #     @test normalize(@term((2^x) / (2^x)), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one(2^x))
+        #     @test normalize(@term($odd / $odd), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one($odd))
+        #     @test_skip normalize(@term(($odd + 2) / ($odd + 2)), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one($odd + 2))
+        # end
     end
     @testset "EvalRule" begin
         @test normalize(@term(f(2, 3)), EvalRule(:f, *)) == @term(6)
-        @test normalize(@term(f(x, 3)), EvalRule(:f, *)) == @term(f(x, 3))
-        @test normalize(@term(f(2, y)), EvalRule(:f, *)) == @term(f(2, y))
+        @test normalize(@term(f(a, 3)), EvalRule(:f, *)) == @term(f(a, 3))
+        @test normalize(@term(f(2, b)), EvalRule(:f, *)) == @term(f(2, b))
         @test normalize(@term("a" * "b"), EvalRule(*)) == @term("ab")
-        @test normalize(@term(x + 2 * 3), EvalRule(*)) == @term(x + 2 * 3)
-        @test normalize(@term(x + 2 * 3), TRS(EvalRule(*))) == @term(x + 6)
+        @test normalize(@term(a + 2 * 3), EvalRule(*)) == @term(a + 2 * 3)
+        @test normalize(@term(a + 2 * 3), TRS(EvalRule(*))) == @term(a + 6)
         @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(*))) == @term(6 + 20)
         @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(+), EvalRule(*))) == @term(26)
 
-        with_context(AlgebraContext(props=Dict(:f => [Flat]))) do
+        with_context(AlgebraContext(props=Dict(Symbolic(:f) => [Flat]))) do
             rule = EvalRule(:f, +)
             @test normalize(@term(f(a, 1, 2, b, 3, c)), rule) == @term(f(a, 3, b, 3, c))
             @test normalize(@term(f(1, 2, 3, 4, 5)), rule) == @term(15)
-            @test normalize(@term(f(1, 2, x, 3, 4, 5)), rule) == @term(f(3, x, 12))
-            @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), rule) == @term(f(3, x, y, 12))
+            @test normalize(@term(f(1, 2, :x, 3, 4, 5)), rule) == @term(f(3, :x, 12))
+            @test normalize(@term(f(1, 2, :x, :y, 3, 4, 5)), rule) == @term(f(3, :x, :y, 12))
         end
 
-        with_context(AlgebraContext(props=Dict(:f => [Flat, Orderless]))) do
-            rule = EvalRule(:f, +)
-            @test normalize(@term(f(a, 1, 2, b, 3, c)), rule) == @term(f(6, a, b, c))
-            @test normalize(@term(f(1, 2, 3, 4, 5)), rule) == @term(15)
-            @test normalize(@term(f(1, 2, x, 3, 4, 5)), rule) == @term(f(15, x))
-            @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), rule) == @term(f(15, x, y))
-        end
-
-        with_context(AlgebraContext(props=Dict(:f => [Flat]), orderless=Dict(:f => Set([2])))) do
-            rule = EvalRule(:f, +)
-            @test normalize(@term(f(2, x, y, 1, 3)), rule) == @term(f(x, y, 6))
-            @test_throws DivergentError normalize(@term(f(1, x, y, 2, 3)), rule)
-            @test normalize(@term(f(x, y, 1, 3)), rule) == @term(f(x, y, 4))
-            @test normalize(@term(f(1, x, y, 3)), rule) == @term(f(1, x, y, 3))
-        end
-    end
-end
-
-
-@testset "accuracy of standard rules" begin
-    @testset "$set" for set ∈ [:BASIC, :ABSOLUTE_VALUE, :BOOLEAN, :CALCULUS, :LOGARITHM, :TRIGONOMETRY, :TYPES]
-        CASES = [-10:10;]
-
-        set ∈ [:CALCULUS, :LOGARITHM] && continue
-
-        for rule ∈ rules(set)
-            rule isa PatternRule || continue
-            l, r = rule
-
-            @testset "$rule" begin
-                for case ∈ CASES
-                    vars = Rewrite.vars(l)
-                    all(vars) do var
-                        Set([case]) ⊆ Rewrite.image(var)
-                    end || continue
-
-                    args = [:($var = $case) for var ∈ parse.(vars)]
-
-                    lres = Expr(:let, Expr(:block, args...), parse(l)) |> eval
-                    rres = Expr(:let, Expr(:block, args...), parse(r)) |> eval
-
-                    success = isapprox(lres, rres, atol = 1e-12)
-                    success || @error "Case" case
-                    @test success
-                end
-            end
-        end
+        # with_context(AlgebraContext(props=Dict(:f => [Flat, Orderless]))) do
+        #     rule = EvalRule(:f, +)
+        #     @test normalize(@term(f(a, 1, 2, b, 3, c)), rule) == @term(f(6, a, b, c))
+        #     @test normalize(@term(f(1, 2, 3, 4, 5)), rule) == @term(15)
+        #     @test normalize(@term(f(1, 2, x, 3, 4, 5)), rule) == @term(f(15, x))
+        #     @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), rule) == @term(f(15, x, y))
+        # end
+        #
+        # with_context(AlgebraContext(props=Dict(:f => [Flat]), orderless=Dict(:f => Set([2])))) do
+        #     rule = EvalRule(:f, +)
+        #     @test normalize(@term(f(2, x, y, 1, 3)), rule) == @term(f(x, y, 6))
+        #     @test_throws DivergentError normalize(@term(f(1, x, y, 2, 3)), rule)
+        #     @test normalize(@term(f(x, y, 1, 3)), rule) == @term(f(x, y, 4))
+        #     @test normalize(@term(f(1, x, y, 3)), rule) == @term(f(1, x, y, 3))
+        # end
     end
 end
 
@@ -184,17 +156,58 @@ end
 
 
     @testset "custom" begin
-        @test normalize(@term(f(y, y)), @term RULES [
-            f(x, x) => x
-        ]) == @term y
-        @test normalize(@term(f(x, y)), @term RULES [
-            f(x, x) => x
-        ]) == @term f(x, y)
-        @test normalize(@term(f(f(x), x)), @term RULES [
-            f(x, x) => x, f(x) => x
-        ]) == @term x
-        @test normalize(@term(f(f(x), g(x))), @term RULES [
-            f(f(x), g(x)) => x, g(x) => x
-        ]) == @term f(f(x), x)
+        @test normalize(@term(f(a, a)), @term RULES [
+            f(:x, :x) => :x
+        ]) == @term(a)
+
+        @test normalize(@term(f(a, b)), @term RULES [
+            f(:x, :x) => :x
+        ]) == @term(f(a, b))
+
+        @test normalize(@term(f(f(a), a)), @term RULES [
+            f(:x, :x) => :x
+            f(:x)     => :x
+        ]) == @term(a)
+
+        @test normalize(@term(f(f(a), g(b))), @term RULES [
+            f(f(:x), :y) => :y
+            g(:x) => :x
+        ]) == @term(b)
+
+        @test normalize(@term(f(a, a)), @term RULES [
+            f(b, b) => b
+        ]) == @term(f(a, a))
+    end
+end
+
+
+@testset "accuracy of standard rules" begin
+    @testset "$set" for set ∈ [:BASIC, :ABSOLUTE_VALUE, :BOOLEAN, :CALCULUS, :LOGARITHM, :TRIGONOMETRY, :TYPES]
+        CASES = [-10:10;]
+
+        set ∈ [:CALCULUS, :LOGARITHM] && continue
+
+        for rule ∈ rules(set)
+            rule isa PatternRule || continue
+            l, r = rule
+
+            @testset "$rule" begin
+                for case ∈ CASES
+                    vars = Rewrite.vars(l)
+                    all(vars) do var
+                        Set([case]) ⊆ Rewrite.image(var)
+                    end || continue
+
+                    args = [:($var = $case) for var ∈ parse.(vars)]
+
+                    lres = Expr(:let, Expr(:block, args...), parse(l)) |> eval
+                    rres = Expr(:let, Expr(:block, args...), parse(r)) |> eval
+
+                    success = isapprox(lres, rres, atol = 1e-12)
+                    success || @error "Case" case
+                    @test success
+                end
+            end
+        end
     end
 end

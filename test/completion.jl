@@ -5,19 +5,17 @@ using Rewrite: PatternRule
 
 @testset "Completion" begin
 
-    @testset "unify" begin
-        x, y, z = Variable.([:x, :y, :z])
-        _1, _2 = Constant(1), Constant(2)
-        f(xs...) = Fn(:f, xs...)
-        g(xs...) = Fn(:g, xs...)
+    @syms f g
+    x, y, z = Variable.([:x, :y, :z])
 
+    @testset "unify" begin
         @test unify(x, x) == Unifier()
         @test unify(x, y) == Unifier(x => y)
         @test unify(y, x) == Unifier(y => x)
 
-        @test unify(_2, _2) == Unifier()
-        @test unify(Constant(2), Constant(3)) === nothing
-        @test unify(Constant(1), Constant("one")) === nothing
+        @test unify(@term(2), @term(2)) == Unifier()
+        @test unify(@term(1), @term(2)) === nothing
+        @test unify(@term(1), @term(1.0)) === nothing
 
         @test unify(x, f(y)) == Unifier(x => f(y))
         @test unify(f(y), x) == Unifier(x => f(y))

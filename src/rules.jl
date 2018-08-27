@@ -25,8 +25,7 @@ macro term(::Val{:RULES}, ex)
     args = map(ex.args) do pair
         p, a, b = pair.args
         @assert p == :(=>)
-        a, b = Meta.quot(a), Meta.quot(b)
-        :(PatternRule{Term}(convert(Term, $a), convert(Term, $b)))
+        esc(:(PatternRule{Term}(@term($a), @term($b))))
     end
     :(TermRewritingSystem([$(args...)]))
 end

@@ -28,10 +28,10 @@ const TermRewritingSystem = AbstractRewritingSystem{Term}
 const TRS = TermRewritingSystem
 
 
-normalize(trs::TermRewritingSystem) = Base.Fix2(normalize, trs)
+normalize(ars::AbstractRewritingSystem) = Base.Fix2(normalize, ars)
 function normalize(t::Term, trs::TermRewritingSystem)
     while true
-        t = map(normalize(trs), t)
+        t = map(normalize(trs), t)  # FIXME: replace with `subexpressions`
         t′ = foldl(normalize, trs; init=t)
         t == t′ && return t
         t = t′
@@ -75,15 +75,18 @@ function normalize(t::T, (l, r)::PatternRule{U}) where {U,T<:U}
 end
 
 struct EvalRule <: Rule{Term}
-    name::Symbol
+    name::Term
     f
 end
-EvalRule(f::Function) = EvalRule(nameof(f), f)
-(r::EvalRule)(args::Constant...) = Constant(r.f(get.(args)...))
+EvalRule(name::Symbol, f) = EvalRule(Symbolic(name), f)
+EvalRule(f::Function) = EvalRule(f, f)
+(r::EvalRule)(args::Term...) = Term(r.f(get.(args)...))
 function normalize(fn::Fn, r::EvalRule)
-    fn.name == r.name || return fn
+    fn.ex.head === :call || return fn
+    match(r.name, fn[1]) == zero(Match) && return fn
 
-    if hasproperty(Flat, fn)
+    flat = property(Flat, fn)
+    if flat !== nothing
         o = property(Orderless, fn)
         if o !== nothing
             ordered = _apply_flat!(r, collect(o.ordered))
@@ -102,15 +105,16 @@ function normalize(fn::Fn, r::EvalRule)
 
             args = [ordered; orderless]
         else
-            args = _apply_flat!(r, collect(fn))
+            args = _apply_flat!(r, flat.args)
         end
 
         length(args) == 1 && return first(args)
-        return Fn(fn.name, args...)
+        return convert(Term, :($(flat.name)($(args...))))
     end
 
-    all_constants(fn...) || return fn
-    r(fn...)
+    args = fn[2:end]
+    all_constants(args...) || return fn
+    r(args...)
 end
 normalize(t::Term, ::EvalRule) = t
 function _apply_flat!(r::EvalRule, args)
@@ -119,7 +123,7 @@ function _apply_flat!(r::EvalRule, args)
     while i ≤ lastindex(args) - 1
         a, b = args[i:i+1]
 
-        if a isa Constant && b isa Constant
+        if is_constant(a) && is_constant(b)
             deleteat!(args, i)
             args[i] = r(a, b)
         else
@@ -129,8 +133,8 @@ function _apply_flat!(r::EvalRule, args)
 
     args
 end
-all_constants(::Constant...) = true
-all_constants(::Term...) = false
+all_constants(xs::Term...) = all(is_constant, xs)
+is_constant(t::Term{T}) where {T} = T ∉ [Expr, Symbol, Symbolic]
 
 
 struct DiffRule <: Rule{Term}

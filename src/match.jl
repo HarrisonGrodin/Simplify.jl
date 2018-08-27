@@ -66,28 +66,33 @@ function match(x::Variable, t::Term, Θ)
     image(t) ⊆ image(x) || return zero(Match)
     merge(Θ, Match(x => t))
 end
-match(a::Constant{T}, b::Constant{<:T}, Θ) where {T} =
-    get(a) == get(b) ? Θ : zero(Match)
 function match(f::Fn, g::Fn, Θ)
-    f.name === g.name || return zero(Match)
+    f.ex.head === g.ex.head || return zero(Match)
     image(g) ⊆ image(f) || return zero(Match)
 
-    flat = hasproperty(Flat, f) && hasproperty(Flat, g)
+    f_flat = property(Flat, f)
+    g_flat = property(Flat, g)
+    flat = f_flat !== nothing && g_flat !== nothing
 
-    callback = flat ? match_flat : match_standard
-    if (g′ = property(Orderless, g)) !== nothing
-        match_orderless(f, g′, Θ, callback)
-    elseif (f′ = property(Orderless, f)) !== nothing
-        match_orderless(f′, g, Θ, callback)
+    if flat
+        match_flat(f_flat, g_flat, Θ)
     else
-        callback(f, g, Θ)
+        match_standard(f, g, Θ)
     end
+    # callback = flat ? match_flat : match_standard
+    # if (g′ = property(Orderless, g)) !== nothing
+    #     match_orderless(f, g′, Θ, callback)
+    # elseif (f′ = property(Orderless, f)) !== nothing
+    #     match_orderless(f′, g, Θ, callback)
+    # else
+    #     callback(f, g, Θ)
+    # end
 end
-match(::Term, ::Term, Θ) = zero(Match)
+match(a::Term{T}, b::Term{U}, Θ) where {T,U} =
+    (U <: T && get(a) == get(b)) ? Θ : zero(Match)
 
 
 function match_standard(f::Fn, g::Fn, Θ)
-    @assert f.name === g.name
     length(f) == length(g) || return zero(Match)
 
     for (x, y) ∈ zip(f, g)
@@ -102,26 +107,26 @@ end
 Match an associative function call to another associative function call, based on the
 algorithm by [Krebber](https://arxiv.org/abs/1705.00907).
 """
-function match_flat(p::Fn, s::Fn, Θ)
-    @assert p.name === s.name
+function match_flat(p::Flat, s::Flat, Θ)
+    p.name === s.name || return zero(Match)
 
-    m, n = length(p), length(s)
+    m, n = length(p.args), length(s.args)
     m > n && return zero(Match)
     n_free = n - m
-    n_vars = count(x -> x isa Variable, p)
+    n_vars = count(x -> x isa Variable, p.args)
     Θᵣ = zero(Match)
 
     for k ∈ Iterators.product((0:n_free for i ∈ 1:n_vars)...)
         (isempty(k) ? 0 : sum(k)) == n_free || continue  # FIXME: efficiency
         i, j = 1, 1
         Θ′ = Θ
-        for pₗ ∈ p
+        for pₗ ∈ p.args
             l_sub = 0
             if pₗ isa Variable
                 l_sub += k[j]
                 j += 1
             end
-            s′ = l_sub > 0 ? Fn(p.name, s[i:i+l_sub]...) : s[i]
+            s′ = l_sub > 0 ? convert(Term, Expr(:call, p.name.ex, s[i:i+l_sub]...)) : s[i]
             Θ′ = match(pₗ, s′, Θ′)
             isempty(Θ′) && break
             i += l_sub + 1

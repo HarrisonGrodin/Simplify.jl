@@ -74,11 +74,12 @@ _unify(σ::Unifier, (x, y)::Tuple{Variable,Variable}, ms...) =
     x == y ? _unify(σ, ms...) : eliminate!(σ, (x, y), ms)
 _unify(σ::Unifier, (x, t)::Tuple{Variable,Term}, ms...) = eliminate!(σ, (x, t), ms)
 _unify(σ::Unifier, (t, x)::Tuple{Term,Variable}, ms...) = eliminate!(σ, (x, t), ms)
-_unify(σ::Unifier, (f, g)::Tuple{Fn,Fn}, ms...) =
-    f.name == g.name && length(f) == length(g) ? _unify(σ, zip(f, g)..., ms...) : nothing
-_unify(σ::Unifier, (a, b)::Tuple{T,T}, ms...) where {T<:Constant} =
-    get(a) == get(b) ? _unify(σ, ms...) : nothing
-_unify(σ::Unifier, ms...) = nothing
+function _unify(σ::Unifier, (f, g)::Tuple{Fn,Fn}, ms...)
+    f′, g′ = get(f), get(g)
+    (f′.head == g′.head && length(f′.args) == length(g′.args)) || return
+    _unify(σ, zip(f′.args, g′.args)..., ms...)
+end
+_unify(σ::Unifier, (a, b)::Tuple{T,T}, ms...) where {T} = get(a) == get(b) ? _unify(σ, ms...) : nothing
 _unify(σ::Unifier) = σ
 _unify(ms...) = _unify(Unifier(), ms...)
 

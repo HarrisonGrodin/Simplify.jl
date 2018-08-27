@@ -11,32 +11,39 @@ Given image generator `t`, return the image of `x`.
 function image end
 
 abstract type AbstractImages end
-# image(t::Term, ::AbstractImages) = get(t.images, t.ex, TypeSet(Any))
 image(t::Term, ::AbstractImages) = TypeSet(Any)  # FIXME
 
 struct EmptyImages <: AbstractImages end
 
-struct StandardImages <: AbstractImages end
-# function image(fn::Fn, i::StandardImages)
-#     sig = fn.name, length(fn)
-#
-#     sig == (:/, 2) && return TypeSet(Float64)
-#     sig == (:^, 2) && image(fn[1], i) ⊆ Positive && return Positive
-#     sig == (:^, 2) && image(fn[1], i) ⊆ Zero && return Set([0, 1])
-#     sig == (:^, 2) && image(fn[2], i) ⊆ Even && return Nonnegative
-#     sig == (:abs, 1) && return Nonnegative
-#     sig == (:sqrt, 1) && return Nonnegative
-#     sig == (:sin, 1) && return GreaterThan{Number}(-1, true) ∩ LessThan{Number}(1, true)
-#     sig == (:cos, 1) && return GreaterThan{Number}(-1, true) ∩ LessThan{Number}(1, true)
-#     sig == (:log, 1) && return TypeSet(Float64)
-#
-#     BOOL = TypeSet(Bool)
-#     sig == (:&, 2) && image(fn[1], i) ⊆ BOOL && image(fn[2], i) ⊆ BOOL && return BOOL
-#     sig == (:|, 2) && image(fn[1], i) ⊆ BOOL && image(fn[2], i) ⊆ BOOL && return BOOL
-#     sig == (:!, 1) && image(fn[1], i) ⊆ BOOL && return BOOL
-#
-#     TypeSet(Number)
-# end
+struct StandardImages <: AbstractImages
+    images::Dict{Term,AbstractSet}
+    StandardImages(xs...) = new(Dict(xs...))
+end
+function image(t::Term, i::StandardImages)
+    haskey(i.images, t) && return i.images[t]
+
+    ex = get(t)
+    is_constant(t) && return Set([ex])
+    ex isa Expr && ex.head === :call || return TypeSet(Any)
+    sig = get(t[1]), length(t) - 1
+
+    sig == (/, 2) && return TypeSet(Float64)
+    sig == (^, 2) && image(fn[1], i) ⊆ Positive && return Positive
+    sig == (^, 2) && image(fn[1], i) ⊆ Zero && return Set([0, 1])
+    sig == (^, 2) && image(fn[2], i) ⊆ Even && return Nonnegative
+    sig == (abs, 1) && return Nonnegative
+    sig == (sqrt, 1) && return Nonnegative
+    sig == (sin, 1) && return GreaterThan{Number}(-1, true) ∩ LessThan{Number}(1, true)
+    sig == (cos, 1) && return GreaterThan{Number}(-1, true) ∩ LessThan{Number}(1, true)
+    sig == (log, 1) && return TypeSet(Float64)
+
+    BOOL = TypeSet(Bool)
+    sig == (&, 2) && image(fn[1], i) ⊆ BOOL && image(fn[2], i) ⊆ BOOL && return BOOL
+    sig == (|, 2) && image(fn[1], i) ⊆ BOOL && image(fn[2], i) ⊆ BOOL && return BOOL
+    sig == (!, 1) && image(fn[1], i) ⊆ BOOL && return BOOL
+
+    TypeSet(Number)
+end
 
 
 abstract type AbstractContext end
@@ -59,10 +66,10 @@ const DEFAULT_CONTEXT = AlgebraContext(
         Symbolic(:+)  => [Flat, Orderless],
         Symbolic(:++) => [Flat],
         Symbolic(:*)  => [Flat],
-        Symbolic(:&)  => [Flat, Orderless],
-        Symbolic(:|)  => [Flat, Orderless],
-        (+)        => [Flat, Orderless],
-        (*)        => [Flat],
+        (+)           => [Flat, Orderless],
+        (*)           => [Flat],
+        (&)           => [Flat, Orderless],
+        (|)           => [Flat, Orderless],
     ),
     images = StandardImages(),
     orderless = Dict(

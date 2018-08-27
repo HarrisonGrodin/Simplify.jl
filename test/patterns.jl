@@ -29,21 +29,21 @@ using SpecialSets
         @test replace(a, Dict(a => b)) == b
         @test replace(a, Dict(x => b)) == a
 
-        # @testset "Predicates" begin
-        #     @test Variable(:x) ≠ Variable(:x, Even)
-        #     @test Variable(:x, Even) == Variable(:x, Even)
-        #     @test Variable(:x, Set([1])) == Variable(:x, Set([1]))
-        #     @test Variable(:x, Set([1])) ≠ Variable(:x, Set([2]))
-        #
-        #     nz, p, n = Term.([:nz, :p, :n], [Nonzero, Positive, Negative])
-        #
-        #     @test match(nz, nz) == Match(nz => nz)
-        #     @test match(@term(x / x, Dict(:x => Nonzero)), @term(3 / 3)) == Match(@term(x) => @term(3))
-        #     @test match(@term($nz / $nz), @term(2 / 3)) == zero(Match)
-        #     @test match(@term($nz / $nz), p) == zero(Match)
-        #     @test match(@term($nz / $nz), @term($p / $p)) == Match(nz => p)
-        #     @test match(@term($nz / $nz), @term($n / $p)) == zero(Match)
-        # end
+        @testset "Predicates" begin
+            images = Rewrite.StandardImages(
+                @term(:nz) => Nonzero,
+                @term(:p)  => Positive,
+                @term(:n)  => Negative,
+            )
+            with_context(AlgebraContext(images = images)) do
+                @test match(@term(:nz), @term(:nz)) == Match(@term(:nz) => @term(:nz))
+                @test match(@term(:nz / :nz), @term(3 / 3)) == Match(@term(:nz) => @term(3))
+                @test match(@term(:nz / :nz), @term(2 / 3)) == zero(Match)
+                @test match(@term(:nz / :nz), @term(:p)) == zero(Match)
+                @test match(@term(:nz / :nz), @term(:p / :p)) == Match(@term(:nz) => @term(:p))
+                @test match(@term(:nz / :nz), @term(:n / :p)) == zero(Match)
+            end
+        end
     end
 
     @testset "Constant" begin

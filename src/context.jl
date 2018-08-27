@@ -44,11 +44,10 @@ Base.broadcastable(ctx::AbstractContext) = Ref(ctx)
 
 struct AlgebraContext <: AbstractContext
     props::Dict{Any,Vector{Type{<:Property}}}
-    consts::Dict{Symbol,Any}
     images::AbstractImages
     orderless::Dict{Symbol,AbstractSet}
-    AlgebraContext(; props=Dict(), consts=Dict(), images=EmptyImages(), orderless=Dict()) =
-        new(props, consts, images, orderless)
+    AlgebraContext(; props=Dict(), images=EmptyImages(), orderless=Dict()) =
+        new(props, images, orderless)
 end
 
 
@@ -64,9 +63,6 @@ const DEFAULT_CONTEXT = AlgebraContext(
         Symbolic(:|)  => [Flat, Orderless],
         (+)        => [Flat, Orderless],
         (*)        => [Flat],
-    ),
-    consts = Dict(
-        :π  => π,
     ),
     images = StandardImages(),
     orderless = Dict(

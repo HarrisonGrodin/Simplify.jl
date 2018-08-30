@@ -11,7 +11,9 @@ Given image generator `t`, return the image of `x`.
 function image end
 
 abstract type AbstractImages end
-image(t::Term, ::AbstractImages) = TypeSet(Any)  # FIXME
+image(::Expr, ::AbstractImages) = TypeSet(Any)
+image(x::Variable, ::AbstractImages) = x.image
+image(x, ::AbstractImages) = Set([x])
 
 struct EmptyImages <: AbstractImages end
 
@@ -19,13 +21,12 @@ struct StandardImages <: AbstractImages
     images::Dict{Term,AbstractSet}
     StandardImages(xs...) = new(Dict(xs...))
 end
-function image(t::Term, i::StandardImages)
-    haskey(i.images, t) && return i.images[t]
+function image(ex::Expr, i::StandardImages)
+    haskey(i.images, Term(ex)) && return i.images[ex]
 
-    ex = get(t)
-    is_constant(t) && return Set([ex])
-    ex isa Expr && ex.head === :call || return TypeSet(Any)
-    sig = get(t[1]), length(t) - 1
+    fn = property(Fn2, ex)
+    fn === nothing && return TypeSet(Any)
+    sig = fn.name, length(fn.args)
 
     sig == (/, 2) && return TypeSet(Float64)
     sig == (^, 2) && image(fn[1], i) ⊆ Positive && return Positive
@@ -95,35 +96,33 @@ function with_context(f, context::AbstractContext)
 end
 
 
-function property(::Type{Flat}, fn::Fn)
-    fn.ex.head === :call || return
-    length(fn.ex.args) ≥ 3 || return  # includes function head
+function property(::Type{Fn2}, ex::Expr)
+    ex.head === :call || return
+    Fn2(ex.args[1], ex.args[2:end])
+end
 
-    name = get(fn[1])
 
-    haskey(CONTEXT.props, name) || return
-    Flat ∈ CONTEXT.props[name] || return
+function property(::Type{Flat}, ex::Expr)
+    fn = property(Fn2, ex)
+    fn === nothing && return
+    length(fn.args) ≥ 2 || return
 
-    args = copy(fn[2:end])
+    haskey(CONTEXT.props, fn.name) || return
+    Flat ∈ CONTEXT.props[fn.name]  || return
+
+    args = copy(fn.args)
     i = 1
     while i ≤ length(args)
-        x = args[i]
-        if x isa Fn && get(x[1]) == name
-            splice!(args, i, x.ex.args[2:end])
+        x = property(Fn2, args[i])
+        if x !== nothing && x.name == fn.name
+            splice!(args, i, x.args)
         else
             i += 1
         end
     end
 
-    Flat(name, args)
+    Flat(fn.name, args)
 end
-function flatten!(fn::Fn)
-    flat = flatten!(fn.name, fn)
-    append!(empty!(fn.args), flat)
-    fn
-end
-flatten!(name, fn::Fn) = fn.name === name ? [flatten!.(name, fn.args)...;] : [fn]
-flatten!(name, x) = x
 
 # function property(::Type{Orderless}, fn::Fn)
 #     length(fn) ≥ 2 || return nothing

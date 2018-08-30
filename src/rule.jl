@@ -69,25 +69,25 @@ Base.map(f, r::PatternRule{T}) where {T} = PatternRule{T}(f(r.left), f(r.right))
 function normalize(t::T, (l, r)::PatternRule{U}) where {U,T<:U}
     Θ = match(l, t)
     isempty(Θ) && return t
-    xs = Set(replace(r, σ) for σ ∈ Θ)
+    xs = Set(replace(r, _termdict(σ)) for σ ∈ Θ)
     length(xs) == 1 || throw(DivergentError())
     first(xs)
 end
+_termdict(d) = Dict{Term,Term}((convert(Term, a) => convert(Term, b)) for (a, b) ∈ pairs(d))
 
 struct EvalRule <: Rule{Term}
-    name::Term
+    name
     f
 end
-EvalRule(name::Symbol, f) = EvalRule(Symbolic(name), f)
 EvalRule(f::Function) = EvalRule(f, f)
-(r::EvalRule)(args::Term...) = Term(r.f(get.(args)...))
-function normalize(fn::Fn, r::EvalRule)
-    fn.ex.head === :call || return fn
-    match(r.name, fn[1]) == zero(Match) && return fn
+function normalize(t::Term, r::EvalRule)::Term
+    fn = property(Fn2, t)
+    fn === nothing && return t
+    match(Term(r.name), Term(fn.name)) == zero(Match) && return t
 
-    flat = property(Flat, fn)
+    flat = property(Flat, t)
     if flat !== nothing
-        o = property(Orderless, fn)
+        o = property(Orderless, t)
         if o !== nothing
             ordered = _apply_flat!(r, collect(o.ordered))
             ord_inds = findall(x -> x isa Constant, ordered)
@@ -97,9 +97,9 @@ function normalize(fn::Fn, r::EvalRule)
             inds = findall(x -> x isa Constant, orderless)
             if !isempty(ord_inds)
                 ind = first(ord_inds)
-                ordered[ind] = r(ordered[ind], orderless[inds]...)
+                ordered[ind] = r.f(ordered[ind], orderless[inds]...)
             else
-                isempty(inds) || push!(ordered, r(orderless[inds]...))
+                isempty(inds) || push!(ordered, r.f(orderless[inds]...))
             end
             deleteat!(orderless, inds)
 
@@ -109,23 +109,21 @@ function normalize(fn::Fn, r::EvalRule)
         end
 
         length(args) == 1 && return first(args)
-        return convert(Term, :($(flat.name)($(args...))))
+        return Expr(:call, flat.name, args...)
     end
 
-    args = fn[2:end]
-    all_constants(args...) || return fn
-    r(args...)
+    all(_is_constant, fn.args) || return t
+    r.f(fn.args...)
 end
-normalize(t::Term, ::EvalRule) = t
 function _apply_flat!(r::EvalRule, args)
     i = firstindex(args)
 
     while i ≤ lastindex(args) - 1
         a, b = args[i:i+1]
 
-        if is_constant(a) && is_constant(b)
+        if _is_constant(a) && _is_constant(b)
             deleteat!(args, i)
-            args[i] = r(a, b)
+            args[i] = r.f(a, b)
         else
             i += 1
         end
@@ -133,8 +131,7 @@ function _apply_flat!(r::EvalRule, args)
 
     args
 end
-all_constants(xs::Term...) = all(is_constant, xs)
-is_constant(t::Term{T}) where {T} = T ∉ [Expr, Symbol, Symbolic]
+_is_constant(t) = typeof(t) ∉ [Expr, Symbolic, Variable]
 
 
 struct DiffRule <: Rule{Term}
@@ -142,13 +139,13 @@ struct DiffRule <: Rule{Term}
     zero::Symbol
     DiffRule(diff=:diff, zero=:zero) = new(diff, zero)
 end
-function normalize(fn::Fn, r::DiffRule)::Term
-    (fn.name, length(fn)) == (r.diff, 2) || return fn
-    f, x = fn
-    vars_f, vars_x = vars.((f, x))
-    isempty(vars_f ∩ vars_x) && return Fn(:zero, x)
-    fn
-end
-normalize(t::Term, ::DiffRule) = t
+# function normalize(fn::Fn, r::DiffRule)::Term
+#     (fn.name, length(fn)) == (r.diff, 2) || return fn
+#     f, x = fn
+#     vars_f, vars_x = vars.((f, x))
+#     isempty(vars_f ∩ vars_x) && return Fn(:zero, x)
+#     fn
+# end
+# normalize(t::Term, ::DiffRule) = t
 vars(x::Variable) = [x]
 vars(t::Term) = [map(vars, collect(t))...;]

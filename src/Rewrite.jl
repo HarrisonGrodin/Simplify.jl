@@ -11,7 +11,7 @@ include("rule.jl")
 include("context.jl")
 include("rules.jl")
 
-include("completion/Completion.jl")
-using .Completion
+# include("completion/Completion.jl")
+# using .Completion
 
 end # module

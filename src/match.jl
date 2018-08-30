@@ -4,8 +4,8 @@ using Combinatorics: combinations, permutations
 export match
 
 
-mutable struct Match <: AbstractSet{AbstractDict{Term,Term}}
-    matches::Set{Dict{Term,Term}}
+mutable struct Match <: AbstractSet{AbstractDict{Variable,Any}}
+    matches::Set{Dict{Variable,Any}}
 end
 Match(xs::Union{Pair,Dict}...) = Match(Set(Dict.(xs)))
 Base.zero(::Type{Match}) = Match()
@@ -60,14 +60,14 @@ julia> match(@term(f(x, x)), @term(f(a, a)))
 Match(Set(Dict{Term,Term}[Dict(@term(x)=>@term(a))]))
 ```
 """
-match(pattern::Term, subject::Term) = match(pattern, subject, one(Match))
+match(pattern::Term, subject::Term) = match(Term, get(pattern), get(subject), one(Match))
 
-function match(x::Variable, t::Term, Θ)
+function match(::Type{Term}, x::Variable, t, Θ)
     image(t) ⊆ image(x) || return zero(Match)
     merge(Θ, Match(x => t))
 end
-function match(f::Fn, g::Fn, Θ)
-    f.ex.head === g.ex.head || return zero(Match)
+function match(::Type{Term}, f::Expr, g::Expr, Θ)
+    f.head === g.head || return zero(Match)
     image(g) ⊆ image(f) || return zero(Match)
 
     f_flat = property(Flat, f)
@@ -88,15 +88,14 @@ function match(f::Fn, g::Fn, Θ)
     #     callback(f, g, Θ)
     # end
 end
-match(a::Term{T}, b::Term{U}, Θ) where {T,U} =
-    (U <: T && get(a) == get(b)) ? Θ : zero(Match)
+match(::Type{Term}, a, b, Θ) = (typeof(b) <: typeof(a) && a == b) ? Θ : zero(Match)
 
 
-function match_standard(f::Fn, g::Fn, Θ)
-    length(f) == length(g) || return zero(Match)
+function match_standard(f::Expr, g::Expr, Θ)
+    length(f.args) == length(g.args) || return zero(Match)
 
-    for (x, y) ∈ zip(f, g)
-        Θ = match(x, y, Θ)
+    for (x, y) ∈ zip(f.args, g.args)
+        Θ = match(Term, x, y, Θ)
     end
 
     Θ
@@ -126,8 +125,8 @@ function match_flat(p::Flat, s::Flat, Θ)
                 l_sub += k[j]
                 j += 1
             end
-            s′ = l_sub > 0 ? convert(Term, Expr(:call, p.name.ex, s[i:i+l_sub]...)) : s[i]
-            Θ′ = match(pₗ, s′, Θ′)
+            s′ = l_sub > 0 ? Expr(:call, p.name, s[i:i+l_sub]...) : s[i]
+            Θ′ = match(Term, pₗ, s′, Θ′)
             isempty(Θ′) && break
             i += l_sub + 1
         end
@@ -135,32 +134,32 @@ function match_flat(p::Flat, s::Flat, Θ)
     end
     Θᵣ
 end
-function match_orderless(p::Orderless, s::Fn, Θ, callback)
-    results = map(fn -> callback(fn, s, Θ), perms(p))
-    reduce(union, results)
-end
-function match_orderless(p::Fn, s::Orderless, Θ, callback)
-    results = map(fn -> callback(p, fn, Θ), perms(s))
-    reduce(union, results)
-end
-function match_orderless(p::Orderless, s::Orderless, Θ, callback)
-    results = map(fn -> match_orderless(fn, s, Θ, callback), perms(p))
-    reduce(union, results)
-end
-function perms(o::Orderless)
-    l₊, l₋ = length(o.ordered), length(o.orderless)
-    l = l₊ + l₋
-    result = []
-
-    for comb ∈ combinations(1:l, l₊)
-        comb′ = setdiff(1:l, comb)
-        for perm ∈ permutations(o.orderless)
-            args = Array{Term}(undef, l)
-            args[comb] = o.ordered
-            args[comb′] = perm
-            push!(result, Fn(o.name, args...; clean=false))
-        end
-    end
-
-    result
-end
+# function match_orderless(p::Orderless, s::Fn, Θ, callback)
+#     results = map(fn -> callback(fn, s, Θ), perms(p))
+#     reduce(union, results)
+# end
+# function match_orderless(p::Fn, s::Orderless, Θ, callback)
+#     results = map(fn -> callback(p, fn, Θ), perms(s))
+#     reduce(union, results)
+# end
+# function match_orderless(p::Orderless, s::Orderless, Θ, callback)
+#     results = map(fn -> match_orderless(fn, s, Θ, callback), perms(p))
+#     reduce(union, results)
+# end
+# function perms(o::Orderless)
+#     l₊, l₋ = length(o.ordered), length(o.orderless)
+#     l = l₊ + l₋
+#     result = []
+#
+#     for comb ∈ combinations(1:l, l₊)
+#         comb′ = setdiff(1:l, comb)
+#         for perm ∈ permutations(o.orderless)
+#             args = Array{Term}(undef, l)
+#             args[comb] = o.ordered
+#             args[comb′] = perm
+#             push!(result, Fn(o.name, args...; clean=false))
+#         end
+#     end
+#
+#     result
+# end

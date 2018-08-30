@@ -7,47 +7,47 @@ using SpecialSets
 	@syms f g h
 
 	@testset "Symbolic" begin
+        @test f == f
+        @test f ≠ g
+        @test f ≠ @term f
+        @test f ≠ @term :f
+
 		@test get(@term 1) == 1
 		@test get(@term sin) == sin
 
-		@test f == @term f
-		@test f ≠ @term :f
 
 		@test_throws UndefVarError @term qwerty
 	end
 
     @testset "Variable" begin
-        a, b, x, y = Term.([:a, :b, :x, :y])
+        @vars a b x y
 
         @test x == x
         @test x ≠ y
-        @test a == @term a
 
-        @test match(a, b) == Match(a => b)
-        @test b ⊆ a
+        @test match(@term(a), @term(b)) == Match(a => b)
+        @test @term(b) ⊆ @term(a)
 
-        @test replace(a, Dict(a => b)) == b
-        @test replace(a, Dict(x => b)) == a
+        @test replace(@term(a), Dict(@term(a) => @term(b))) == @term(b)
+        @test replace(@term(a), Dict(@term(x) => @term(b))) == @term(a)
 
         @testset "Predicates" begin
-            images = Rewrite.StandardImages(
-                @term(:nz) => Nonzero,
-                @term(:p)  => Positive,
-                @term(:n)  => Negative,
-            )
-            with_context(AlgebraContext(images = images)) do
-                @test match(@term(:nz), @term(:nz)) == Match(@term(:nz) => @term(:nz))
-                @test match(@term(:nz / :nz), @term(3 / 3)) == Match(@term(:nz) => @term(3))
-                @test match(@term(:nz / :nz), @term(2 / 3)) == zero(Match)
-                @test match(@term(:nz / :nz), @term(:p)) == zero(Match)
-                @test match(@term(:nz / :nz), @term(:p / :p)) == Match(@term(:nz) => @term(:p))
-                @test match(@term(:nz / :nz), @term(:n / :p)) == zero(Match)
-            end
+            nz = Variable(Nonzero)
+            p  = Variable(Positive)
+            n  = Variable(Negative)
+
+            @test match(@term(nz), @term(nz))         == Match(nz => nz)
+            @test match(@term(nz / nz), @term(3 / 3)) == Match(nz => 3)
+            @test match(@term(nz / nz), @term(2 / 3)) == zero(Match)
+            @test match(@term(nz / nz), @term(p))     == zero(Match)
+            @test match(@term(nz / nz), @term(p / p)) == Match(nz => p)
+            @test match(@term(nz / nz), @term(n / p)) == zero(Match)
         end
     end
 
     @testset "Constant" begin
         _1, _2 = Term.([1, 2])
+        @vars x y
 
         @test _1 == _1
         @test _1 ≠ _2
@@ -59,80 +59,70 @@ using SpecialSets
         @test match(_2, _1) == zero(Match)
         @test _1 ⊈ _2
 
+        @test match(@term(:x), @term(:x)) == one(Match)
+        @test match(@term(:x), @term(:y)) == zero(Match)
 
-        @test match(@term(f(:x, 0)), @term(f(:y, 0))) == Match(@term(:x) => @term(:y))
+        @test match(@term(f(x, 0)), @term(f(y, 0))) == Match(x => y)
 
-        @test replace(_1, Dict(@term(:x) => @term(:y))) == _1
+        @test replace(_1, Dict(@term(x) => @term(y))) == _1
     end
 
     @testset "Function" begin
 
         @testset "standard" begin
-            x, y, z = Term.([:x, :y, :z])
+            @vars x y z
 
-            @test f(x) == f(x)
-            @test f(x) ≠ f(y)
-			@test f(x) == @term f(x)
-            @test f(x) == @term f(:x)
+            @test @term(f(x)) == @term(f(x))
+            @test @term(f(x)) ≠ @term(f(y))
 
-            @test @term(f(x, y))[2] == @term(x)
-            @test_throws BoundsError @term(f(x, 2))[8]
-            @test @term(f(x, g(h(y), f(z))))[3, 2] == @term(h(y))
-            @test @term(f(x, g(h(y), f(z))))[3, 2, 2] == @term(y)
-            @test_throws MethodError @term(f(x))[2, 1]
-
-            @test match(f(), f()) == one(Match)
-            @test match(f(x), f(y)) == Match(x => y)
-            @test f(y) ⊆  f(x)
-            @test match(f(x), g(x)) == zero(Match)
-            @test match(f(f(), x), f(g(), y)) == zero(Match)
-            @test match(f(x, x), f(y, z)) == zero(Match)
-            @test match(f(x), g(x, y)) == zero(Match)
+            @test match(@term(f()), @term(f())) == one(Match)
+            @test match(@term(f(x)), @term(f(y))) == Match(x => y)
+            @test @term(f(y)) ⊆ @term(f(x))
+            @test match(@term(f(x)), @term(g(x))) == zero(Match)
+            @test match(@term(f(f(), x)), @term(f(g(), y))) == zero(Match)
+            @test match(@term(f(x, x)), @term(f(y, z))) == zero(Match)
+            @test match(@term(f(x)), @term(g(x, y))) == zero(Match)
             @test match(@term(x - x), @term(-y)) == zero(Match)
-            @test g(x, y) ⊈ f(x)
+            @test @term(g(x, y)) ⊈ @term(f(x))
+            @test @term(f(:a, 2, :a)) ⊆ @term(f(x, 2, x))
             @test @term(f(:a, 2, :b)) ⊈ @term(f(x, 2, x))
 
-            @test replace(f(x), Dict(x => y)) == f(y)
-            @test replace(f(x), Dict(y => x)) == f(x)
-            @test replace(f(x, g(y, z)), Dict(g(y, z) => 0)) == f(x, 0)
-            @test replace(f(x, g(y, z)), Dict(g(y, z) => @term(0))) == f(x, 0)
+            @test replace(@term(f(x)), Dict(@term(x) => @term(y))) == @term(f(y))
+            @test replace(@term(f(x)), Dict(@term(y) => @term(x))) == @term(f(x))
         end
 
         @testset "flat" begin
-
 			@syms a b c d e
+            @vars x y z
 
-            with_context(AlgebraContext(props=Dict(Symbolic(:f) => [Flat]))) do
+            with_context(AlgebraContext(props=Dict(f => [Flat]))) do
                 @test match(@term(f(1, 2, f(3, 4))), @term(f(1, 2, 3, 4))) == one(Match)
 
-                @test match(@term(f(g(:X), g(:Y), :Z)), @term(f(g(a), g(b), g(c), g(d), g(e)))) ==
-                    Match(Dict(@term(:X)=>@term(a), @term(:Y)=>@term(b), @term(:Z)=>@term(f(g(c), g(d), g(e)))))
+                @test match(@term(f(g(x), g(y), z)), @term(f(g(a), g(b), g(c), g(d), g(e)))) ==
+                    Match(Dict(x => a, y => b, z => get(@term f(g(c), g(d), g(e)))))
 
-                @test match(@term(f(:x, :y)), @term(f(1, b))) ==
-                    Match(Dict(@term(:x) => @term(1), @term(:y) => @term(b)))
+                @test match(@term(f(x, y)), @term(f(1, b))) ==
+                    Match(Dict(x => 1, y => b))
             end
 
             with_context(AlgebraContext(props=Dict((*) => [Flat]))) do
-                @test match(@term(:x), @term(a * b)) ==
-                    Match(@term(:x) => @term(a * b))
+                @test match(@term(x), @term(a * b)) ==
+                    Match(x => get(@term a * b))
 
-                @test match(@term(:x * :y), @term(a() * b()))::Match ==
-                    Match(Dict(@term(:x) => @term(a()), @term(:y) => @term(b())))
+                @test match(@term(x * y), @term(a * b))::Match ==
+                    Match(Dict(x => a, y => b))
 
-                @test match(@term(:x * :y), @term(a * b * c)) == Match(
-                    Dict(@term(:x) => @term(a * b), @term(:y) => @term(c)),
-                    Dict(@term(:x) => @term(a), @term(:y) => @term(b * c)),
+                @test match(@term(x * y), @term(a * b * c)) == Match(
+                    Dict(x => get(@term a * b), y => c),
+                    Dict(x => a, y => get(@term b * c)),
                 )
 
-                @test match(@term(:x * "_" * :y), @term(f() * g() * "_" * h())) ==
-                    Match(Dict(@term(:x) => @term(f() * g()), @term(:y) => @term(h())))
+                @test match(@term(x * "_" * y), @term(a * b * "_" * c)) ==
+                    Match(Dict(x => get(@term a * b), y => c))
 
                 with_context(AlgebraContext(props=Dict((*) => [Flat]))) do
-                    @test match(@term(f() * g()), @term(f() * g())) ==
-                        one(Match)
-
-                    @test match(@term(g() * f()), @term(f() * g())) ==
-                        zero(Match)
+                    @test match(@term(a * b), @term(a * b)) == one(Match)
+                    @test match(@term(a * b), @term(b * a)) == zero(Match)
                 end
 
                 @test replace(@term(a * b * (c * b)), Dict(@term(b) => @term(d))) == @term(a * d * (c * d))

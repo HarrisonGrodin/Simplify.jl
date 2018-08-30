@@ -4,47 +4,47 @@ using SpecialSets
 
 @syms f g
 @syms a b c
+@vars x y z
 
 @testset "Rule" begin
 
     @testset "PatternRule" begin
-        @test normalize(@term(a + 0 + 0), PatternRule{Term}(@term(:x + 0), @term(:x))) == @term(a + 0)
-        @test normalize(@term(b + 1), PatternRule{Term}(@term(:x + 0), @term(:x))) == @term(b + 1)
-        @test normalize(@term(b), PatternRule{Term}(@term(:x + 0), @term(:x))) == @term(b)
-        @test normalize(@term(f(a, b)), TRS(@term(f(:x, :y)) => @term(g(:x)))) == @term(g(a))
+        @test normalize(@term(a + 0 + 0), PatternRule{Term}(@term(x + 0), @term(x))) == @term(a + 0)
+        @test normalize(@term(b + 1), PatternRule{Term}(@term(x + 0), @term(x))) == @term(b + 1)
+        @test normalize(@term(b), PatternRule{Term}(@term(x + 0), @term(x))) == @term(b)
+        @test normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x)))) == @term(g(a))
         # with_context(AlgebraContext(props=Dict(:f => [Orderless]))) do
         #     @test_throws DivergentError normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x))))
         # end
-        @test normalize(@term(a + 0 + 0), TRS(@term(:a + 0) => @term(:a))) == @term(a)
 
-        # @testset "Predicates" begin
-        #     nz = Variable(:nz, Nonzero)
-        #     odd = Variable(:odd, Odd)
-        #
-        #     @test normalize(@term(3 / 3), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one(3))
-        #     @test normalize(@term(2 / 3), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(2 / 3)
-        #     @test normalize(@term(x / x), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(x / x)
-        #     @test normalize(@term((2^x) / (2^x)), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one(2^x))
-        #     @test normalize(@term($odd / $odd), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one($odd))
-        #     @test_skip normalize(@term(($odd + 2) / ($odd + 2)), TRS(@term($nz / $nz) => @term(one($nz)))) == @term(one($odd + 2))
-        # end
+        @testset "Predicates" begin
+            nz = Variable(Nonzero)
+            odd = Variable(Odd)
+
+            @test normalize(@term(3 / 3), TRS(@term(nz / nz) => @term(one(nz)))) == @term(one(3))
+            @test normalize(@term(2 / 3), TRS(@term(nz / nz) => @term(one(nz)))) == @term(2 / 3)
+            @test normalize(@term(x / x), TRS(@term(nz / nz) => @term(one(nz)))) == @term(x / x)
+            @test normalize(@term((2^x) / (2^x)), TRS(@term(nz / nz) => @term(one(nz)))) == @term(one(2^x))
+            @test normalize(@term(odd / odd), TRS(@term(nz / nz) => @term(one(nz)))) == @term(one(odd))
+            @test_skip normalize(@term((odd + 2) / (odd + 2)), TRS(@term(nz / nz) => @term(one(nz)))) == @term(one(odd + 2))
+        end
     end
     @testset "EvalRule" begin
-        @test normalize(@term(f(2, 3)), EvalRule(:f, *)) == @term(6)
-        @test normalize(@term(f(a, 3)), EvalRule(:f, *)) == @term(f(a, 3))
-        @test normalize(@term(f(2, b)), EvalRule(:f, *)) == @term(f(2, b))
+        @test normalize(@term(f(2, 3)), EvalRule(f, *)) == @term(6)
+        @test normalize(@term(f(a, 3)), EvalRule(f, *)) == @term(f(a, 3))
+        @test normalize(@term(f(2, b)), EvalRule(f, *)) == @term(f(2, b))
         @test normalize(@term("a" * "b"), EvalRule(*)) == @term("ab")
         @test normalize(@term(a + 2 * 3), EvalRule(*)) == @term(a + 2 * 3)
         @test normalize(@term(a + 2 * 3), TRS(EvalRule(*))) == @term(a + 6)
         @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(*))) == @term(6 + 20)
         @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(+), EvalRule(*))) == @term(26)
 
-        with_context(AlgebraContext(props=Dict(Symbolic(:f) => [Flat]))) do
-            rule = EvalRule(:f, +)
+        with_context(AlgebraContext(props=Dict(f => [Flat]))) do
+            rule = EvalRule(f, +)
             @test normalize(@term(f(a, 1, 2, b, 3, c)), rule) == @term(f(a, 3, b, 3, c))
             @test normalize(@term(f(1, 2, 3, 4, 5)), rule) == @term(15)
-            @test normalize(@term(f(1, 2, :x, 3, 4, 5)), rule) == @term(f(3, :x, 12))
-            @test normalize(@term(f(1, 2, :x, :y, 3, 4, 5)), rule) == @term(f(3, :x, :y, 12))
+            @test normalize(@term(f(1, 2, x, 3, 4, 5)), rule) == @term(f(3, x, 12))
+            @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), rule) == @term(f(3, x, y, 12))
         end
 
         # with_context(AlgebraContext(props=Dict(:f => [Flat, Orderless]))) do

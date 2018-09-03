@@ -66,32 +66,19 @@ function match(::Type{Term}, x::Variable, t, Θ)
     image(t) ⊆ image(x) || return zero(Match)
     merge(Θ, Match(x => t))
 end
-function match(::Type{Term}, f::Expr, g::Expr, Θ)
-    f.head === g.head || return zero(Match)
-    image(g) ⊆ image(f) || return zero(Match)
+function match(::Type{Term}, p::Expr, s::Expr, Θ)
+    p.head === s.head   || return zero(Match)
+    image(s) ⊆ image(p) || return zero(Match)
 
-    f_flat = property(Flat, f)
-    g_flat = property(Flat, g)
-    flat = f_flat !== nothing && g_flat !== nothing
-
-    if flat
-        match_flat(f_flat, g_flat, Θ)
-    else
-        match_standard(f, g, Θ)
-    end
-    # callback = flat ? match_flat : match_standard
-    # if (g′ = property(Orderless, g)) !== nothing
-    #     match_orderless(f, g′, Θ, callback)
-    # elseif (f′ = property(Orderless, f)) !== nothing
-    #     match_orderless(f′, g, Θ, callback)
-    # else
-    #     callback(f, g, Θ)
-    # end
+    P = hasproperty(Orderless, s) ? Orderless :
+        hasproperty(Flat, s)      ? Flat      :
+        Standard
+    match(P, p, s, Θ)
 end
-match(::Type{Term}, a, b, Θ) = (typeof(b) <: typeof(a) && a == b) ? Θ : zero(Match)
+match(::Type{Term}, p, s, Θ) = (typeof(s) <: typeof(p) && p == s) ? Θ : zero(Match)
 
 
-function match_standard(f::Expr, g::Expr, Θ)
+function match(::Type{Standard}, f::Expr, g::Expr, Θ)
     length(f.args) == length(g.args) || return zero(Match)
 
     for (x, y) ∈ zip(f.args, g.args)
@@ -101,31 +88,37 @@ function match_standard(f::Expr, g::Expr, Θ)
     Θ
 end
 """
-    match_flat(p::Fn, s::Fn, Θ::Match) -> Match
+    match(p::Fn, s::Fn, Θ::Match) -> Match
 
 Match an associative function call to another associative function call, based on the
 algorithm by [Krebber](https://arxiv.org/abs/1705.00907).
 """
-function match_flat(p::Flat, s::Flat, Θ)
-    p.name === s.name || return zero(Match)
+function match(::Type{Flat}, p::Expr, s::Expr, Θ)
+    p, s = flatten(p), flatten(s)
 
-    m, n = length(p.args), length(s.args)
+    @assert p.head === s.head === :call
+
+    pname, pargs = p.args[1], p.args[2:end]
+    sname, sargs = s.args[1], s.args[2:end]
+    Θ = match(Term, pname, sname, Θ)
+
+    m, n = length(pargs), length(sargs)
     m > n && return zero(Match)
     n_free = n - m
-    n_vars = count(x -> x isa Variable, p.args)
+    n_vars = count(x -> x isa Variable, pargs)
     Θᵣ = zero(Match)
 
     for k ∈ Iterators.product((0:n_free for i ∈ 1:n_vars)...)
         (isempty(k) ? 0 : sum(k)) == n_free || continue  # FIXME: efficiency
         i, j = 1, 1
         Θ′ = Θ
-        for pₗ ∈ p.args
+        for pₗ ∈ pargs
             l_sub = 0
             if pₗ isa Variable
                 l_sub += k[j]
                 j += 1
             end
-            s′ = l_sub > 0 ? Expr(:call, p.name, s[i:i+l_sub]...) : s[i]
+            s′ = l_sub > 0 ? Expr(:call, pname, sargs[i:i+l_sub]...) : sargs[i]
             Θ′ = match(Term, pₗ, s′, Θ′)
             isempty(Θ′) && break
             i += l_sub + 1
@@ -134,32 +127,19 @@ function match_flat(p::Flat, s::Flat, Θ)
     end
     Θᵣ
 end
-# function match_orderless(p::Orderless, s::Fn, Θ, callback)
-#     results = map(fn -> callback(fn, s, Θ), perms(p))
-#     reduce(union, results)
-# end
-# function match_orderless(p::Fn, s::Orderless, Θ, callback)
-#     results = map(fn -> callback(p, fn, Θ), perms(s))
-#     reduce(union, results)
-# end
-# function match_orderless(p::Orderless, s::Orderless, Θ, callback)
-#     results = map(fn -> match_orderless(fn, s, Θ, callback), perms(p))
-#     reduce(union, results)
-# end
-# function perms(o::Orderless)
-#     l₊, l₋ = length(o.ordered), length(o.orderless)
-#     l = l₊ + l₋
-#     result = []
-#
-#     for comb ∈ combinations(1:l, l₊)
-#         comb′ = setdiff(1:l, comb)
-#         for perm ∈ permutations(o.orderless)
-#             args = Array{Term}(undef, l)
-#             args[comb] = o.ordered
-#             args[comb′] = perm
-#             push!(result, Fn(o.name, args...; clean=false))
-#         end
-#     end
-#
-#     result
-# end
+function match(::Type{Orderless}, p::Expr, s::Expr, Θ)
+    matches = map(perms(s)) do fn
+        P = hasproperty(Flat, s) ? Flat : Standard
+        match(P, p, fn, Θ)
+    end
+    reduce(union, matches)
+end
+function perms(ex::Expr)
+    @assert ex.head === :call
+
+    name, args = ex.args[1], ex.args[2:end]
+
+    map(permutations(args)) do perm
+        Expr(:call, name, perm...)
+    end |> unique
+end

@@ -80,41 +80,33 @@ struct EvalRule <: Rule{Term}
     f
 end
 EvalRule(f::Function) = EvalRule(f, f)
-function normalize(t::Term, r::EvalRule)::Term
-    fn = property(Fn2, t)
-    fn === nothing && return t
-    match(Term(r.name), Term(fn.name)) == zero(Match) && return t
+normalize(t::Term, r::EvalRule) = Term(normalize(get(t), r))
+function normalize(ex::Expr, r::EvalRule)
+    ex.head === :call || return ex
+    name, args = ex.args[1], ex.args[2:end]
 
-    flat = property(Flat, t)
-    if flat !== nothing
-        o = property(Orderless, t)
-        if o !== nothing
-            ordered = _apply_flat!(r, collect(o.ordered))
-            ord_inds = findall(x -> x isa Constant, ordered)
-            length(ord_inds) > 1 && throw(DivergentError())
+    match(Term(r.name), Term(name)) == zero(Match) && return ex
 
-            orderless = collect(o.orderless)
-            inds = findall(x -> x isa Constant, orderless)
-            if !isempty(ord_inds)
-                ind = first(ord_inds)
-                ordered[ind] = r.f(ordered[ind], orderless[inds]...)
-            else
-                isempty(inds) || push!(ordered, r.f(orderless[inds]...))
+    if hasproperty(Flat, ex)
+        if hasproperty(Orderless, ex)
+            inds = findall(_is_constant, args)
+            if !isempty(inds)
+                res = r.f(args[inds]...)
+                deleteat!(args, inds)
+                push!(args, res)
             end
-            deleteat!(orderless, inds)
-
-            args = [ordered; orderless]
         else
-            args = _apply_flat!(r, flat.args)
+            _apply_flat!(r, args)
         end
 
         length(args) == 1 && return first(args)
-        return Expr(:call, flat.name, args...)
+        return Expr(:call, name, args...)
     end
 
-    all(_is_constant, fn.args) || return t
-    r.f(fn.args...)
+    all(_is_constant, args) || return ex
+    r.f(args...)
 end
+normalize(x, ::EvalRule) = x
 function _apply_flat!(r::EvalRule, args)
     i = firstindex(args)
 

@@ -23,15 +23,15 @@ struct StandardImages <: AbstractImages
 end
 function image(ex::Expr, i::StandardImages)
     haskey(i.images, Term(ex)) && return i.images[ex]
+    ex.head === :call || return TypeSet(Any)
 
-    fn = property(Fn2, ex)
-    fn === nothing && return TypeSet(Any)
-    sig = fn.name, length(fn.args)
+    name, args = ex.args[1], ex.args[2:end]
+    sig = name, length(args)
 
     sig == (/, 2) && return TypeSet(Float64)
-    sig == (^, 2) && image(fn[1], i) ⊆ Positive && return Positive
-    sig == (^, 2) && image(fn[1], i) ⊆ Zero && return Set([0, 1])
-    sig == (^, 2) && image(fn[2], i) ⊆ Even && return Nonnegative
+    sig == (^, 2) && image(args[1], i) ⊆ Positive && return Positive
+    sig == (^, 2) && image(args[1], i) ⊆ Zero && return Set([0, 1])
+    sig == (^, 2) && image(args[2], i) ⊆ Even && return Nonnegative
     sig == (abs, 1) && return Nonnegative
     sig == (sqrt, 1) && return Nonnegative
     sig == (sin, 1) && return GreaterThan{Number}(-1, true) ∩ LessThan{Number}(1, true)
@@ -39,9 +39,9 @@ function image(ex::Expr, i::StandardImages)
     sig == (log, 1) && return TypeSet(Float64)
 
     BOOL = TypeSet(Bool)
-    sig == (&, 2) && image(fn[1], i) ⊆ BOOL && image(fn[2], i) ⊆ BOOL && return BOOL
-    sig == (|, 2) && image(fn[1], i) ⊆ BOOL && image(fn[2], i) ⊆ BOOL && return BOOL
-    sig == (!, 1) && image(fn[1], i) ⊆ BOOL && return BOOL
+    sig == (&, 2) && image(args[1], i) ⊆ BOOL && image(args[2], i) ⊆ BOOL && return BOOL
+    sig == (|, 2) && image(args[1], i) ⊆ BOOL && image(args[2], i) ⊆ BOOL && return BOOL
+    sig == (!, 1) && image(args[1], i) ⊆ BOOL && return BOOL
 
     TypeSet(Number)
 end
@@ -53,9 +53,7 @@ Base.broadcastable(ctx::AbstractContext) = Ref(ctx)
 struct AlgebraContext <: AbstractContext
     props::Dict{Any,Vector{Type{<:Property}}}
     images::AbstractImages
-    orderless::Dict{Symbol,AbstractSet}
-    AlgebraContext(; props=Dict(), images=EmptyImages(), orderless=Dict()) =
-        new(props, images, orderless)
+    AlgebraContext(; props=Dict(), images=EmptyImages()) = new(props, images)
 end
 
 
@@ -73,9 +71,6 @@ const DEFAULT_CONTEXT = AlgebraContext(
         (|)           => [Flat, Orderless],
     ),
     images = StandardImages(),
-    orderless = Dict(
-        :* => TypeSet(Number),
-    ),
 )
 
 
@@ -95,45 +90,25 @@ function with_context(f, context::AbstractContext)
     end
 end
 
-
-function property(::Type{Fn2}, ex::Expr)
-    ex.head === :call || return
-    Fn2(ex.args[1], ex.args[2:end])
-end
-
-
+property(::Type{Standard}, ::Any) = Standard
 function property(::Type{Flat}, ex::Expr)
-    fn = property(Fn2, ex)
-    fn === nothing && return
-    length(fn.args) ≥ 2 || return
+    ex.head === :call   || return
+    length(ex.args) ≥ 2 || return
 
-    haskey(CONTEXT.props, fn.name) || return
-    Flat ∈ CONTEXT.props[fn.name]  || return
+    name = ex.args[1]
+    haskey(CONTEXT.props, name) || return
+    Flat ∈ CONTEXT.props[name]  || return
 
-    args = copy(fn.args)
-    i = 1
-    while i ≤ length(args)
-        x = property(Fn2, args[i])
-        if x !== nothing && x.name == fn.name
-            splice!(args, i, x.args)
-        else
-            i += 1
-        end
-    end
-
-    Flat(fn.name, args)
+    Flat
 end
 
-# function property(::Type{Orderless}, fn::Fn)
-#     length(fn) ≥ 2 || return nothing
-#     Orderless ∈ get(CONTEXT.props, fn.name, []) && return Orderless(fn.name, collect(fn), [])
-#
-#     if haskey(CONTEXT.orderless, fn.name)
-#         args = collect(fn)
-#         inds = image.(args) .⊆ Ref(CONTEXT.orderless[fn.name])
-#         any(inds) || return nothing
-#         return Orderless(fn.name, args[inds], args[(!).(inds)])
-#     end
-#
-#     nothing
-# end
+function property(::Type{Orderless}, ex::Expr)
+    ex.head === :call   || return
+    length(ex.args) ≥ 2 || return
+
+    name = ex.args[1]
+    haskey(CONTEXT.props, name)     || return
+    Orderless ∈ CONTEXT.props[name] || return
+
+    Orderless
+end

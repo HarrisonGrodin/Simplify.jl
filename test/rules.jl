@@ -9,13 +9,14 @@ using SpecialSets
 @testset "Rule" begin
 
     @testset "PatternRule" begin
-        @test normalize(@term(a + 0 + 0), PatternRule{Term}(@term(x + 0), @term(x))) == @term(a + 0)
+        @test_skip normalize(@term(a + 0 + 0), PatternRule{Term}(@term(x + 0), @term(x))) == @term(a + 0)
+        @test_skip normalize(@term(0 + 0 + a), PatternRule{Term}(@term(x + 0), @term(x))) == @term(a + 0)
         @test normalize(@term(b + 1), PatternRule{Term}(@term(x + 0), @term(x))) == @term(b + 1)
         @test normalize(@term(b), PatternRule{Term}(@term(x + 0), @term(x))) == @term(b)
         @test normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x)))) == @term(g(a))
-        # with_context(AlgebraContext(props=Dict(:f => [Orderless]))) do
-        #     @test_throws DivergentError normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x))))
-        # end
+        with_context(AlgebraContext(props=Dict(f => [Orderless]))) do
+            @test_throws DivergentError normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x))))
+        end
 
         @testset "Predicates" begin
             nz = Variable(Nonzero)
@@ -47,21 +48,13 @@ using SpecialSets
             @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), rule) == @term(f(3, x, y, 12))
         end
 
-        # with_context(AlgebraContext(props=Dict(:f => [Flat, Orderless]))) do
-        #     rule = EvalRule(:f, +)
-        #     @test normalize(@term(f(a, 1, 2, b, 3, c)), rule) == @term(f(6, a, b, c))
-        #     @test normalize(@term(f(1, 2, 3, 4, 5)), rule) == @term(15)
-        #     @test normalize(@term(f(1, 2, x, 3, 4, 5)), rule) == @term(f(15, x))
-        #     @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), rule) == @term(f(15, x, y))
-        # end
-        #
-        # with_context(AlgebraContext(props=Dict(:f => [Flat]), orderless=Dict(:f => Set([2])))) do
-        #     rule = EvalRule(:f, +)
-        #     @test normalize(@term(f(2, x, y, 1, 3)), rule) == @term(f(x, y, 6))
-        #     @test_throws DivergentError normalize(@term(f(1, x, y, 2, 3)), rule)
-        #     @test normalize(@term(f(x, y, 1, 3)), rule) == @term(f(x, y, 4))
-        #     @test normalize(@term(f(1, x, y, 3)), rule) == @term(f(1, x, y, 3))
-        # end
+        with_context(AlgebraContext(props=Dict(f => [Flat, Orderless]))) do
+            rule = EvalRule(f, +)
+            @test normalize(@term(f(a, 1, 2, b, 3, c)), rule) == @term(f(a, b, c, 6))
+            @test normalize(@term(f(1, 2, 3, 4, 5)), rule) == @term(15)
+            @test normalize(@term(f(1, 2, x, 3, 4, 5)), rule) == @term(f(x, 15))
+            @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), rule) == @term(f(x, y, 15))
+        end
     end
 end
 

@@ -1,28 +1,29 @@
-export Property
 export Flat, Orderless
-
 
 abstract type Property end
 
-struct Fn2 <: Property  # Rename to Fn once name clashes solved
-    name::Any
-    args::Vector{Any}
-end
-Base.getindex(fn::Fn2, inds...) = getindex(fn.args, inds...)
+struct Standard  <: Property end
+struct Flat      <: Property end
+struct Orderless <: Property end
 
-struct Flat <: Property
-    name::Any
-    args::Vector{Any}
-end
-Base.getindex(p::Flat, inds...) = getindex(p.args, inds...)
+function flatten!(head, ex::Expr)
+	ex.head === :call   || return
+	ex.args[1] === head || return
 
-struct Orderless <: Property
-    name::Symbol
-    orderless::Vector{Term}
-    ordered::Vector{Term}
+	args = ex.args
+	i = 2
+	while i ≤ length(args)
+		arg = flatten!(head, args[i])
+		arg !== nothing && splice!(args, i, arg.args[2:end])
+		i += 1
+	end
+
+	ex
 end
+flatten!(head, x) = nothing
+flatten(ex::Expr) = flatten!(ex.args[1], copy(ex))
 
 
 property(::Type{<:Property}, x) = nothing
-property(P::Type{<:Property}, t::Term) = property(P, get(t))
+hasproperty(P::Type{<:Property}, t::Term) = hasproperty(P, get(t))
 hasproperty(P::Type{<:Property}, x) = property(P, x) !== nothing

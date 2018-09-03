@@ -1,23 +1,25 @@
-using Rewrite: Match, AlgebraContext, Symbolic
+using Rewrite: Symbolic, Match, AlgebraContext
 using SpecialSets
 
 
 @testset "Patterns" begin
 
-	@syms f g h
+    @syms f g h
 
-	@testset "Symbolic" begin
+    @testset "Symbolic" begin
         @test f == f
         @test f ≠ g
         @test f ≠ @term f
         @test f ≠ @term :f
 
-		@test get(@term 1) == 1
-		@test get(@term sin) == sin
+        @test get(@term 1) == 1
+        @test get(@term π) == pi
+        @test get(@term im) == im
+        @test get(@term sin) == sin
 
 
-		@test_throws UndefVarError @term qwerty
-	end
+        @test_throws UndefVarError @term qwerty
+    end
 
     @testset "Variable" begin
         @vars a b x y
@@ -92,7 +94,7 @@ using SpecialSets
         end
 
         @testset "flat" begin
-			@syms a b c d e
+            @syms a b c d e
             @vars x y z
 
             with_context(AlgebraContext(props=Dict(f => [Flat]))) do

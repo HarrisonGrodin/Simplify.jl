@@ -123,14 +123,13 @@ function _apply_flat!(r::EvalRule, args)
 
     args
 end
-_is_constant(t) = typeof(t) ∉ [Expr, Symbolic, Variable]
 
 
-struct DiffRule <: Rule{Term}
-    diff::Symbol
-    zero::Symbol
-    DiffRule(diff=:diff, zero=:zero) = new(diff, zero)
-end
+# struct DiffRule <: Rule{Term}
+#     diff::Symbol
+#     zero::Symbol
+#     DiffRule(diff=:diff, zero=:zero) = new(diff, zero)
+# end
 # function normalize(fn::Fn, r::DiffRule)::Term
 #     (fn.name, length(fn)) == (r.diff, 2) || return fn
 #     f, x = fn
@@ -139,5 +138,3 @@ end
 #     fn
 # end
 # normalize(t::Term, ::DiffRule) = t
-vars(x::Variable) = [x]
-vars(t::Term) = [map(vars, collect(t))...;]

@@ -6,7 +6,10 @@ export @term, @syms, @vars
 macro term(ex)
     :(convert(Term, $(esc(_term(ex)))))
 end
-_term(ex::Expr) = Expr(:call, Expr, Meta.quot(ex.head), _term.(ex.args)...)
+function _term(ex::Expr)
+    ex.head === :$ && return ex.args[1]
+    Expr(:call, Expr, Meta.quot(ex.head), _term.(ex.args)...)
+end
 _term(x) = x
 
 
@@ -39,7 +42,7 @@ mutable struct Variable
     image::AbstractSet
 end
 Variable() = Variable(TypeSet(Any))
-Base.show(io::IO, x::Variable) = print(io, "{VAR#$(objectid(x))}")
+Base.show(io::IO, x::Variable) = print(io, "#=VAR@$(objectid(x))=#")
 macro vars(xs::Symbol...)
     vars = (:($x = Variable()) for x ∈ xs)
     results = Expr(:tuple, xs...)

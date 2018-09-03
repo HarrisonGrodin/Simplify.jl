@@ -38,32 +38,34 @@ rules() = [
     rules(:BASIC)
     rules(:ABSOLUTE_VALUE)
     rules(:BOOLEAN)
-    rules(:CALCULUS)
+    # rules(:CALCULUS)
     rules(:LOGARITHM)
     rules(:TRIGONOMETRY)
     rules(:TYPES)
 ]
 
 function rules(::Val{:BASIC})
-    a, b = Variable.([:a, :b], Ref(Nonzero))
+    a = Variable(Nonzero)
+    b = Variable(Nonzero)
+    @vars x y
 
     [
         @term RULES [
             x - y  => x + -y
-            x / $a => x * inv($a)
+            x / a  => x * inv(a)
 
-            x + -x       => zero(x)
-            $a * inv($a) => one($a)
+            x + -x     => zero(x)
+            a * inv(a) => one(a)
 
             -(x + y)   => -y + -x
-            inv($a * $b) => inv($b) * inv($a)
+            inv(a * b) => inv(b) * inv(a)
 
             -(-x)      => x
-            inv(inv($a)) => $a
+            inv(inv(a)) => a
 
             -1 * x     => -x
             -x * y     => -(x * y)
-            inv(-$a)     => -inv($a)
+            inv(-a)     => -inv(a)
 
             x ^ 0      => one(x)
             x ^ 1      => x
@@ -79,14 +81,17 @@ end
 
 
 function rules(::Val{:ABSOLUTE_VALUE})
-    nn, neg = Variable.([:nn, :neg], [Nonnegative, Negative])
+    nn = Variable(Nonnegative)
+    neg = Variable(Negative)
+    @vars x y
+
     [
         @term RULES [
-            abs($nn)   => $nn
-            abs($neg)  => -$neg
-            abs(-a)    => abs(a)
-            abs(a * b) => abs(a) * abs(b)
-            abs(inv(a)) => inv(abs(a))
+            abs(nn)     => nn
+            abs(neg)    => -neg
+            abs(-x)     => abs(x)
+            abs(x * y)  => abs(x) * abs(y)
+            abs(inv(x)) => inv(abs(x))
         ]
         TRS(
             EvalRule(abs),
@@ -95,27 +100,28 @@ function rules(::Val{:ABSOLUTE_VALUE})
 end
 
 
-function rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!)
-    x, y = Variable.([:x, :y], Ref(TypeSet(Bool)))
+function rules(::Val{:BOOLEAN}; and=&, or=|, neg=!)
+    x = Variable(TypeSet(Bool))
+    y = Variable(TypeSet(Bool))
 
     [
         @term RULES [
-            $or($x, false) => $x
-            $and($x, true) => $x
+            or(x, false) => x
+            and(x, true) => x
 
-            $or($x, true)   => true
-            $and($x, false) => false
+            or(x, true)   => true
+            and(x, false) => false
 
-            $or($x, $x)  => $x
-            $and($x, $x) => $x
+            or(x, x)  => x
+            and(x, x) => x
 
-            $or($x, $and($x, $y)) => $x
-            $and($x, $or($x, $y)) => $x
+            or(x, and(x, y)) => x
+            and(x, or(x, y)) => x
 
-            $or($x, $neg($x))  => true
-            $and($x, $neg($x)) => false
+            or(x, neg(x))  => true
+            and(x, neg(x)) => false
 
-            $neg($neg($x)) => $x
+            neg(neg(x)) => x
         ];
         TRS(
             EvalRule(and, &),
@@ -126,40 +132,39 @@ function rules(::Val{:BOOLEAN}; and=:&, or=:|, neg=:!)
 end
 
 
-function diff(M, fn, arity)
-    M === :Base || return
-    args = Symbol.(:_, 1:arity)
-    f = Expr(:call, fn, args...)
-
-    partials = DiffRules.diffrule(M, fn, args...)
-
-    if arity == 1
-        rhs = _diff(partials, args[1])
-    else
-        rhs = Expr(:call, :+, _diff.(partials, args)...)
-    end
-
-    lhs = :(diff($f, x))
-    convert(Term, lhs) => convert(Term, rhs)
-end
-_diff(p, a, x=:x) = :($p * diff($a, $x))
-function rules(::Val{:CALCULUS})
-    rules = []
-    for (M, fn, arity) ∈ DiffRules.diffrules()
-        try
-            rule = diff(M, fn, arity)
-            rule === nothing && continue
-            push!(rules, rule)
-        catch
-        end
-    end
-
-    TRS(
-        rules...,
-        @term(diff(x, x)) => @term(one(x)),
-        DiffRule(),
-    )
-end
+# const diff = Symbolic(:diff)
+# function _diff(M, fn, arity)
+#     M === :Base || return
+#     args = [Variable() for _ ∈ 1:arity]
+#     x = Variable()
+#     f = Expr(:call, getproperty(Base, fn), args...)
+#
+#     partials = DiffRules.diffrule(M, fn, args...)
+#
+#     if arity == 1
+#         rhs = :($partials * $diff($(args[1]), $x))
+#     else
+#         ps = (:($p * $diff($a, $x)) for (p, a) ∈ zip(partials, args))
+#         rhs = Expr(:call, +, ps...)
+#     end
+#
+#     @term(diff(f, x)) => Term(rhs)
+# end
+# function rules(::Val{:CALCULUS})
+#     rules = []
+#     for (M, fn, arity) ∈ DiffRules.diffrules()
+#         rule = _diff(M, fn, arity)
+#         rule === nothing && continue
+#         push!(rules, rule)
+#     end
+#
+#     @vars x
+#
+#     TRS(
+#         rules...,
+#         @term(diff(x, x)) => @term(one(x)),
+#     )
+# end
 
 
 #=
@@ -173,14 +178,16 @@ rules(::Val{:LAPLACE}) = @term RULES [
 
 
 function rules(::Val{:LOGARITHM})
-    m = Variable(:m, NotEqual(1))
-    n = Variable(:n, NotEqual(0, 1))
+    m = Variable(NotEqual(1))
+    n = Variable(NotEqual(0, 1))
+
+    @vars x y r a b c
 
     @term RULES [
-        log($n, $n) => 1
-        log($m, 1) => 0
+        log(n, n) => 1
+        log(m, 1) => 0
 
-        log($n, $n ^ x) => x
+        log(n, n ^ x) => x
         b ^ log(b, x) => x
 
         log(b, x ^ r) => r * log(b, x)
@@ -193,7 +200,9 @@ function rules(::Val{:LOGARITHM})
 end
 
 function rules(::Val{:TRIGONOMETRY})
-    x = Variable(:x, Nonzero)
+    x = Variable(Nonzero)
+
+    @vars α β θ
 
     @term RULES [
         # Common angles
@@ -237,9 +246,9 @@ function rules(::Val{:TRIGONOMETRY})
         sin(-θ) => -sin(θ)
         cos(-θ) => cos(θ)
         tan(-θ) => -tan(θ)
-        csc(-$x) => -csc($x)
+        csc(-x) => -csc(x)
         sec(-θ) => sec(θ)
-        cot(-$x) => -cot($x)
+        cot(-x) => -cot(x)
 
         # Periodic formulae
         #=
@@ -281,8 +290,8 @@ function rules(::Val{:TRIGONOMETRY})
         sin(π * inv(2) + -θ) => cos(θ)
         cos(π * inv(2) + -θ) => sin(θ)
         csc(π * inv(2) + -θ) => sec(θ)
-        sec(π * inv(2) + -$x) => csc($x)
-        tan(π * inv(2) + -$x) => cot($x)
+        sec(π * inv(2) + -x) => csc(x)
+        tan(π * inv(2) + -x) => cot(x)
         cot(π * inv(2) + -θ) => tan(θ)
     ]
 end
@@ -292,23 +301,23 @@ function rules(::Val{:TYPES})
 
     types = [Number, Int, Float64]
     for T ∈ types
-        x = Variable(:x, TypeSet(T))
-        push!(rules, @term(zero($x)) => @term(zero($T)))
-        push!(rules, @term($x + zero($x)) => @term($x))
-        push!(rules, @term($x + $(zero(T))) => @term($x))
+        x = Variable(TypeSet(T))
+        push!(rules, @term(zero(x)) => @term(zero(T)))
+        push!(rules, @term(x + zero(x)) => @term(x))
+        push!(rules, @term(x + $(zero(T))) => @term(x))
         push!(rules, @term(-($(zero(T)))) => @term($(zero(T))))
 
-        push!(rules, @term(one($x)) => @term(one($T)))
-        push!(rules, @term($x * one($x)) => @term($x))
-        push!(rules, @term(one($x) * $x) => @term($x))
-        push!(rules, @term($x * $(one(T))) => @term($x))
-        push!(rules, @term($(one(T)) * $x) => @term($x))
+        push!(rules, @term(one(x)) => @term(one(T)))
+        push!(rules, @term(x * one(x)) => @term(x))
+        push!(rules, @term(one(x) * x) => @term(x))
+        push!(rules, @term(x * $(one(T))) => @term(x))
+        push!(rules, @term($(one(T)) * x) => @term(x))
         push!(rules, @term(inv($(one(T)))) => @term($(one(T))))
 
-        push!(rules, @term($x * zero($x)) => @term(zero($x)))
-        push!(rules, @term(zero($x) * $x) => @term(zero($x)))
-        push!(rules, @term($x * $(zero(T))) => @term($(zero(T))))
-        push!(rules, @term($(zero(T)) * $x) => @term($(zero(T))))
+        push!(rules, @term(x * zero(x)) => @term(zero(x)))
+        push!(rules, @term(zero(x) * x) => @term(zero(x)))
+        push!(rules, @term(x * $(zero(T))) => @term($(zero(T))))
+        push!(rules, @term($(zero(T)) * x) => @term($(zero(T))))
     end
 
     TRS(

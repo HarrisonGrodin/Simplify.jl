@@ -43,8 +43,14 @@ normalize(t::Term) = normalize(t, rules())
 
 
 
-struct DivergentError <: Exception end
-Base.showerror(io::IO, ::DivergentError) = print(io, "DivergentError: divergent normalization paths")
+struct DivergentError <: Exception
+    forms::Vector{Term}
+end
+DivergentError(forms::Term...) = DivergentError(collect(forms))
+function Base.showerror(io::IO, err::DivergentError)
+    print(io, "DivergentError: ")
+    join(io, err.forms, ", ")
+end
 
 
 struct PatternRule{T} <: Rule{T}
@@ -70,7 +76,7 @@ function normalize(t::T, (l, r)::PatternRule{U}) where {U,T<:U}
     Θ = match(l, t)
     isempty(Θ) && return t
     xs = Set(replace(r, _termdict(σ)) for σ ∈ Θ)
-    length(xs) == 1 || throw(DivergentError())
+    length(xs) == 1 || throw(DivergentError(xs...))
     first(xs)
 end
 _termdict(d) = Dict{Term,Term}((convert(Term, a) => convert(Term, b)) for (a, b) ∈ pairs(d))

@@ -89,8 +89,10 @@ normalize(@term cos(x)^2 + sin(x)^2)
 out3 = run_repl_test(test_script3);
 out3p = run_repl_test(test_script3p);
 
-@testset "Repl Mode" begin
+@testset "REPL Mode" begin
     @test out1[end-7] == out1p[end-7]
+    println("Testing REPL...")  # FIXME: avoids CI timeout
     @test out2[end-7] == out2p[end-7]
+    println("Testing REPL...")  # FIXME: avoids CI timeout
     @test out3[end-7] == out3p[end-7]
 end

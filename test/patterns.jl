@@ -5,6 +5,8 @@ using SpecialSets
 @testset "Patterns" begin
 
     @syms f g h
+    @syms a b c d e
+    @vars x y z
 
     @testset "Symbolic" begin
         @test f == f
@@ -22,16 +24,15 @@ using SpecialSets
     end
 
     @testset "Variable" begin
-        @vars a b x y
-
         @test x == x
         @test x ≠ y
 
-        @test match(@term(a), @term(b)) == Match(a => b)
-        @test @term(b) ⊆ @term(a)
+        @test match(@term(x), @term(y)) == Match(x => y)
+        @test @term(y) ⊆ @term(x)
 
-        @test replace(@term(a), Dict(@term(a) => @term(b))) == @term(b)
-        @test replace(@term(a), Dict(@term(x) => @term(b))) == @term(a)
+        @test replace(@term(x), Dict(@term(x) => @term(y))) == @term(y)
+        @test replace(@term(x), Dict(@term(y) => @term(x))) == @term(x)
+        @test replace(@term(x), Dict(@term(y) => @term(z))) == @term(x)
 
         @testset "Predicates" begin
             nz = Variable(Nonzero)
@@ -72,7 +73,6 @@ using SpecialSets
     @testset "Function" begin
 
         @testset "standard" begin
-            @vars x y z
 
             @test @term(f(x)) == @term(f(x))
             @test @term(f(x)) ≠ @term(f(y))
@@ -98,8 +98,6 @@ using SpecialSets
         end
 
         @testset "flat" begin
-            @syms a b c d e
-            @vars x y z
 
             with_context(AlgebraContext(props=Dict(f => [Flat]))) do
                 @test match(@term(f(1, 2, f(3, 4))), @term(f(1, 2, 3, 4))) == one(Match)
@@ -137,93 +135,90 @@ using SpecialSets
 
         end
 
-    #     @testset "orderless" begin
-    #
-    #         @testset "standard" begin
-    #
-    #             with_context(AlgebraContext(props=Dict(:f => [Orderless]))) do
-    #                 @test match(@term(f(x, 1)), @term(f(1, y))) ==
-    #                     Match(@term(x) => @term(y))
-    #
-    #                 @test match(@term(f(g(x), g(y), z)), @term(f(h(a), g(b), g(c))))::Match == Match(
-    #                     Dict(@term(x) => @term(b), @term(y) => @term(c), @term(z) => @term(h(a))),
-    #                     Dict(@term(x) => @term(c), @term(y) => @term(b), @term(z) => @term(h(a))),
-    #                 )
-    #
-    #                 @test replace(@term(f(x, y)), Dict(@term(x) => @term(1))) == @term(f(y, 1))
-    #                 @test replace(@term(f(f(x, y), z)), Dict(@term(f(x, y)) => 2)) == @term(f(z, 2))
-    #             end
-    #
-    #         end
-    #
-    #         @testset "partial" begin
-    #             @test match(@term(f() * g()), @term(g() * f())) ==
-    #                 one(Match)
-    #
-    #             @test match(@term(x * y), @term(1 * b)) == Match(
-    #                 Dict(@term(x) => @term(1), @term(y) => @term(b)),
-    #                 Dict(@term(x) => @term(b), @term(y) => @term(1)),
-    #             )
-    #
-    #             t = @term(3 * (x * 2) * y)
-    #             args = collect(t)
-    #             @test findfirst(==(@term x), args) < findfirst(==(@term y), args)
-    #             @test t == @term(2 * 3 * x * y)
-    #         end
-    #
-    #         @testset "flat" begin
-    #
-    #             with_context(AlgebraContext(props=Dict(:f => [Flat, Orderless]))) do
-    #                 @test replace(@term(f(x, y, z)), Dict(@term(y) => @term(x^3))) == @term(f(x, x^3, z))
-    #                 @test_skip replace(@term(f(x, y, z)), Dict(@term(f(x, z)) => :w)) == @term(f(w, y))
-    #             end
-    #
-    #             with_context(AlgebraContext(props=Dict(:+ => [Flat, Orderless], :* => [Flat, Orderless]))) do
-    #                 @test @term((x+y+b*a)) == @term((a*b+x+y))
-    #             end
-    #
-    #             @test match(@term(x), @term(a + b)) ==
-    #                 Match(@term(x) => @term(a + b))
-    #
-    #             @test match(@term(x + y), @term(a() + b()))::Match == Match(
-    #                 Dict(@term(x) => @term(a()), @term(y) => @term(b())),
-    #                 Dict(@term(x) => @term(b()), @term(y) => @term(a())),
-    #             )
-    #
-    #             @test match(@term(x + y), @term(1 + b)) == Match(
-    #                 Dict(@term(x) => @term(1), @term(y) => @term(b)),
-    #                 Dict(@term(x) => @term(b), @term(y) => @term(1)),
-    #             )
-    #
-    #             @test match(@term(x + y), @term(a + b)) == Match(
-    #                 Dict(@term(x) => @term(a), @term(y) => @term(b)),
-    #                 Dict(@term(x) => @term(b), @term(y) => @term(a)),
-    #             )
-    #
-    #             @test length(match(@term(x + y), @term(a + b + c))) == 6
-    #             @test match(@term(a + b + c), @term(x + y)) == zero(Match)
-    #
-    #             @test match(@term(x + 0), @term(f() + 0 + g())) == Match(
-    #                 Dict(@term(x) => @term(f() + g())),
-    #             )
-    #
-    #             @test match(@term(x + y + 1), @term(f() + 1 + g())) == Match(
-    #                 Dict(@term(x) => @term(f()), @term(y) => @term(g())),
-    #                 Dict(@term(x) => @term(g()), @term(y) => @term(f())),
-    #             )
-    #
-    #             @test match(@term(f() + g()), @term(f() + g())) ==
-    #                 one(Match)
-    #
-    #             @test match(@term(g() + f()), @term(f() + g())) ==
-    #                 one(Match)
-    #
-    #             @test match(@term(f() + f()), @term(f() + g())) ==
-    #                 zero(Match)
-    #
-    #         end
-    #
-    #     end
+        @testset "orderless" begin
+
+            @testset "standard" begin
+
+                with_context(AlgebraContext(props=Dict(f => [Orderless]))) do
+                    @test match(@term(f(x, 1)), @term(f(1, y))) == Match(x => y)
+
+                    @test match(@term(f(g(x), g(y), z)), @term(f(h(a), g(b), g(c))))::Match == Match(
+                        Dict(x => b, y => c, z => get(@term(h(a)))),
+                        Dict(x => c, y => b, z => get(@term(h(a)))),
+                    )
+
+                    @test replace(@term(f(x, y)), Dict(@term(x) => @term(1))) == @term(f(1, y))
+                    @test replace(@term(f(f(x, y), z)), Dict(@term(f(x, y)) => 2)) == @term(f(2, z))
+                end
+
+            end
+
+            @testset "partial" begin
+                @test_broken match(@term(f() * g()), @term(g() * f())) ==
+                    one(Match)
+
+                @test_broken match(@term(x * y), @term(1 * b)) == Match(
+                    Dict(x => 1, y => b),
+                    Dict(x => b, y => 1),
+                )
+
+                @test_broken normalize(@term(3 * (x * 2) * y)) == @term(2 * 3 * x * y)
+            end
+
+            @testset "flat" begin
+
+                with_context(AlgebraContext(props=Dict(:f => [Flat, Orderless]))) do
+                    @test replace(@term(f(x, y, z)), Dict(@term(y) => @term(x^3))) == @term(f(x, x^3, z))
+                    @test_skip replace(@term(f(x, y, z)), Dict(@term(f(x, z)) => @term(1))) == @term(f(1, y))
+                end
+
+                with_context(AlgebraContext(props=Dict((+) => [Flat, Orderless], (*) => [Flat, Orderless]))) do
+                    @test normalize(@term((x+y+b*a))) == normalize(@term((a*b+x+y)))
+                end
+
+                @test match(@term(x), @term(a + b)) ==
+                    Match(x => get(@term(a + b)))
+
+                @test match(@term(x + y), @term(a() + b()))::Match == Match(
+                    Dict(x => get(@term(a())), y => get(@term(b()))),
+                    Dict(x => get(@term(b())), y => get(@term(a()))),
+                )
+
+                @test match(@term(x + y), @term(1 + b)) == Match(
+                    Dict(x => 1, y => b),
+                    Dict(x => b, y => 1),
+                )
+
+                @test match(@term(x + y), @term(a + b)) == Match(
+                    Dict(x => a, y => b),
+                    Dict(x => b, y => a),
+                )
+
+                @test length(match(@term(x + y), @term(a + b + c))) == 12
+                @test match(@term(a + b + c), @term(x + y)) == zero(Match)
+
+                @test match(@term(x + 0), @term(f() + 0 + g())) == Match(
+                    Dict(x => get(@term(f() + g()))),
+                    Dict(x => get(@term(g() + f()))),
+                )
+
+                @test match(@term(x + y + 1), @term(a + 1 + b)) == Match(
+                    Dict(x => a, y => b),
+                    Dict(x => b, y => a),
+                )
+
+                @test match(@term(f() + g()), @term(f() + g())) ==
+                    one(Match)
+
+                @test match(@term(g() + f()), @term(f() + g())) ==
+                    one(Match)
+
+                @test match(@term(f() + f()), @term(f() + g())) ==
+                    zero(Match)
+
+            end
+
+        end
 
     end
 

@@ -35,7 +35,10 @@ _map(f, ex::Expr) = Expr(ex.head, map(f ∘ Term, ex.args)...)
 _map(f, x) = x
 
 Base.issubset(a::Term, b::Term) = !isempty(match(b, a))
-Base.show(io::IO, t::Term) = print(io, "@term(", get(t), ")")
+function Base.show(io::IO, t::Term)
+    repr = sprint(show, Expr(:macrocall, Symbol("@term"), nothing, get(t)))[9:end-1]
+    print(io, "@term(", repr, ")")
+end
 
 Base.replace(t::Term, σ) = haskey(σ, t) ? σ[t] : map(x -> replace(x, σ), t)
 

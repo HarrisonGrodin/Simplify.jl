@@ -36,7 +36,6 @@ function run_repl_test(test_script)
 
     # Gather the output
     repl_output = String(take!(repl_output_buffer))
-    println(repl_output)
     return split(repl_output, '\n'; keepempty=false)
 end
 
@@ -90,9 +89,8 @@ normalize(@term cos(x)^2 + sin(x)^2)
 out3 = run_repl_test(test_script3);
 out3p = run_repl_test(test_script3p);
 
-
-
-
-@test out1[end-7] == out1p[end-7]
-@test out2[end-7] == out2p[end-7]
-@test out3[end-7] == out3p[end-7]
+@testset "Repl Mode" begin
+    @test out1[end-7] == out1p[end-7]
+    @test out2[end-7] == out2p[end-7]
+    @test out3[end-7] == out3p[end-7]
+end

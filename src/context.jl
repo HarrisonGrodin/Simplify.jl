@@ -11,18 +11,18 @@ Given image generator `t`, return the image of `x`.
 function image end
 
 abstract type AbstractImages end
-image(::Expr, ::AbstractImages) = TypeSet(Any)
+image(::Union{Expr, Symbolic}, ::AbstractImages) = TypeSet(Any)
 image(x::Variable, ::AbstractImages) = x.image
 image(x, ::AbstractImages) = Set([x])
 
 struct EmptyImages <: AbstractImages end
 
 struct StandardImages <: AbstractImages
-    images::Dict{Term,AbstractSet}
+    images::Dict{Any,AbstractSet}
     StandardImages(xs...) = new(Dict(xs...))
 end
 function image(ex::Expr, i::StandardImages)
-    haskey(i.images, Term(ex)) && return i.images[ex]
+    haskey(i.images, ex) && return i.images[ex]
     ex.head === :call || return TypeSet(Any)
 
     name, args = ex.args[1], ex.args[2:end]
@@ -45,6 +45,7 @@ function image(ex::Expr, i::StandardImages)
 
     TypeSet(Number)
 end
+image(x::Symbolic, i::StandardImages) = haskey(i.images, x) ? i.images[x] : TypeSet(Any)
 
 
 abstract type AbstractContext end

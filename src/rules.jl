@@ -47,10 +47,22 @@ rules() = [
 function rules(::Val{:BASIC})
     a = Variable(Nonzero)
     b = Variable(Nonzero)
-    @vars x y
+    @vars x y z
 
     [
         @term RULES [
+            x + (y + z) => (+)(x, y, z)
+            (x + y) + z => (+)(x, y, z)
+
+            x * (y * z) => (*)(x, y, z)
+            (x * y) * z => (*)(x, y, z)
+
+            x & (y & z) => (&)(x, y, z)
+            (x & y) & z => (&)(x, y, z)
+
+            x | (y | z) => (|)(x, y, z)
+            (x | y) | z => (|)(x, y, z)
+
             x - y  => x + -y
             x / a  => x * inv(a)
 
@@ -72,6 +84,7 @@ function rules(::Val{:BASIC})
             # x^(a + b)  => x^a * x^b  # FIXME
         ]
         TRS(
+            OrderRule(x -> sprint(show, x)),
             EvalRule(+),
             EvalRule(-),
             EvalRule(*),

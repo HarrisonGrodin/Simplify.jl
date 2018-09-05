@@ -89,6 +89,10 @@ using SpecialSets
             @test @term(f(:a, 2, :a)) ⊆ @term(f(x, 2, x))
             @test @term(f(:a, 2, :b)) ⊈ @term(f(x, 2, x))
 
+            @test match(@term(x(y)), @term(sin(3))) == Match(Dict(x => sin, y => 3))
+            @test match(@term(map(x, [])), @term(map(iseven, []))) == Match(x => iseven)
+            @test match(@term(map(x, [])), @term(map(iseven, [1]))) == zero(Match)
+
             @test replace(@term(f(x)), Dict(@term(x) => @term(y))) == @term(f(y))
             @test replace(@term(f(x)), Dict(@term(y) => @term(x))) == @term(f(x))
         end

@@ -75,9 +75,8 @@ Base.map(f, r::PatternRule{T}) where {T} = PatternRule{T}(f(r.left), f(r.right))
 function normalize(t::T, (l, r)::PatternRule{U}) where {U,T<:U}
     Θ = match(l, t)
     isempty(Θ) && return t
-    xs = Set(replace(r, _termdict(σ)) for σ ∈ Θ)
-    length(xs) == 1 || throw(DivergentError(xs...))
-    first(xs)
+    σ = first(Θ)
+    replace(r, _termdict(σ))
 end
 _termdict(d) = Dict{Term,Term}((convert(Term, a) => convert(Term, b)) for (a, b) ∈ pairs(d))
 
@@ -129,6 +128,19 @@ function _apply_flat!(r::EvalRule, args)
 
     args
 end
+
+
+struct OrderRule <: Rule{Term}
+    by::Function
+end
+normalize(t::Term, r::OrderRule) = Term(normalize(get(t), r))
+function normalize(ex::Expr, r::OrderRule)
+    hasproperty(Orderless, ex) || return ex
+    name = ex.args[1]
+    args = sort(ex.args[2:end], by = r.by)
+    Expr(ex.head, name, args...)
+end
+normalize(x, ::OrderRule) = x
 
 
 # struct DiffRule <: Rule{Term}

@@ -30,9 +30,9 @@ using SpecialSets
         @test match(@term(x), @term(y)) == Match(x => y)
         @test @term(y) ⊆ @term(x)
 
-        @test replace(@term(x), Dict(@term(x) => @term(y))) == @term(y)
-        @test replace(@term(x), Dict(@term(y) => @term(x))) == @term(x)
-        @test replace(@term(x), Dict(@term(y) => @term(z))) == @term(x)
+        @test replace(@term(x), Dict(x => y)) == @term(y)
+        @test replace(@term(x), Dict(y => x)) == @term(x)
+        @test replace(@term(x), Dict(y => z)) == @term(x)
 
         @testset "Predicates" begin
             nz = Variable(Nonzero)
@@ -67,7 +67,7 @@ using SpecialSets
 
         @test match(@term(f(x, 0)), @term(f(y, 0))) == Match(x => y)
 
-        @test replace(_1, Dict(@term(x) => @term(y))) == _1
+        @test replace(_1, Dict(x => y)) == _1
     end
 
     @testset "Function" begin
@@ -93,8 +93,8 @@ using SpecialSets
             @test match(@term(map(x, [])), @term(map(iseven, []))) == Match(x => iseven)
             @test match(@term(map(x, [])), @term(map(iseven, [1]))) == zero(Match)
 
-            @test replace(@term(f(x)), Dict(@term(x) => @term(y))) == @term(f(y))
-            @test replace(@term(f(x)), Dict(@term(y) => @term(x))) == @term(f(x))
+            @test replace(@term(f(x)), Dict(x => y)) == @term(f(y))
+            @test replace(@term(f(x)), Dict(y => x)) == @term(f(x))
         end
 
         @testset "flat" begin
@@ -129,8 +129,8 @@ using SpecialSets
                     @test match(@term(a * b), @term(b * a)) == zero(Match)
                 end
 
-                @test replace(@term(a * b * (c * b)), Dict(@term(b) => @term(d))) == @term(a * d * (c * d))
-                @test_broken replace(@term(a * b * c), Dict(@term(b * c) => @term(2))) == @term(a * 2)
+                @test replace(@term(a * b * (c * b)), Dict(b => d)) == @term(a * d * (c * d))
+                @test_broken replace(@term(a * b * c), Dict(get(@term(b * c)) => 2)) == @term(a * 2)
             end
 
         end
@@ -147,8 +147,8 @@ using SpecialSets
                         Dict(x => c, y => b, z => h(a)),
                     )
 
-                    @test replace(@term(f(x, y)), Dict(@term(x) => @term(1))) == @term(f(1, y))
-                    @test replace(@term(f(f(x, y), z)), Dict(@term(f(x, y)) => 2)) == @term(f(2, z))
+                    @test replace(@term(f(x, y)), Dict(x => 1)) == @term(f(1, y))
+                    @test replace(@term(f(f(x, y), z)), Dict(f(x, y)) => 2) == @term(f(2, z))
                 end
 
             end
@@ -168,8 +168,8 @@ using SpecialSets
             @testset "flat" begin
 
                 with_context(AlgebraContext(props=Dict(:f => [Flat, Orderless]))) do
-                    @test replace(@term(f(x, y, z)), Dict(@term(y) => @term(x^3))) == @term(f(x, x^3, z))
-                    @test_skip replace(@term(f(x, y, z)), Dict(@term(f(x, z)) => @term(1))) == @term(f(1, y))
+                    @test replace(@term(f(x, y, z)), Dict(y => get(@term(x^3)))) == @term(f(x, x^3, z))
+                    @test_skip replace(@term(f(x, y, z)), Dict(f(x, z) => 1)) == @term(f(1, y))
                 end
 
                 with_context(AlgebraContext(props=Dict((+) => [Flat, Orderless], (*) => [Flat, Orderless]))) do

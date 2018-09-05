@@ -27,8 +27,16 @@ Base.:(==)(a::Term, b::Term) = a.ex == b.ex
 Base.hash(t::Term, h::UInt) = hash(t.ex, hash(Term, h))
 Base.eltype(::Term) = Term
 Base.get(t::Term) = t.ex
-Base.iterate(::Term, state = nothing) = nothing
 Base.occursin(a::Term, b::Term) = a == b || any(x -> occursin(a, x), b)
+
+Base.iterate(t::Term) = _iterate(get(t))
+Base.iterate(t::Term, state) = _iterate(get(t), state)
+_iterate(ex::Expr) = (Term(first(ex.args)), 1)
+function _iterate(ex::Expr, state)
+    state > lastindex(ex.args) && return
+    (Term(ex.args[state]), state + 1)
+end
+_iterate(x, state = nothing) = nothing
 
 Base.map(f, t::Term) = convert(Term, _map(f, get(t)))
 _map(f, ex::Expr) = Expr(ex.head, map(f ∘ Term, ex.args)...)
@@ -40,7 +48,7 @@ function Base.show(io::IO, t::Term)
     print(io, "@term(", repr, ")")
 end
 
-Base.replace(t::Term, σ) = haskey(σ, t) ? σ[t] : map(x -> replace(x, σ), t)
+Base.replace(t::Term, σ) = haskey(σ, get(t)) ? σ[get(t)] : map(x -> replace(x, σ), t)
 
 
 struct Symbolic

@@ -80,8 +80,10 @@ function rules(::Val{:BASIC})
             inv(-a)     => -inv(a)
 
             x ^ 0      => one(x)
+            x ^ 0.0    => one(x)
             x ^ 1      => x
-            # x^(a + b)  => x^a * x^b  # FIXME
+            x ^ 1.0    => x
+            x^a * x^b  => x^(a + b)
         ]
         TRS(
             OrderRule(x -> sprint(show, x)),

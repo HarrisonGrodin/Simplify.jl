@@ -83,7 +83,6 @@ function rules(::Val{:BASIC})
             x ^ 0.0    => one(x)
             x ^ 1      => x
             x ^ 1.0    => x
-            x^a * x^b  => x^(a + b)
         ]
         TRS(
             OrderRule(x -> sprint(show, x)),

@@ -1,6 +1,6 @@
-export Term
-export Variable, Fn
-export @term, @syms, @vars
+export Term,     @term
+export Symbolic, @syms
+export Variable, @vars
 
 
 macro term(ex)
@@ -22,6 +22,22 @@ Base.convert(::Type{Term}, ex) = Term(traverse(ex))
 traverse(t::Term) = get(t)
 traverse(ex::Expr) = Expr(ex.head, traverse.(ex.args)...)
 traverse(x) = x
+
+Base.:(==)(a::Term, b::Term) = a.ex == b.ex
+Base.hash(t::Term, h::UInt) = hash(t.ex, hash(Term, h))
+Base.eltype(::Term) = Term
+Base.get(t::Term) = t.ex
+Base.iterate(::Term, state = nothing) = nothing
+Base.occursin(a::Term, b::Term) = a == b || any(x -> occursin(a, x), b)
+
+Base.map(f, t::Term) = convert(Term, _map(f, get(t)))
+_map(f, ex::Expr) = Expr(ex.head, map(f ∘ Term, ex.args)...)
+_map(f, x) = x
+
+Base.issubset(a::Term, b::Term) = !isempty(match(b, a))
+Base.show(io::IO, t::Term) = print(io, "@term(", get(t), ")")
+
+Base.replace(t::Term, σ) = haskey(σ, t) ? σ[t] : map(x -> replace(x, σ), t)
 
 
 struct Symbolic
@@ -48,21 +64,3 @@ macro vars(xs::Symbol...)
     results = Expr(:tuple, xs...)
     esc(Expr(:block, vars..., results))
 end
-
-
-Base.:(==)(a::Term, b::Term) = a.ex == b.ex
-Base.hash(t::Term, h::UInt) = hash(t.ex, hash(Term, h))
-Base.eltype(::Term) = Term
-Base.get(t::Term) = t.ex
-Base.iterate(::Term, state = nothing) = nothing
-Base.occursin(a::Term, b::Term) = a == b || any(x -> occursin(a, x), b)
-
-
-Base.map(f, t::Term) = convert(Term, _map(f, get(t)))
-_map(f, ex::Expr) = Expr(ex.head, map(f ∘ Term, ex.args)...)
-_map(f, x) = x
-
-Base.issubset(a::Term, b::Term) = !isempty(match(b, a))
-Base.show(io::IO, t::Term) = print(io, "@term(", get(t), ")")
-
-Base.replace(t::Term, σ) = haskey(σ, t) ? σ[t] : map(x -> replace(x, σ), t)

@@ -46,6 +46,7 @@ Base.replace(t::Term, σ) = haskey(σ, t) ? σ[t] : map(x -> replace(x, σ), t)
 struct Symbolic
     x::Symbol
 end
+(x::Symbolic)(xs...) = Expr(:call, x, xs...)
 Base.convert(::Type{Symbol}, x::Symbolic) = x.x  # FIXME
 Base.convert(::Type{Symbolic}, x::Symbol) = Symbolic(x)
 Base.convert(::Type{Symbolic}, x::Symbolic) = x

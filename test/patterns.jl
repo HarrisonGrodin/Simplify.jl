@@ -103,7 +103,7 @@ using SpecialSets
                 @test match(@term(f(1, 2, f(3, 4))), @term(f(1, 2, 3, 4))) == one(Match)
 
                 @test match(@term(f(g(x), g(y), z)), @term(f(g(a), g(b), g(c), g(d), g(e)))) ==
-                    Match(Dict(x => a, y => b, z => get(@term f(g(c), g(d), g(e)))))
+                    Match(Dict(x => a, y => b, z => f(g(c), g(d), g(e))))
 
                 @test match(@term(f(x, y)), @term(f(1, b))) ==
                     Match(Dict(x => 1, y => b))
@@ -143,8 +143,8 @@ using SpecialSets
                     @test match(@term(f(x, 1)), @term(f(1, y))) == Match(x => y)
 
                     @test match(@term(f(g(x), g(y), z)), @term(f(h(a), g(b), g(c))))::Match == Match(
-                        Dict(x => b, y => c, z => get(@term(h(a)))),
-                        Dict(x => c, y => b, z => get(@term(h(a)))),
+                        Dict(x => b, y => c, z => h(a)),
+                        Dict(x => c, y => b, z => h(a)),
                     )
 
                     @test replace(@term(f(x, y)), Dict(@term(x) => @term(1))) == @term(f(1, y))
@@ -180,8 +180,8 @@ using SpecialSets
                     Match(x => get(@term(a + b)))
 
                 @test match(@term(x + y), @term(a() + b()))::Match == Match(
-                    Dict(x => get(@term(a())), y => get(@term(b()))),
-                    Dict(x => get(@term(b())), y => get(@term(a()))),
+                    Dict(x => a(), y => b()),
+                    Dict(x => b(), y => a()),
                 )
 
                 @test match(@term(x + y), @term(1 + b)) == Match(

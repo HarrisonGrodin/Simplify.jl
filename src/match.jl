@@ -40,10 +40,9 @@ end
 Base.merge(σ::Match, σs::Match...) = merge!(one(Match), σ, σs...)
 
 """
-    match(pattern::Term, subject::Term, [Θ::Match]) -> Match
+    match(pattern::Term, subject::Term) -> Match
 
-Match term `t` to `pattern`, producing a `Match` if the process succeeds. If an existing
-match `Θ` is provided, it is used as the base for the returned match.
+Match term `t` to `pattern`, producing a `Match` if the process succeeds.
 
 # Examples
 ```jldoctest
@@ -88,10 +87,11 @@ function match(::Type{Standard}, f::Expr, g::Expr, Θ)
     Θ
 end
 """
-    match(p::Fn, s::Fn, Θ::Match) -> Match
+    match(::Type{Flat}, p::Expr, s::Expr, Θ::Match) -> Match
 
 Match an associative function call to another associative function call, based on the
-algorithm by [Krebber](https://arxiv.org/abs/1705.00907).
+algorithm by [Krebber](https://arxiv.org/abs/1705.00907). Requires `p` and `s` to have
+head `:call`.
 """
 function match(::Type{Flat}, p::Expr, s::Expr, Θ)
     p, s = flatten(p), flatten(s)
@@ -127,8 +127,16 @@ function match(::Type{Flat}, p::Expr, s::Expr, Θ)
     end
     Θᵣ
 end
+"""
+    match(::Type{Orderless}, p::Expr, s::Expr, Θ::Match) -> Match
+
+Match a commutative function call to another commutative function call.
+Requires `p` and `s` to have head `:call`.
+"""
 function match(::Type{Orderless}, p::Expr, s::Expr, Θ)
-    matches = map(perms(s)) do fn
+    @assert p.head === s.head === :call
+
+    matches = map(perms(s)) do fn  # FIXME: efficiency
         P = hasproperty(Flat, s) ? Flat : Standard
         match(P, p, fn, Θ)
     end

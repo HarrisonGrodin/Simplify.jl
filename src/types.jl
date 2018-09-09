@@ -48,7 +48,7 @@ function Base.show(io::IO, t::Term)
     print(io, "@term(", repr, ")")
 end
 
-Base.replace(t::Term, σ) = haskey(σ, get(t)) ? σ[get(t)] : map(x -> replace(x, σ), t)
+Base.replace(t::Term, σ) = haskey(σ, get(t)) ? Term(σ[get(t)]) : map(x -> replace(x, σ), t)
 
 
 struct Symbolic

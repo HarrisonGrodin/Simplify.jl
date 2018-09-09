@@ -19,7 +19,6 @@ using SpecialSets
         @test get(@term im) == im
         @test get(@term sin) == sin
 
-
         @test_throws UndefVarError @term qwerty
     end
 
@@ -148,7 +147,7 @@ using SpecialSets
                     )
 
                     @test replace(@term(f(x, y)), Dict(x => 1)) == @term(f(1, y))
-                    @test replace(@term(f(f(x, y), z)), Dict(f(x, y)) => 2) == @term(f(2, z))
+                    @test replace(@term(f(f(x, y), z)), Dict(f(x, y) => 2)) == @term(f(2, z))
                 end
 
             end

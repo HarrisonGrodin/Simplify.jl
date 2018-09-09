@@ -76,9 +76,8 @@ function normalize(t::T, (l, r)::PatternRule{U}) where {U,T<:U}
     Θ = match(l, t)
     isempty(Θ) && return t
     σ = first(Θ)
-    replace(r, _termdict(σ))
+    replace(r, σ)
 end
-_termdict(d) = Dict{Term,Term}((convert(Term, a) => convert(Term, b)) for (a, b) ∈ pairs(d))
 
 struct EvalRule <: Rule{Term}
     name

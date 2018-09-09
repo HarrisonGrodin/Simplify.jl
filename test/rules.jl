@@ -243,7 +243,7 @@ end
                         Set([case]) ⊆ Rewrite.image(var)
                     end || continue
 
-                    rs = Dict(Term(var) => Term(case) for var ∈ vars)
+                    rs = Dict(var => case for var ∈ vars)
 
                     lres = replace(l, rs) |> get |> eval
                     rres = replace(r, rs) |> get |> eval

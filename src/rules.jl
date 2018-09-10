@@ -57,12 +57,6 @@ function rules(::Val{:BASIC})
             x * (y * z) => (*)(x, y, z)
             (x * y) * z => (*)(x, y, z)
 
-            x & (y & z) => (&)(x, y, z)
-            (x & y) & z => (&)(x, y, z)
-
-            x | (y | z) => (|)(x, y, z)
-            (x | y) | z => (|)(x, y, z)
-
             x - y  => x + -y
             x / a  => x * inv(a)
 
@@ -117,9 +111,16 @@ end
 function rules(::Val{:BOOLEAN}; and=&, or=|, neg=!)
     x = Variable(TypeSet(Bool))
     y = Variable(TypeSet(Bool))
+    z = Variable(TypeSet(Bool))
 
     [
         @term RULES [
+            and(x, and(y, z)) => and(x, y, z)
+            and(and(x, y), z) => and(x, y, z)
+
+            or(x, or(y, z)) => or(x, y, z)
+            or(or(x, y), z) => or(x, y, z)
+
             or(x, false) => x
             and(x, true) => x
 

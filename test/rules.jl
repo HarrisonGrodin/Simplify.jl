@@ -231,7 +231,7 @@ end
 
 @testset "accuracy of standard rules" begin
     @testset "$set" for set ∈ [:BASIC, :ABSOLUTE_VALUE, :BOOLEAN, :CALCULUS, :LOGARITHM, :TRIGONOMETRY, :TYPES]
-        CASES = [-10:10;]
+        CASES = Any[-10:10; -5:0.1:5; false:true]
 
         set ∈ [:CALCULUS, :LOGARITHM] && continue
 
@@ -251,7 +251,7 @@ end
                     lres = replace(l, rs) |> get |> eval
                     rres = replace(r, rs) |> get |> eval
 
-                    success = isapprox(lres, rres, atol = 1e-12)
+                    success = isapprox(lres, rres, atol = 1e-9)
                     success || @error "Case" case
                     @test success
                 end

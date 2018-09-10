@@ -38,7 +38,7 @@ rules() = [
     rules(:BASIC)
     rules(:ABSOLUTE_VALUE)
     rules(:BOOLEAN)
-    # rules(:CALCULUS)
+    rules(:CALCULUS)
     rules(:LOGARITHM)
     rules(:TRIGONOMETRY)
     rules(:TYPES)
@@ -147,48 +147,40 @@ end
 
 
 # const diff = Symbolic(:diff)
-# function _diff(M, fn, arity)
-#     M === :Base || return
-#     args = [Variable() for _ ∈ 1:arity]
-#     x = Variable()
-#     f = Expr(:call, getproperty(Base, fn), args...)
-#
-#     partials = DiffRules.diffrule(M, fn, args...)
-#
-#     if arity == 1
-#         rhs = :($partials * $diff($(args[1]), $x))
-#     else
-#         ps = (:($p * $diff($a, $x)) for (p, a) ∈ zip(partials, args))
-#         rhs = Expr(:call, +, ps...)
-#     end
-#
-#     @term(diff(f, x)) => Term(rhs)
-# end
-# function rules(::Val{:CALCULUS})
-#     rules = []
-#     for (M, fn, arity) ∈ DiffRules.diffrules()
-#         rule = _diff(M, fn, arity)
-#         rule === nothing && continue
-#         push!(rules, rule)
-#     end
-#
-#     @vars x
-#
-#     TRS(
-#         rules...,
-#         @term(diff(x, x)) => @term(one(x)),
-#     )
-# end
+function _diff(M, fn, arity)
+    M === :Base || return
+    args = [Variable() for _ ∈ 1:arity]
+    x = Variable()
+    f = Expr(:call, getproperty(Base, fn), args...)
 
+    partials = DiffRules.diffrule(M, fn, args...)
 
-#=
-FIXME Notation
-rules(::Val{:LAPLACE}) = @term RULES [
-    laplace(1) => 1/s #1
-    laplace(e^(a*t)) => 1/(s-a) #2
-    laplace(t^n) where n isa Int => factorial(n) / s^(n+1)
-]
-=#
+    arity == 1 && (partials = (partials,))
+    partials = map(x -> get(eval(:(@term $x))), partials)
+
+    ps = (:($*($p, $diff($a, $x))) for (p, a) ∈ zip(partials, args))
+    rhs = arity == 1 ? first(ps) : Expr(:call, +, ps...)
+
+    @term(diff(f, x)) => Term(rhs)
+end
+function rules(::Val{:CALCULUS})
+    rules = []
+    for (M, fn, arity) ∈ DiffRules.diffrules()
+        try
+            rule = _diff(M, fn, arity)
+            rule === nothing && continue
+            push!(rules, rule)
+        catch
+        end
+    end
+
+    @vars x
+
+    TRS(
+        rules...,
+        @term(diff(x, x)) => @term(one(x)),
+    )
+end
 
 
 function rules(::Val{:LOGARITHM})

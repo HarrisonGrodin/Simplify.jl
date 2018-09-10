@@ -1,5 +1,6 @@
 using Rewrite: PatternRule, EvalRule, OrderRule
 using Rewrite: AlgebraContext, StandardImages
+using Rewrite: diff
 using SpecialSets
 
 
@@ -143,16 +144,18 @@ end
         @syms x y z
 
         with_context(AlgebraContext(images = StandardImages(x => TypeSet(Int), y => TypeSet(Int), z => TypeSet(Int)))) do
-            @test_broken normalize(@term diff($x * $y, $x)) == @term($y)
-            @test_broken normalize(@term diff(sin(2*$x + 3*$y), $x)) == @term(2cos(2*$x + 3*$y))
-            @test_broken normalize(@term diff($x * $y + sin($x^$z), $x)) == @term($y + $x^($z + -1)*cos($x^$z)*$z)
-            @test_broken normalize(@term diff(2*$x + tan($x), $x)) == @term(3 + tan($x)^2)
-            @test_broken normalize(@term diff(f($x) + sin($x^2), $x)) == @term(2*$x*cos($x^2) + diff(f($x), $x))
+            @test normalize(@term diff(2, x)) == @term(0)
+            @test normalize(@term diff(x * y, x)) == @term(y + x*diff(y, x))
+            @test normalize(@term diff(sin(2x + 3y), x)) == @term(cos(2x + 3y) * (2 + 3diff(y, x)))
+            @test normalize(@term diff(x * y + sin(x^z), x)) ==
+                  normalize(@term(y + x*diff(y, x) + cos(x^z)*(z*x^(z-1) + (x^z * log(x) * diff(z, x)))))
+            @test normalize(@term diff(2x + tan(x), x)) == @term(3 + tan(x)^2)
+            @test normalize(@term diff(f(x) + 3x, x)) == @term(3 + diff(f(x), x))
         end
 
         @syms w
         with_context(AlgebraContext(images = StandardImages(w => Nonzero ∩ TypeSet(Float64)))) do
-            @test_broken normalize(@term diff(log($w), $w)) == @term(inv($w))
+            @test normalize(@term diff(log(w), w)) == @term(inv(w))
         end
     end
 

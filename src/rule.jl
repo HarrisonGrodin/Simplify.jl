@@ -140,18 +140,3 @@ function normalize(ex::Expr, r::OrderRule)
     Expr(ex.head, name, args...)
 end
 normalize(x, ::OrderRule) = x
-
-
-# struct DiffRule <: Rule{Term}
-#     diff::Symbol
-#     zero::Symbol
-#     DiffRule(diff=:diff, zero=:zero) = new(diff, zero)
-# end
-# function normalize(fn::Fn, r::DiffRule)::Term
-#     (fn.name, length(fn)) == (r.diff, 2) || return fn
-#     f, x = fn
-#     vars_f, vars_x = vars.((f, x))
-#     isempty(vars_f ∩ vars_x) && return Fn(:zero, x)
-#     fn
-# end
-# normalize(t::Term, ::DiffRule) = t

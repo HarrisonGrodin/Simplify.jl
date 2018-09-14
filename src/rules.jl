@@ -147,7 +147,6 @@ function rules(::Val{:BOOLEAN}; and=&, or=|, neg=!)
 end
 
 
-# const diff = Symbolic(:diff)
 function _diff(M, fn, arity)
     M === :Base || return
     args = [Variable() for _ ∈ 1:arity]
@@ -180,6 +179,7 @@ function rules(::Val{:CALCULUS})
     TRS(
         rules...,
         @term(diff(x, x)) => @term(one(x)),
+        DiffRule(),
     )
 end
 
@@ -309,6 +309,7 @@ function rules(::Val{:TYPES})
     types = [Number, Int, Float64]
     for T ∈ types
         x = Variable(TypeSet(T))
+
         push!(rules, @term(zero(x)) => @term(zero(T)))
         push!(rules, @term(x + zero(x)) => @term(x))
         push!(rules, @term(x + $(zero(T))) => @term(x))

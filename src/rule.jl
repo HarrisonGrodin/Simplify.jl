@@ -93,7 +93,7 @@ function normalize(ex::Expr, r::EvalRule)
 
     if hasproperty(Flat, ex)
         if hasproperty(Orderless, ex)
-            inds = findall(_is_constant, args)
+            inds = findall(is_constant, args)
             if !isempty(inds)
                 res = r.f(args[inds]...)
                 deleteat!(args, inds)
@@ -107,7 +107,7 @@ function normalize(ex::Expr, r::EvalRule)
         return Expr(:call, name, args...)
     end
 
-    all(_is_constant, args) || return ex
+    all(is_constant, args) || return ex
     r.f(args...)
 end
 normalize(x, ::EvalRule) = x
@@ -117,7 +117,7 @@ function _apply_flat!(r::EvalRule, args)
     while i ≤ lastindex(args) - 1
         a, b = args[i:i+1]
 
-        if _is_constant(a) && _is_constant(b)
+        if is_constant(a) && is_constant(b)
             deleteat!(args, i)
             args[i] = r.f(a, b)
         else
@@ -136,7 +136,20 @@ normalize(t::Term, r::OrderRule) = Term(normalize(get(t), r))
 function normalize(ex::Expr, r::OrderRule)
     hasproperty(Orderless, ex) || return ex
     name = ex.args[1]
+    issorted(ex.args[2:end], by = r.by) && return ex
     args = sort(ex.args[2:end], by = r.by)
     Expr(ex.head, name, args...)
 end
 normalize(x, ::OrderRule) = x
+
+
+struct DiffRule <: Rule{Term} end
+normalize(t::Term, r::DiffRule) = Term(normalize(get(t), r))
+function normalize(ex::Expr, r::DiffRule)
+    fn = ex.args[1]
+    fn === diff && length(ex.args) == 3 || return ex
+    f, x = ex.args[[2, 3]]
+    is_ground(f) && return :($zero($f))
+    ex
+end
+normalize(x, ::DiffRule) = x

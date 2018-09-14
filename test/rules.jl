@@ -143,14 +143,19 @@ end
     @testset "CALCULUS" begin
         @syms x y z
 
-        with_context(AlgebraContext(images = StandardImages(x => TypeSet(Int), y => TypeSet(Int), z => TypeSet(Int)))) do
+        ctx = AlgebraContext(
+            props = Rewrite.CONTEXT.props,
+            images = StandardImages(x => TypeSet(Int), y => TypeSet(Int), z => TypeSet(Int)),
+        )
+
+        with_context(ctx) do
             @test normalize(@term diff(2, x)) == @term(0)
-            @test normalize(@term diff(x * y, x)) == @term(y + x*diff(y, x))
-            @test normalize(@term diff(sin(2x + 3y), x)) == @term(cos(2x + 3y) * (2 + 3diff(y, x)))
+            @test normalize(@term diff(x * y, x)) == @term(x*diff(y, x) + y)
+            @test normalize(@term diff(sin(2x + 3y), x)) == @term(cos(2x + 3y) * (3diff(y, x) + 2))
             @test normalize(@term diff(x * y + sin(x^z), x)) ==
                   normalize(@term(y + x*diff(y, x) + cos(x^z)*(z*x^(z-1) + (x^z * log(x) * diff(z, x)))))
-            @test normalize(@term diff(2x + tan(x), x)) == @term(3 + tan(x)^2)
-            @test normalize(@term diff(f(x) + 3x, x)) == @term(3 + diff(f(x), x))
+            @test normalize(@term diff(2x + tan(x), x)) == @term(tan(x)^2 + 3)
+            @test normalize(@term diff(f(x) + 3x, x)) == @term(diff(f(x), x) + 3)
         end
 
         @syms w

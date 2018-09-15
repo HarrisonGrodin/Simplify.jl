@@ -88,11 +88,10 @@ julia> normalize(@term(diff(sin(2*$x) - log($x+$y), $x)))
 
 
 ## Approach
-*Rewrite.jl* uses matching, normalization, and completion, which will be elaborated in the next sections.
+*Rewrite.jl* uses normalization via matching, which will be elaborated in the next sections.
 
  - [Matching](#matching) is used to compare the expression being normalized to the left side of normalization rules.
  - [Normalization](#normalization) involves the transformation of an expression based on one or more applications of rules.
- - [Completion](#completion) is a process used to generate a *canonical* rewrite system from a list of axioms, which acts like a compilation step for axioms to rules.
 
 ### Matching
 An subject expression can be matched against a pattern expression to determine whether or not the subject is structurally similar to the pattern. If the matching process succeeds, it generates one or more substitutions which transform the pattern into the subject.
@@ -171,20 +170,3 @@ normalize(log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z), TRS)
   => log(2, z)                                                rule 2
 ```
 In this example, `log(2, z)` is the normal form of `log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z)` given the rule set `TRS`.
-
-### Completion
-In *Rewrite.jl*, the Knuth-Bendix Completion Algorithm is used to transform a given set of axioms into a confluent term rewriting system. One axiom is oriented and added to the rule set during each iteration, given a reduction order between terms. Then, critical pairs, which are unique terms derived through the application of different rules to an initial expression, are found by normalizing the superpositions of the left sides of the existing rules.
-
-##### Critical Pairs Example
-Suppose the rule set contains the following three rules, derived from the axioms of Group Theory.
-```
-R1: (x + y) + z => x + (y + z)
-R2: x + -x      => 0
-R3: 0 + x       => x
-```
-Given these rules, the term `(x + -x) + y` can be normalized to either `x + (-x + y)` by R1, or `0 + y` by R2 and then `y` by R3. Using a reduction order, `y` is found to be more simple than `x + (-x + y)`, and a new rule is generated:
-```
-R4: x + (-x + y) => y
-```
-
-Once all axioms have been oriented and added to the rule set and no critical pairs remain, the rule set is called **canonical** and is ready to rewrite expressions. According to Knuth-Bendix Completion Algorithm, if the rule set is confluent and terminating, every expression can be rewritten to a unique normal form.

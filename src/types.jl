@@ -44,9 +44,13 @@ _map(f, x) = x
 
 Base.issubset(a::Term, b::Term) = !isempty(match(b, a))
 function Base.show(io::IO, t::Term)
-    repr = sprint(show, Expr(:macrocall, Symbol("@term"), nothing, get(t)))[9:end-1]
+    ex = Expr(:macrocall, Symbol("@term"), nothing, _quote(get(t)))
+    repr = sprint(show, ex)[9:end-1]
     print(io, "@term(", repr, ")")
 end
+_quote(x::Symbol) = Meta.quot(x)
+_quote(ex::Expr) = Expr(ex.head, _quote.(ex.args)...)
+_quote(x) = x
 
 Base.replace(t::Term, σ) = haskey(σ, get(t)) ? Term(σ[get(t)]) : map(x -> replace(x, σ), t)
 

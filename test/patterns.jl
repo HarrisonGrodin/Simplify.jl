@@ -222,6 +222,10 @@ using SpecialSets
     end
 
     @testset "miscellaneous" begin
+        let x = 1
+            @test sprint(show, @term([x, :x])) == "@term([1, :x])"
+        end
+
         @test match(@term([x, y, z]), @term([a, b, c])) == Match(Dict(
             x => a, y => b, z => c,
         ))

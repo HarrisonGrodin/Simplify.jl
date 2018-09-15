@@ -68,6 +68,38 @@ using SpecialSets
 end
 
 
+@testset "accuracy of standard rules" begin
+    @testset "$set" for set ∈ [:BASIC, :ABSOLUTE_VALUE, :BOOLEAN, :CALCULUS, :LOGARITHM, :TRIGONOMETRY, :TYPES]
+        CASES = Any[-10:10; -5:0.1:5; false:true]
+
+        set ∈ [:CALCULUS, :LOGARITHM] && continue
+
+        for rule ∈ rules(set)
+            rule isa PatternRule || continue
+            l, r = rule
+
+            @testset "$rule" begin
+                for case ∈ CASES
+                    vars = Rewrite.vars(l)
+                    all(vars) do var
+                        Set([case]) ⊆ Rewrite.image(var)
+                    end || continue
+
+                    rs = Dict(var => case for var ∈ vars)
+
+                    lres = replace(l, rs) |> get |> eval
+                    rres = replace(r, rs) |> get |> eval
+
+                    success = isapprox(lres, rres, atol = 1e-9)
+                    success || @error "Case" case
+                    @test success
+                end
+            end
+        end
+    end
+end
+
+
 @testset "normalize" begin
 
     @testset "BASIC" begin
@@ -230,37 +262,5 @@ end
         @test normalize(@term(f(a, a)), @term RULES [
             f(b, b) => b
         ]) == @term(f(a, a))
-    end
-end
-
-
-@testset "accuracy of standard rules" begin
-    @testset "$set" for set ∈ [:BASIC, :ABSOLUTE_VALUE, :BOOLEAN, :CALCULUS, :LOGARITHM, :TRIGONOMETRY, :TYPES]
-        CASES = Any[-10:10; -5:0.1:5; false:true]
-
-        set ∈ [:CALCULUS, :LOGARITHM] && continue
-
-        for rule ∈ rules(set)
-            rule isa PatternRule || continue
-            l, r = rule
-
-            @testset "$rule" begin
-                for case ∈ CASES
-                    vars = Rewrite.vars(l)
-                    all(vars) do var
-                        Set([case]) ⊆ Rewrite.image(var)
-                    end || continue
-
-                    rs = Dict(var => case for var ∈ vars)
-
-                    lres = replace(l, rs) |> get |> eval
-                    rres = replace(r, rs) |> get |> eval
-
-                    success = isapprox(lres, rres, atol = 1e-9)
-                    success || @error "Case" case
-                    @test success
-                end
-            end
-        end
     end
 end

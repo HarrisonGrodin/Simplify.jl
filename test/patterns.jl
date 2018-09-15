@@ -221,4 +221,22 @@ using SpecialSets
 
     end
 
+    @testset "miscellaneous" begin
+        @test match(@term([x, y, z]), @term([a, b, c])) == Match(Dict(
+            x => a, y => b, z => c,
+        ))
+        @test match(@term([x, y, z]), @term([2a, a-1, b])) == Match(Dict(
+            x => get(@term 2a), y => get(@term a-1), z => b
+        ))
+        @test match(@term([x, y, z]), @term([a, b])) == zero(Match)
+
+        @test match(@term(x ? y : z), @term(a ? b : c)) == Match(Dict(
+            x => a, y => b, z => c,
+        ))
+        @test match(@term(x ? y : y), @term(a ? b : b)) == Match(Dict(
+            x => a, y => b,
+        ))
+        @test match(@term(x ? y : y), @term(a ? b : c)) == zero(Match)
+    end
+
 end

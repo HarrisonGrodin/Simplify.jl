@@ -28,10 +28,10 @@ const TermRewritingSystem = AbstractRewritingSystem{Term}
 const TRS = TermRewritingSystem
 
 
-normalize(trs::TermRewritingSystem) = Base.Fix2(normalize, trs)
+normalize(ars::AbstractRewritingSystem) = Base.Fix2(normalize, ars)
 function normalize(t::Term, trs::TermRewritingSystem)
     while true
-        t = map(normalize(trs), t)
+        t = map(normalize(trs), t)  # FIXME: replace with `subexpressions`
         t′ = foldl(normalize, trs; init=t)
         t == t′ && return t
         t = t′
@@ -43,8 +43,14 @@ normalize(t::Term) = normalize(t, rules())
 
 
 
-struct DivergentError <: Exception end
-Base.showerror(io::IO, ::DivergentError) = print(io, "DivergentError: divergent normalization paths")
+struct DivergentError <: Exception
+    forms::Vector{Term}
+end
+DivergentError(forms::Term...) = DivergentError(collect(forms))
+function Base.showerror(io::IO, err::DivergentError)
+    print(io, "DivergentError: ")
+    join(io, err.forms, ", ")
+end
 
 
 struct PatternRule{T} <: Rule{T}
@@ -69,59 +75,51 @@ Base.map(f, r::PatternRule{T}) where {T} = PatternRule{T}(f(r.left), f(r.right))
 function normalize(t::T, (l, r)::PatternRule{U}) where {U,T<:U}
     Θ = match(l, t)
     isempty(Θ) && return t
-    xs = Set(replace(r, σ) for σ ∈ Θ)
-    length(xs) == 1 || throw(DivergentError())
-    first(xs)
+    σ = first(Θ)
+    replace(r, σ)
 end
 
 struct EvalRule <: Rule{Term}
-    name::Symbol
+    name
     f
 end
-EvalRule(f::Function) = EvalRule(nameof(f), f)
-(r::EvalRule)(args::Constant...) = Constant(r.f(get.(args)...))
-function normalize(fn::Fn, r::EvalRule)
-    fn.name == r.name || return fn
+EvalRule(f::Function) = EvalRule(f, f)
+normalize(t::Term, r::EvalRule) = Term(normalize(get(t), r))
+function normalize(ex::Expr, r::EvalRule)
+    ex.head === :call || return ex
+    name, args = ex.args[1], ex.args[2:end]
 
-    if hasproperty(Flat, fn)
-        o = property(Orderless, fn)
-        if o !== nothing
-            ordered = _apply_flat!(r, collect(o.ordered))
-            ord_inds = findall(x -> x isa Constant, ordered)
-            length(ord_inds) > 1 && throw(DivergentError())
+    match(Term(r.name), Term(name)) == zero(Match) && return ex
 
-            orderless = collect(o.orderless)
-            inds = findall(x -> x isa Constant, orderless)
-            if !isempty(ord_inds)
-                ind = first(ord_inds)
-                ordered[ind] = r(ordered[ind], orderless[inds]...)
-            else
-                isempty(inds) || push!(ordered, r(orderless[inds]...))
+    if hasproperty(Flat, ex)
+        if hasproperty(Orderless, ex)
+            inds = findall(is_constant, args)
+            if !isempty(inds)
+                res = r.f(args[inds]...)
+                deleteat!(args, inds)
+                push!(args, res)
             end
-            deleteat!(orderless, inds)
-
-            args = [ordered; orderless]
         else
-            args = _apply_flat!(r, collect(fn))
+            _apply_flat!(r, args)
         end
 
         length(args) == 1 && return first(args)
-        return Fn(fn.name, args...)
+        return Expr(:call, name, args...)
     end
 
-    all_constants(fn...) || return fn
-    r(fn...)
+    all(is_constant, args) || return ex
+    r.f(args...)
 end
-normalize(t::Term, ::EvalRule) = t
+normalize(x, ::EvalRule) = x
 function _apply_flat!(r::EvalRule, args)
     i = firstindex(args)
 
     while i ≤ lastindex(args) - 1
         a, b = args[i:i+1]
 
-        if a isa Constant && b isa Constant
+        if is_constant(a) && is_constant(b)
             deleteat!(args, i)
-            args[i] = r(a, b)
+            args[i] = r.f(a, b)
         else
             i += 1
         end
@@ -129,22 +127,29 @@ function _apply_flat!(r::EvalRule, args)
 
     args
 end
-all_constants(::Constant...) = true
-all_constants(::Term...) = false
 
 
-struct DiffRule <: Rule{Term}
-    diff::Symbol
-    zero::Symbol
-    DiffRule(diff=:diff, zero=:zero) = new(diff, zero)
+struct OrderRule <: Rule{Term}
+    by::Function
 end
-function normalize(fn::Fn, r::DiffRule)::Term
-    (fn.name, length(fn)) == (r.diff, 2) || return fn
-    f, x = fn
-    vars_f, vars_x = vars.((f, x))
-    isempty(vars_f ∩ vars_x) && return Fn(:zero, x)
-    fn
+normalize(t::Term, r::OrderRule) = Term(normalize(get(t), r))
+function normalize(ex::Expr, r::OrderRule)
+    hasproperty(Orderless, ex) || return ex
+    name = ex.args[1]
+    issorted(ex.args[2:end], by = r.by) && return ex
+    args = sort(ex.args[2:end], by = r.by)
+    Expr(ex.head, name, args...)
 end
-normalize(t::Term, ::DiffRule) = t
-vars(x::Variable) = [x]
-vars(t::Term) = [map(vars, collect(t))...;]
+normalize(x, ::OrderRule) = x
+
+
+struct DiffRule <: Rule{Term} end
+normalize(t::Term, r::DiffRule) = Term(normalize(get(t), r))
+function normalize(ex::Expr, r::DiffRule)
+    fn = ex.args[1]
+    fn === diff && length(ex.args) == 3 || return ex
+    f, x = ex.args[[2, 3]]
+    is_ground(f) && return :($zero($f))
+    ex
+end
+normalize(x, ::DiffRule) = x

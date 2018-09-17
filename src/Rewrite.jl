@@ -1,17 +1,21 @@
 module Rewrite
 
-export Completion
 
-
+# Base types
 include("types.jl")
 include("property.jl")
-include("match.jl")
-include("rule.jl")
 
+# Matching and unification
+include("match.jl")
+
+# Rule and context logic
+include("rule.jl")
 include("context.jl")
+
+# List of rules
 include("rules.jl")
 
-include("completion/Completion.jl")
-using .Completion
+# Utility functions
+include("utils.jl")
 
 end # module

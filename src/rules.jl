@@ -275,8 +275,8 @@ function rules(::Val{:TRIGONOMETRY})
 
         # Sum and difference formulae
         sin(α)cos(β) + cos(α)sin(β) => sin(α + β)
-        sin(α)cos(β) + -cos(α)sin(β) => sin(α - β)
-        cos(α)cos(β) + -sin(α)sin(β) => cos(α + β)
+        sin(α)cos(β) + -(cos(α)sin(β)) => sin(α - β)
+        cos(α)cos(β) + -(sin(α)sin(β)) => cos(α + β)
         cos(α)cos(β) + sin(α)sin(β) => cos(α - β)
         (tan(α) + tan(β)) * inv(1 + -tan(α)tan(β)) => tan(α + β)
         (tan(α) + -tan(β)) * inv(1 + tan(α)tan(β)) => tan(α - β)

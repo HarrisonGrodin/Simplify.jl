@@ -55,14 +55,14 @@ _quote(x) = x
 Base.replace(t::Term, σ) = haskey(σ, get(t)) ? Term(σ[get(t)]) : map(x -> replace(x, σ), t)
 
 
-struct Symbolic
-    x::Symbol
+mutable struct Symbolic
+    name::Symbol
+    image::AbstractSet
 end
+Symbolic(name) = Symbolic(name, TypeSet(Any))
 (x::Symbolic)(xs...) = Expr(:call, x, xs...)
-Base.convert(::Type{Symbol}, x::Symbolic) = x.x  # FIXME
 Base.convert(::Type{Symbolic}, x::Symbol) = Symbolic(x)
-Base.convert(::Type{Symbolic}, x::Symbolic) = x
-Base.show(io::IO, x::Symbolic) = print(io, x.x)
+Base.show(io::IO, x::Symbolic) = print(io, x.name)
 macro syms(xs::Symbol...)
     syms = (:($x = $(Symbolic(x))) for x ∈ xs)
     results = Expr(:tuple, xs...)
@@ -70,13 +70,13 @@ macro syms(xs::Symbol...)
 end
 
 
-mutable struct Variable
-    image::AbstractSet
+struct Variable
+    sym::Symbolic
+    Variable(args...) = new(Symbolic(args...))
 end
-Variable() = Variable(TypeSet(Any))
-Base.show(io::IO, x::Variable) = print(io, "#=VAR@$(objectid(x))=#")
+Base.show(io::IO, x::Variable) = show(io, x.sym)
 macro vars(xs::Symbol...)
-    vars = (:($x = Variable()) for x ∈ xs)
+    vars = (:($x = $(Variable(x))) for x ∈ xs)
     results = Expr(:tuple, xs...)
     esc(Expr(:block, vars..., results))
 end

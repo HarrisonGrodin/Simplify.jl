@@ -18,8 +18,8 @@ using SpecialSets
         @test normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x)))) == @term(g(a))
 
         @testset "Predicates" begin
-            nz = Variable(Nonzero)
-            odd = Variable(Odd)
+            nz = Variable(:nz, Nonzero)
+            odd = Variable(:odd, Odd)
 
             @test normalize(@term(3 / 3), TRS(@term(nz / nz) => @term(one(nz)))) == @term(one(3))
             @test normalize(@term(2 / 3), TRS(@term(nz / nz) => @term(one(nz)))) == @term(2 / 3)
@@ -103,108 +103,91 @@ end
 @testset "normalize" begin
 
     @testset "BASIC" begin
-        ctx = AlgebraContext(
-            props = Rewrite.CONTEXT.props,
-            images = StandardImages(a => TypeSet(Number), b => TypeSet(Number)),
-        )
+        a = Symbolic(:a, TypeSet(Number))
+        b = Symbolic(:b, TypeSet(Number))
 
-        with_context(ctx) do
-            @test normalize(@term(37)) == @term(37)
-            @test normalize(@term(a)) == @term(a)
-            @test normalize(@term(a + 0)) == @term(a)
-            @test normalize(@term(b + 0 + 0)) == @term(b)
-            @test normalize(@term(0 + 0 + b)) == @term(b)
-            @test normalize(@term(b * (1 + 2 - 3))) == @term(0)
-            @test normalize(@term(0 + b + 0)) == @term(b)
-            @test normalize(@term(a * (2 * b))) == @term(a * 2 * b)
-            @test normalize(@term(a * (b * c))) == @term(a * b * c)
-            @test normalize(@term((a * b) * c)) == @term(a * b * c)
-            @test_broken normalize(@term(a * ((b * c) * d))) == @term(a * b * c * d)
-            @test_broken normalize(@term(a * ((b * c) * d) * e)) == @term(a * b * c * d * e)
-            @test normalize(@term(a + ((2 + b) + 3))) == @term(a + b + 5)
-            @test normalize(@term(a + 2)) == normalize(@term(2 + a))
-        end
+        @test normalize(@term(37)) == @term(37)
+        @test normalize(@term(a)) == @term(a)
+        @test normalize(@term(a + 0)) == @term(a)
+        @test normalize(@term(b + 0 + 0)) == @term(b)
+        @test normalize(@term(0 + 0 + b)) == @term(b)
+        @test normalize(@term(b * (1 + 2 - 3))) == @term(0)
+        @test normalize(@term(0 + b + 0)) == @term(b)
+        @test normalize(@term(a * (2 * b))) == @term(a * 2 * b)
+        @test normalize(@term(a * (b * c))) == @term(a * b * c)
+        @test normalize(@term((a * b) * c)) == @term(a * b * c)
+        @test_broken normalize(@term(a * ((b * c) * d))) == @term(a * b * c * d)
+        @test_broken normalize(@term(a * ((b * c) * d) * e)) == @term(a * b * c * d * e)
+        @test normalize(@term(a + ((2 + b) + 3))) == @term(a + b + 5)
+        @test normalize(@term(a + 2)) == normalize(@term(2 + a))
     end
 
     @testset "ABSOLUTE_VALUE" begin
-        @syms a b
-        with_context(AlgebraContext(images = StandardImages(b => Nonzero))) do
-            @test normalize(@term(abs(a))) == @term(abs(a))
-            @test normalize(@term(abs(-a))) == @term(abs(a))
-            @test normalize(@term(abs(0))) == @term(0)
-            @test normalize(@term(abs(-3))) == @term(3)
-            @test normalize(@term(abs(3))) == @term(3)
-            @test normalize(@term(abs(2a))) == @term(2abs(a))
-            @test normalize(@term(abs(-(5a)))) == @term(5abs(a))
-            @test normalize(@term(abs(a * b))) == @term(abs(a) * abs(b))
-            @test normalize(@term(abs(a / b))) == @term(abs(a) * inv(abs(b)))
-            @test normalize(@term(abs(a / 1))) == @term(abs(a))
-            @test normalize(@term(abs(abs(a)))) == @term(abs(a))
-            @test normalize(@term(abs(a^2))) == @term(a^2)
-        end
+        a = Symbolic(:a)
+        b = Symbolic(:b, Nonzero)
 
-        @syms d1 d2
-        with_context(AlgebraContext(images = StandardImages(d1 => Set([1, 2]), d2 => Set([-1, 1])))) do
-            @test normalize(@term(abs(d1))) == @term(d1)
-            @test normalize(@term(abs(d2))) == @term(abs(d2))
-        end
+        @test normalize(@term(abs(a))) == @term(abs(a))
+        @test normalize(@term(abs(-a))) == @term(abs(a))
+        @test normalize(@term(abs(0))) == @term(0)
+        @test normalize(@term(abs(-3))) == @term(3)
+        @test normalize(@term(abs(3))) == @term(3)
+        @test normalize(@term(abs(2a))) == @term(2abs(a))
+        @test normalize(@term(abs(-(5a)))) == @term(5abs(a))
+        @test normalize(@term(abs(a * b))) == @term(abs(a) * abs(b))
+        @test normalize(@term(abs(a / b))) == @term(abs(a) * inv(abs(b)))
+        @test normalize(@term(abs(a / 1))) == @term(abs(a))
+        @test normalize(@term(abs(abs(a)))) == @term(abs(a))
+        @test normalize(@term(abs(a^2))) == @term(a^2)
+
+        d1 = Symbolic(:d1, Set([1, 2]))
+        d2 = Symbolic(:d2, Set([-1, 1]))
+        @test normalize(@term(abs(d1))) == @term(d1)
+        @test normalize(@term(abs(d2))) == @term(abs(d2))
     end
 
     @testset "BOOLEAN" begin
-        @syms x y
+        x = Symbolic(:x, TypeSet(Bool))
+        y = Symbolic(:y, TypeSet(Bool))
 
-        ctx = AlgebraContext(
-            props = Rewrite.CONTEXT.props,
-            images = StandardImages(x => TypeSet(Bool), y => TypeSet(Bool)),
-        )
-
-        with_context(ctx) do
-            @test normalize(@term(x & true)) == @term(x)
-            @test normalize(@term(x | (x & y))) == @term(x)
-            @test normalize(@term(y | !y)) == @term(true)
-            @test normalize(@term(!y | y)) == @term(true)
-            @test normalize(@term(y & y)) == @term(y)
-            @test normalize(@term(!(!x))) == @term(x)
-            @test normalize(@term(!(!x & !x))) == @term(x)
-            @test normalize(@term(!(!x & !x) & !x)) == @term(false)
-            @test normalize(@term(!(!x & !x) | x)) == @term(x)
-            @test normalize(@term(!x & x | (y & (y | true)))) == @term(y)
-        end
+        @test normalize(@term(x & true)) == @term(x)
+        @test normalize(@term(x | (x & y))) == @term(x)
+        @test normalize(@term(y | !y)) == @term(true)
+        @test normalize(@term(!y | y)) == @term(true)
+        @test normalize(@term(y & y)) == @term(y)
+        @test normalize(@term(!(!x))) == @term(x)
+        @test normalize(@term(!(!x & !x))) == @term(x)
+        @test normalize(@term(!(!x & !x) & !x)) == @term(false)
+        @test normalize(@term(!(!x & !x) | x)) == @term(x)
+        @test normalize(@term(!x & x | (y & (y | true)))) == @term(y)
     end
 
     @testset "CALCULUS" begin
-        @syms x y z
+        x = Symbolic(:x, TypeSet(Int))
+        y = Symbolic(:y, TypeSet(Int))
+        z = Symbolic(:z, TypeSet(Int))
 
-        ctx = AlgebraContext(
-            props = Rewrite.CONTEXT.props,
-            images = StandardImages(x => TypeSet(Int), y => TypeSet(Int), z => TypeSet(Int)),
-        )
+        @test normalize(@term diff(2, x)) == @term(0)
+        @test normalize(@term diff(x * y, x)) == @term(x*diff(y, x) + y)
+        @test normalize(@term diff(sin(2x + 3y), x)) == @term(cos(2x + 3y) * (3diff(y, x) + 2))
+        @test normalize(@term diff(x * y + sin(x^z), x)) ==
+              normalize(@term(y + x*diff(y, x) + cos(x^z)*(z*x^(z-1) + (x^z * log(x) * diff(z, x)))))
+        @test normalize(@term diff(2x + tan(x), x)) == @term(tan(x)^2 + 3)
+        @test normalize(@term diff(f(x) + 3x, x)) == @term(diff(f(x), x) + 3)
 
-        with_context(ctx) do
-            @test normalize(@term diff(2, x)) == @term(0)
-            @test normalize(@term diff(x * y, x)) == @term(x*diff(y, x) + y)
-            @test normalize(@term diff(sin(2x + 3y), x)) == @term(cos(2x + 3y) * (3diff(y, x) + 2))
-            @test normalize(@term diff(x * y + sin(x^z), x)) ==
-                  normalize(@term(y + x*diff(y, x) + cos(x^z)*(z*x^(z-1) + (x^z * log(x) * diff(z, x)))))
-            @test normalize(@term diff(2x + tan(x), x)) == @term(tan(x)^2 + 3)
-            @test normalize(@term diff(f(x) + 3x, x)) == @term(diff(f(x), x) + 3)
-        end
-
-        @syms w
-        with_context(AlgebraContext(images = StandardImages(w => Nonzero ∩ TypeSet(Float64)))) do
-            @test normalize(@term diff(log(w), w)) == @term(inv(w))
-        end
+        w = Symbolic(:w, Nonzero ∩ TypeSet(Float64))
+        @test normalize(@term diff(log(w), w)) == @term(inv(w))
     end
 
     @testset "LOGARITHM" begin
-        @syms b x y n
+        @syms b x y
+        n = Symbolic(:n, GreaterThan(3))
 
         ctx = AlgebraContext(
             props = Dict(
                 (+) => [Flat, Orderless],
                 (*) => [Flat, Orderless],
             ),
-            images = StandardImages(n => GreaterThan(3)),
+            images = Rewrite.CONTEXT.images,
         )
 
         with_context(ctx) do

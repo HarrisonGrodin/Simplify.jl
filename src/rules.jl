@@ -45,8 +45,8 @@ rules() = [
 ]
 
 function rules(::Val{:BASIC})
-    a = Variable(Nonzero)
-    b = Variable(Nonzero)
+    a = Variable(:a, Nonzero)
+    b = Variable(:b, Nonzero)
     @vars x y z
 
     [
@@ -89,8 +89,8 @@ end
 
 
 function rules(::Val{:ABSOLUTE_VALUE})
-    nn = Variable(Nonnegative)
-    neg = Variable(Negative)
+    nn = Variable(:nn, Nonnegative)
+    neg = Variable(:neg, Negative)
     @vars x y
 
     [
@@ -109,9 +109,9 @@ end
 
 
 function rules(::Val{:BOOLEAN}; and=&, or=|, neg=!)
-    x = Variable(TypeSet(Bool))
-    y = Variable(TypeSet(Bool))
-    z = Variable(TypeSet(Bool))
+    x = Variable(:x, TypeSet(Bool))
+    y = Variable(:y, TypeSet(Bool))
+    z = Variable(:z, TypeSet(Bool))
 
     [
         @term RULES [
@@ -149,8 +149,8 @@ end
 
 function _diff(M, fn, arity)
     M === :Base || return
-    args = [Variable() for _ ∈ 1:arity]
-    x = Variable()
+    args = [Variable(Symbol(:_, i)) for i ∈ 1:arity]
+    x = Variable(:x)
     f = Expr(:call, getproperty(Base, fn), args...)
 
     partials = DiffRules.diffrule(M, fn, args...)
@@ -185,8 +185,8 @@ end
 
 
 function rules(::Val{:LOGARITHM})
-    m = Variable(NotEqual(1))
-    n = Variable(NotEqual(0, 1))
+    m = Variable(:m, NotEqual(1))
+    n = Variable(:n, NotEqual(0, 1))
 
     @vars x y r a b c
 
@@ -207,7 +207,7 @@ function rules(::Val{:LOGARITHM})
 end
 
 function rules(::Val{:TRIGONOMETRY})
-    x = Variable(Nonzero)
+    x = Variable(:x, Nonzero)
 
     @vars α β θ
 
@@ -308,7 +308,7 @@ function rules(::Val{:TYPES})
 
     types = [Number, Int, Float64]
     for T ∈ types
-        x = Variable(TypeSet(T))
+        x = Variable(:x ,TypeSet(T))
 
         push!(rules, @term(zero(x)) => @term(zero(T)))
         push!(rules, @term(x + zero(x)) => @term(x))

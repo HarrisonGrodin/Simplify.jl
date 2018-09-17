@@ -11,8 +11,9 @@ Given image generator `t`, return the image of `x`.
 function image end
 
 abstract type AbstractImages end
-image(::Union{Expr, Symbolic}, ::AbstractImages) = TypeSet(Any)
-image(x::Variable, ::AbstractImages) = x.image
+image(::Expr, ::AbstractImages) = TypeSet(Any)
+image(x::Symbolic, ::AbstractImages) = x.image
+image(x::Variable, i::AbstractImages) = image(x.sym, i)
 image(x, ::AbstractImages) = Set([x])
 
 struct EmptyImages <: AbstractImages end
@@ -45,7 +46,6 @@ function image(ex::Expr, i::StandardImages)
 
     TypeSet(Number)
 end
-image(x::Symbolic, i::StandardImages) = haskey(i.images, x) ? i.images[x] : TypeSet(Any)
 
 
 abstract type AbstractContext end

@@ -1,7 +1,5 @@
 module Rewrite
 
-export Completion
-
 
 # Base types
 include("types.jl")
@@ -19,8 +17,5 @@ include("rules.jl")
 
 # Utility functions
 include("utils.jl")
-
-# include("completion/Completion.jl")
-# using .Completion
 
 end # module

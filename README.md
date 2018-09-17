@@ -11,79 +11,75 @@ Term rewriting can be applied to a wide variety of fields, including elementary,
 
 Normalization involves determining the unique normal form of an expression ("simplest" equivalent expression) through repeated application of rules. *Rewrite.jl* will use its [internal set of algebraic rules](./src/rules.jl) by default, which includes trigonometry, logarithms, differentiation (based on [DiffRules.jl](https://github.com/JuliaDiff/DiffRules.jl)), and more.
 ```julia
+julia> @syms x y b θ;
+
 julia> normalize(@term(1 / (sin(-θ) / cos(-θ))))
-@term(-(cot(θ)))
+@term((inv)((/)((-)((sin)(θ)), (cos)(θ))))
 
 julia> normalize(@term(log(b, 1 / (b^abs(x^2)))))
-@term(-(x ^ 2))
+@term((log)(b, (/)(1, (^)(b, (^)(x, 2)))))
 
 julia> normalize(@term(diff(sin(2x) - log(x+y), x)))
-@term((2 * one(x) + zero(x) * x) * cos(2x) - (1 / (x + y)) * (one(x) + zero(x)))
+@term((+)((*)((cos)((*)(2, x)), (+)((*)(2, (one)(x)), (*)(x, 0))), (-)((*)((inv)((+)(x, y)), (+)((diff)(y, x), (one)(x))))))
 
 julia> normalize(@term(!x & x | (y & (y | true))))
-@term(y)
+@term((|)((&)((!)(x), x), (&)((|)(y, true), y)))
 
 julia> normalize(@term(y^(6 - 3log(x, x^2))))
-@term(one(y))
-```
-
-If only specific sets of predefined rules are desired, they may be specified as follows.
-```julia
-julia> normalize(@term(sin(α)cos(α) - cos(α)sin(α)), :TRIGONOMETRY)
-@term(sin(α - α))
-
-julia> normalize(@term(sin(α)cos(α) - cos(α)sin(α)), :BASIC, :TRIGONOMETRY)
-@term(0)
+@term((^)(y, (+)((-)((*)(6, (log)(x, x))), 6)))
 ```
 
 In many cases, it is useful to specify entirely custom rules by passing a Term Rewriting System as the second argument to `normalize`. This may be done either by manually constructing a `TRS` object or by using the `RULES` strategy for `@term`.
 ```julia
+julia> @syms f g h;
+       @vars x;
+
 julia> normalize(@term(f(x, f(y, y))), @term RULES [
-           f(x, x) => 1
-           f(x, 1) => x
-       ])
+          f(x, x) => 1
+          f(x, 1) => x
+      ])
 @term(x)
 
 julia> normalize(@term(f(g(f(1), h()))), TRS(
-           @term(f(x)) => @term(x),
-           @term(h())  => @term(3),
-       ))
-@term(g(1, 3))
+          @term(f(x)) => @term(x),
+          @term(h())  => @term(3),
+      ))
+@term((g)(1, 3))
 
 julia> using Rewrite: EvalRule
 
 julia> normalize(@term(f(g(f(1), h()))), TRS(
-           @term(f(x)) => @term(x),
-           @term(h())  => @term(3),
-           EvalRule(:g, (a, b) -> 2a + b)
-       ))
+          @term(f(x)) => @term(x),
+          @term(h())  => @term(3),
+          EvalRule(g, (a, b) -> 2a + b)
+      ))
 @term(5)
+
 ```
 
 Variables may contain information about their domain, which may result in more specific normalizations.
 ```julia
 julia> using SpecialSets
 
-julia> x = Variable(:x)
-       y = Variable(:y, GreaterThan(3))
-       z = Variable(:z, Even ∩ LessThan(0))
-@term(z)
+julia> x = Symbolic(:x);
+       y = Symbolic(:y, GreaterThan(3));
+       z = Symbolic(:z, Even ∩ LessThan(0));
 
-julia> normalize(@term(abs($x)))
-@term(abs(x))
+julia> normalize(@term(abs(x)))
+@term((abs)(x))
 
-julia> normalize(@term(abs($y)))
+julia> normalize(@term(abs(y)))
 @term(y)
 
-julia> normalize(@term(abs($z)))
-@term(-z)
+julia> normalize(@term(abs(z)))
+@term((-)(z))
 ```
 
 ```julia
-julia> x, y = Variable.([:x, :y], Ref(TypeSet(Int)));
+julia> x, y = Symbolic.([:x, :y], Ref(TypeSet(Int)));
 
-julia> normalize(@term(diff(sin(2*$x) - log($x+$y), $x)))
-@term(2 * cos(2x) - 1 / (x + y))
+julia> normalize(@term(diff(sin(2x) - log(x + y), x)))
+@term((+)((*)((cos)((*)(2, x)), 2), (-)((*)((inv)((+)(x, y)), (+)((diff)(y, x), 1)))))
 ```
 
 

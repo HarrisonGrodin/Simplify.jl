@@ -22,10 +22,22 @@ macro term(::Val{:AXIOMS}, ex)
     Expr(ex.head, args...)
 end
 macro term(::Val{:RULES}, ex)
-    args = map(ex.args) do pair
+    args = map(ex.args) do rule
+        if rule.head == :call
+            @assert length(rule.args) == 3 && rule.args[1] == :(=>)
+            pair = rule
+            ps = []
+        else
+            @assert rule.head == :where
+            pair = rule.args[1]
+            ps = Expr(:vect, rule.args[2:end]...)
+        end
+
+        @assert pair.head == :call
         p, a, b = pair.args
         @assert p == :(=>)
-        esc(:(PatternRule{Term}(@term($a), @term($b))))
+
+        esc(:($(PatternRule{Term})(@term($a), @term($b), $ps)))
     end
     :(TermRewritingSystem([$(args...)]))
 end

@@ -24,8 +24,8 @@ using SpecialSets
 
     @testset "Variable" begin
         @test x == x
+        @test x == Variable(:x)
         @test x ≠ y
-        @test x ≠ Variable(:x)
 
         @test match(@term(x), @term(y)) == Match(x => y)
         @test @term(y) ⊆ @term(x)
@@ -33,19 +33,6 @@ using SpecialSets
         @test replace(@term(x), Dict(x => y)) == @term(y)
         @test replace(@term(x), Dict(y => x)) == @term(x)
         @test replace(@term(x), Dict(y => z)) == @term(x)
-
-        @testset "Predicates" begin
-            nz = Variable(:nz, Nonzero)
-            p  = Variable(:p, Positive)
-            n  = Variable(:n, Negative)
-
-            @test match(@term(nz), @term(nz))         == Match(nz => nz)
-            @test match(@term(nz / nz), @term(3 / 3)) == Match(nz => 3)
-            @test match(@term(nz / nz), @term(2 / 3)) == zero(Match)
-            @test match(@term(nz / nz), @term(p))     == zero(Match)
-            @test match(@term(nz / nz), @term(p / p)) == Match(nz => p)
-            @test match(@term(nz / nz), @term(n / p)) == zero(Match)
-        end
     end
 
     @testset "Constant" begin

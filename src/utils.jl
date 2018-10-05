@@ -12,3 +12,6 @@ vars(t::Term) = vars(get(t))
 vars(x::Variable) = [x]
 vars(t::Expr) = [vars.(t.args)...;]
 vars(x) = []
+
+
+_image(x, S) = σ -> image(σ[x]) ⊆ S

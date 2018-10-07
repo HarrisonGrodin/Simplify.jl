@@ -35,8 +35,6 @@ function normalize(t::Term, trs::TermRewritingSystem)
         t′ = foldl(normalize, trs; init=t)
         t == t′ && return t
         t = t′
-        # @info t
-        # println()
     end
 end
 normalize(::T, ::R) where {T,R<:Rule} = error("normalize undefined for rule type $R on term type $T")

@@ -139,7 +139,7 @@ function match(::Type{Orderless}, p::Expr, s::Expr, Θ)
     @assert p.head === s.head === :call
 
     matches = map(perms(s)) do fn  # FIXME: efficiency
-        P = s.head === :call && hasproperty(Flat, s.args[1]) ? Flat : Standard
+        P = hasproperty(Flat, s.args[1]) ? Flat : Standard
         match(P, p, fn, Θ)
     end
     reduce(union, matches)

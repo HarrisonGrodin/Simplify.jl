@@ -1,5 +1,5 @@
 using Rewrite: PatternRule, EvalRule, OrderRule
-using Rewrite: AlgebraContext, StandardImages, image
+using Rewrite: AlgebraContext, StandardImages, image, hasproperty
 using Rewrite: diff
 using SpecialSets
 
@@ -24,13 +24,26 @@ using SpecialSets
                 [σ -> image(σ[x]) ⊆ Nonzero]
             ))
             odd = Symbol(:odd, Odd)
-
-            @test normalize(@term(3 / 3), trs) == @term(one(3))
-            @test normalize(@term(2 / 3), trs) == @term(2 / 3)
-            @test normalize(@term(x / x), trs) == @term(x / x)
+            @test normalize(@term(3 / 3)        , trs) == @term(one(3))
+            @test normalize(@term(2 / 3)        , trs) == @term(2 / 3)
+            @test normalize(@term(x / x)        , trs) == @term(x / x)
             @test normalize(@term((2^x) / (2^x)), trs) == @term(one(2^x))
-            @test normalize(@term(odd / odd), trs) == @term(one(odd))
+            @test normalize(@term(odd / odd)    , trs) == @term(one(odd))
             @test_skip normalize(@term((odd + 2) / (odd + 2)), trs) == @term(one(odd + 2))
+
+            @vars h
+            flat_rs = @term RULES [
+                (h(h(x, y), z) => h(x, y, z)) where {σ -> hasproperty(Flat, σ[h])}
+                (h(x, h(y, z)) => h(x, y, z)) where {σ -> hasproperty(Flat, σ[h])}
+            ]
+            @test normalize(@term(a * (b * c)), flat_rs) == @term(a * b * c)
+            @test_skip normalize(@term(((a + b) + c) * (d * e)), flat_rs) == @term((a + b + c) * d * e)
+            with_context(AlgebraContext(props=Dict(f => [Flat]))) do
+                @test normalize(@term(a * (b * c))  , flat_rs) == @term(a * (b * c))
+                @test normalize(@term(f(f(a, b), c)), flat_rs) == @term(f(a, b, c))
+                @test_skip normalize(@term(f(f(1, f(2, 3), 4), f(5, f(6, 7)))), flat_rs) ==
+                    @term(f(1, 2, 3, 4, 5, 6, 7))
+            end
         end
     end
     @testset "EvalRule" begin

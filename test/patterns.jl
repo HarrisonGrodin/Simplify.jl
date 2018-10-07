@@ -87,7 +87,7 @@ using SpecialSets
         @testset "flat" begin
 
             with_context(AlgebraContext(props=Dict(f => [Flat]))) do
-                @test match(@term(f(1, 2, f(3, 4))), @term(f(1, 2, 3, 4))) == one(Match)
+                @test match(@term(f(1, 2, f(3, 4))), @term(f(1, 2, 3, 4))) == zero(Match)
 
                 @test match(@term(f(g(x), g(y), z)), @term(f(g(a), g(b), g(c), g(d), g(e)))) ==
                     Match(Dict(x => a, y => b, z => f(g(c), g(d), g(e))))

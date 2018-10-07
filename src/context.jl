@@ -26,8 +26,8 @@ function image(ex::Expr, i::StandardImages)
     haskey(i.images, ex) && return i.images[ex]
     ex.head === :call || return TypeSet(Any)
 
-    name, args = ex.args[1], ex.args[2:end]
-    sig = name, length(args)
+    f, args = ex.args[1], ex.args[2:end]
+    sig = f, length(args)
 
     sig == (/, 2) && return TypeSet(Float64)
     sig == (^, 2) && image(args[1], i) ⊆ Positive && return Positive
@@ -92,24 +92,8 @@ function with_context(f, context::AbstractContext)
 end
 
 property(::Type{Standard}, ::Any) = Standard
-function property(::Type{Flat}, ex::Expr)
-    ex.head === :call   || return
-    length(ex.args) ≥ 2 || return
-
-    name = ex.args[1]
-    haskey(CONTEXT.props, name) || return
-    Flat ∈ CONTEXT.props[name]  || return
-
-    Flat
-end
-
-function property(::Type{Orderless}, ex::Expr)
-    ex.head === :call   || return
-    length(ex.args) ≥ 2 || return
-
-    name = ex.args[1]
-    haskey(CONTEXT.props, name)     || return
-    Orderless ∈ CONTEXT.props[name] || return
-
-    Orderless
+function property(Prop::Type{<:Union{Flat, Orderless}}, f)
+    haskey(CONTEXT.props, f) || return
+    Prop ∈ CONTEXT.props[f]  || return
+    Prop
 end

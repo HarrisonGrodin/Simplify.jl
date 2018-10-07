@@ -64,13 +64,9 @@ Match(Set(Dict{Variable,Any}[Dict(x=>a)]))
 """
 match(pattern::Term, subject::Term) = match(Term, get(pattern), get(subject), one(Match))
 
-function match(::Type{Term}, x::Variable, t, Θ)
-    image(t) ⊆ image(x) || return zero(Match)
-    merge(Θ, Match(x => t))
-end
+match(::Type{Term}, x::Variable, t, Θ) = merge(Θ, Match(x => t))
 function match(::Type{Term}, p::Expr, s::Expr, Θ)
     p.head === s.head   || return zero(Match)
-    image(s) ⊆ image(p) || return zero(Match)
 
     P = hasproperty(Orderless, s) ? Orderless :
         hasproperty(Flat, s)      ? Flat      :

@@ -71,10 +71,9 @@ end
 
 
 struct Variable
-    sym::Symbolic
-    Variable(args...) = new(Symbolic(args...))
+    name::Symbol
 end
-Base.show(io::IO, x::Variable) = show(io, x.sym)
+Base.show(io::IO, x::Variable) = print(io, x.name)
 macro vars(xs::Symbol...)
     vars = (:($x = $(Variable(x))) for x ∈ xs)
     results = Expr(:tuple, xs...)

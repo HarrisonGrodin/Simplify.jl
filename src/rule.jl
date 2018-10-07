@@ -56,7 +56,9 @@ end
 struct PatternRule{T} <: Rule{T}
     left::T
     right::T
+    ps::Vector{Function}
 end
+PatternRule{T}(l, r) where {T} = PatternRule{T}(l, r, [])
 PatternRule{T}((l, r)::Pair{<:T,<:T}) where {T} = PatternRule{T}(l, r)
 PatternRule(l::L, r::R) where {L,R} = PatternRule{promote_type(L,R)}(l, r)
 PatternRule((l, r)::Pair) = PatternRule(l, r)
@@ -66,18 +68,19 @@ Base.convert(::Type{Rule}, p::Pair) = convert(PatternRule, p)
 Base.convert(::Type{Pair}, r::PatternRule) = r.left => r.right
 Base.:(==)(a::PatternRule, b::PatternRule) = (a.left, a.right) == (b.left, b.right)
 Base.hash(p::PatternRule{T}, h::UInt) where {T} = hash((p.left, p.right), hash(PatternRule{T}, h))
-function Base.iterate(r::PatternRule, state=:left)
-    state === :left  && return (r.left, :right)
-    state === :right && return (r.right, nothing)
-    nothing
-end
 Base.map(f, r::PatternRule{T}) where {T} = PatternRule{T}(f(r.left), f(r.right))
-function normalize(t::T, (l, r)::PatternRule{U}) where {U,T<:U}
-    Θ = match(l, t)
+function normalize(t::T, r::PatternRule{U}) where {U,T<:U}
+    Θ = match(r.left, t) |> collect
     isempty(Θ) && return t
-    σ = first(Θ)
-    replace(r, σ)
+
+    σᵢ = findfirst(_preds_match(r.ps), Θ)
+    σᵢ === nothing && return t
+    σ = Θ[σᵢ]
+
+    replace(r.right, σ)
 end
+_preds_match(ps, σ) = all(p -> p(σ), ps)
+_preds_match(ps) = Base.Fix1(_preds_match, ps)
 
 struct EvalRule <: Rule{Term}
     name

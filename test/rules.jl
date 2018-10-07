@@ -1,5 +1,5 @@
 using Rewrite: PatternRule, EvalRule, OrderRule
-using Rewrite: AlgebraContext, StandardImages
+using Rewrite: AlgebraContext, StandardImages, image
 using Rewrite: diff
 using SpecialSets
 
@@ -18,15 +18,19 @@ using SpecialSets
         @test normalize(@term(f(a, b)), TRS(@term(f(x, y)) => @term(g(x)))) == @term(g(a))
 
         @testset "Predicates" begin
-            nz = Variable(:nz, Nonzero)
-            odd = Variable(:odd, Odd)
+            trs = TRS(PatternRule{Term}(
+                @term(x / x),
+                @term(one(x)),
+                [σ -> image(σ[x]) ⊆ Nonzero]
+            ))
+            odd = Symbol(:odd, Odd)
 
-            @test normalize(@term(3 / 3), TRS(@term(nz / nz) => @term(one(nz)))) == @term(one(3))
-            @test normalize(@term(2 / 3), TRS(@term(nz / nz) => @term(one(nz)))) == @term(2 / 3)
-            @test normalize(@term(x / x), TRS(@term(nz / nz) => @term(one(nz)))) == @term(x / x)
-            @test normalize(@term((2^x) / (2^x)), TRS(@term(nz / nz) => @term(one(nz)))) == @term(one(2^x))
-            @test normalize(@term(odd / odd), TRS(@term(nz / nz) => @term(one(nz)))) == @term(one(odd))
-            @test_skip normalize(@term((odd + 2) / (odd + 2)), TRS(@term(nz / nz) => @term(one(nz)))) == @term(one(odd + 2))
+            @test normalize(@term(3 / 3), trs) == @term(one(3))
+            @test normalize(@term(2 / 3), trs) == @term(2 / 3)
+            @test normalize(@term(x / x), trs) == @term(x / x)
+            @test normalize(@term((2^x) / (2^x)), trs) == @term(one(2^x))
+            @test normalize(@term(odd / odd), trs) == @term(one(odd))
+            @test_skip normalize(@term((odd + 2) / (odd + 2)), trs) == @term(one(odd + 2))
         end
     end
     @testset "EvalRule" begin
@@ -76,19 +80,17 @@ end
 
         for rule ∈ rules(set)
             rule isa PatternRule || continue
-            l, r = rule
+            l, r = rule.left, rule.right
 
             @testset "$rule" begin
                 for case ∈ CASES
                     vars = Rewrite.vars(l)
-                    all(vars) do var
-                        Set([case]) ⊆ Rewrite.image(var)
-                    end || continue
 
-                    rs = Dict(var => case for var ∈ vars)
+                    σ = Dict(var => case for var ∈ vars)
+                    Rewrite._preds_match(rule.ps, σ) || continue
 
-                    lres = replace(l, rs) |> get |> eval
-                    rres = replace(r, rs) |> get |> eval
+                    lres = replace(l, σ) |> get |> eval
+                    rres = replace(r, σ) |> get |> eval
 
                     success = isapprox(lres, rres, atol = 1e-9)
                     success || @error "Case" case

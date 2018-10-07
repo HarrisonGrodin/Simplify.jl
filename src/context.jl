@@ -13,7 +13,7 @@ function image end
 abstract type AbstractImages end
 image(::Expr, ::AbstractImages) = TypeSet(Any)
 image(x::Symbolic, ::AbstractImages) = x.image
-image(x::Variable, i::AbstractImages) = image(x.sym, i)
+image(x::Variable, i::AbstractImages) = TypeSet(Any)
 image(x, ::AbstractImages) = Set([x])
 
 struct EmptyImages <: AbstractImages end

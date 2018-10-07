@@ -22,10 +22,22 @@ macro term(::Val{:AXIOMS}, ex)
     Expr(ex.head, args...)
 end
 macro term(::Val{:RULES}, ex)
-    args = map(ex.args) do pair
+    args = map(ex.args) do rule
+        if rule.head == :call
+            @assert length(rule.args) == 3 && rule.args[1] == :(=>)
+            pair = rule
+            ps = []
+        else
+            @assert rule.head == :where
+            pair = rule.args[1]
+            ps = Expr(:vect, rule.args[2:end]...)
+        end
+
+        @assert pair.head == :call
         p, a, b = pair.args
         @assert p == :(=>)
-        esc(:(PatternRule{Term}(@term($a), @term($b))))
+
+        esc(:($(PatternRule{Term})(@term($a), @term($b), $ps)))
     end
     :(TermRewritingSystem([$(args...)]))
 end
@@ -45,8 +57,6 @@ rules() = [
 ]
 
 function rules(::Val{:BASIC})
-    a = Variable(:a, Nonzero)
-    b = Variable(:b, Nonzero)
     @vars x y z
 
     [
@@ -58,20 +68,20 @@ function rules(::Val{:BASIC})
             (x * y) * z => (*)(x, y, z)
 
             x - y  => x + -y
-            x / a  => x * inv(a)
+            (x / y  => x * inv(y)) where {_image(y, Nonzero)}
 
             x + -x     => zero(x)
-            a * inv(a) => one(a)
+            (x * inv(x) => one(x)) where {_image(x, Nonzero)}
 
             -(x + y)   => -y + -x
-            inv(a * b) => inv(b) * inv(a)
+            (inv(x * y) => inv(y) * inv(x)) where {_image(x, Nonzero)}
 
             -(-x)      => x
-            inv(inv(a)) => a
+            (inv(inv(x)) => x) where {_image(x, Nonzero)}
 
             -1 * x     => -x
             -x * y     => -(x * y)
-            inv(-a)     => -inv(a)
+            (inv(-x)   => -inv(x)) where {_image(x, Nonzero)}
 
             x ^ 0      => one(x)
             x ^ 0.0    => one(x)
@@ -89,14 +99,12 @@ end
 
 
 function rules(::Val{:ABSOLUTE_VALUE})
-    nn = Variable(:nn, Nonnegative)
-    neg = Variable(:neg, Negative)
     @vars x y
 
     [
         @term RULES [
-            abs(nn)     => nn
-            abs(neg)    => -neg
+            (abs(x)     =>  x)  where {_image(x, Nonnegative)}
+            (abs(x)     => -x)  where {_image(x, Negative)   }
             abs(-x)     => abs(x)
             abs(x * y)  => abs(x) * abs(y)
             abs(inv(x)) => inv(abs(x))
@@ -109,34 +117,33 @@ end
 
 
 function rules(::Val{:BOOLEAN}; and=&, or=|, neg=!)
-    x = Variable(:x, TypeSet(Bool))
-    y = Variable(:y, TypeSet(Bool))
-    z = Variable(:z, TypeSet(Bool))
+    @vars x y z
+    _bool(xs...) = σ -> all(x -> image(σ[x]) ⊆ TypeSet(Bool), xs)
 
     [
         @term RULES [
-            and(x, and(y, z)) => and(x, y, z)
-            and(and(x, y), z) => and(x, y, z)
+            (and(x, and(y, z)) => and(x, y, z))  where {_bool(x, y, z)}
+            (and(and(x, y), z) => and(x, y, z))  where {_bool(x, y, z)}
 
-            or(x, or(y, z)) => or(x, y, z)
-            or(or(x, y), z) => or(x, y, z)
+            (or(x, or(y, z)) => or(x, y, z))  where {_bool(x, y, z)}
+            (or(or(x, y), z) => or(x, y, z))  where {_bool(x, y, z)}
 
-            or(x, false) => x
-            and(x, true) => x
+            (or(x, false) => x)  where {_bool(x)}
+            (and(x, true) => x)  where {_bool(x)}
 
-            or(x, true)   => true
-            and(x, false) => false
+            (or(x, true)   => true )  where {_bool(x)}
+            (and(x, false) => false)  where {_bool(x)}
 
-            or(x, x)  => x
-            and(x, x) => x
+            (or(x, x)  => x)  where {_bool(x)}
+            (and(x, x) => x)  where {_bool(x)}
 
-            or(x, and(x, y)) => x
-            and(x, or(x, y)) => x
+            (or(x, and(x, y)) => x)  where {_bool(x, y)}
+            (and(x, or(x, y)) => x)  where {_bool(x, y)}
 
-            or(x, neg(x))  => true
-            and(x, neg(x)) => false
+            (or(x, neg(x))  => true )  where {_bool(x)}
+            (and(x, neg(x)) => false)  where {_bool(x)}
 
-            neg(neg(x)) => x
+            (neg(neg(x)) => x)  where {_bool(x)}
         ];
         TRS(
             EvalRule(and, &),
@@ -185,16 +192,16 @@ end
 
 
 function rules(::Val{:LOGARITHM})
-    m = Variable(:m, NotEqual(1))
-    n = Variable(:n, NotEqual(0, 1))
+    n1  = NotEqual(1)
+    n01 = NotEqual(0, 1)
 
     @vars x y r a b c
 
     @term RULES [
-        log(n, n) => 1
-        log(m, 1) => 0
+        (log(b, b) => 1)  where {_image(b, n01)}
+        (log(b, 1) => 0)  where {_image(b,  n1)}
 
-        log(n, n ^ x) => x
+        (log(b, b ^ x) => x)  where {_image(b, n01)}
         b ^ log(b, x) => x
 
         log(b, x ^ r) => r * log(b, x)
@@ -207,8 +214,6 @@ function rules(::Val{:LOGARITHM})
 end
 
 function rules(::Val{:TRIGONOMETRY})
-    x = Variable(:x, Nonzero)
-
     @vars α β θ
 
     @term RULES [
@@ -253,9 +258,9 @@ function rules(::Val{:TRIGONOMETRY})
         sin(-θ) => -sin(θ)
         cos(-θ) => cos(θ)
         tan(-θ) => -tan(θ)
-        csc(-x) => -csc(x)
+        (csc(-θ) => -csc(θ))  where {_image(θ, Nonzero)}
         sec(-θ) => sec(θ)
-        cot(-x) => -cot(x)
+        (cot(-θ) => -cot(θ))  where {_image(θ, Nonzero)}
 
         # Periodic formulae
         #=
@@ -297,40 +302,45 @@ function rules(::Val{:TRIGONOMETRY})
         sin(π * inv(2) + -θ) => cos(θ)
         cos(π * inv(2) + -θ) => sin(θ)
         csc(π * inv(2) + -θ) => sec(θ)
-        sec(π * inv(2) + -x) => csc(x)
-        tan(π * inv(2) + -x) => cot(x)
+        (sec(π * inv(2) + -θ) => csc(θ))  where {_image(θ, Nonzero)}
+        (tan(π * inv(2) + -θ) => cot(θ))  where {_image(θ, Nonzero)}
         cot(π * inv(2) + -θ) => tan(θ)
     ]
 end
 
 function rules(::Val{:TYPES})
-    rules = []
+    @vars x
 
+    rs = []
     types = [Number, Int, Float64]
     for T ∈ types
-        x = Variable(:x ,TypeSet(T))
+        T_ = TypeSet(T)
 
-        push!(rules, @term(zero(x)) => @term(zero(T)))
-        push!(rules, @term(x + zero(x)) => @term(x))
-        push!(rules, @term(x + $(zero(T))) => @term(x))
-        push!(rules, @term(-($(zero(T)))) => @term($(zero(T))))
+        push!(rs, @term RULES [
+            (zero(x)        => zero(T)   ) where {_image(x, T_)}
+            (x + zero(x)    => x         ) where {_image(x, T_)}
+            (x + $(zero(T)) => x         ) where {_image(x, T_)}
+            (-($(zero(T)))  => $(zero(T)))
 
-        push!(rules, @term(one(x)) => @term(one(T)))
-        push!(rules, @term(x * one(x)) => @term(x))
-        push!(rules, @term(one(x) * x) => @term(x))
-        push!(rules, @term(x * $(one(T))) => @term(x))
-        push!(rules, @term($(one(T)) * x) => @term(x))
-        push!(rules, @term(inv($(one(T)))) => @term($(one(T))))
+            (one(x)         => one(T)    ) where {_image(x, T_)}
+            (x * one(x)     => x         ) where {_image(x, T_)}
+            (x * $(one(T))  => x         ) where {_image(x, T_)}
+            (one(x) * x     => x         ) where {_image(x, T_)}
+            ($(one(T)) * x  => x         ) where {_image(x, T_)}
+            (inv($(one(T))) => $(one(T)) )
 
-        push!(rules, @term(x * zero(x)) => @term(zero(x)))
-        push!(rules, @term(zero(x) * x) => @term(zero(x)))
-        push!(rules, @term(x * $(zero(T))) => @term($(zero(T))))
-        push!(rules, @term($(zero(T)) * x) => @term($(zero(T))))
+            (x * zero(x)    => zero(x)   ) where {_image(x, T_)}
+            (x * $(zero(T)) => $(zero(T))) where {_image(x, T_)}
+            (zero(x) * x    => zero(x)   ) where {_image(x, T_)}
+            ($(zero(T)) * x => $(zero(T))) where {_image(x, T_)}
+        ])
     end
 
-    TRS(
-        rules...,
-        EvalRule(zero),
-        EvalRule(one),
-    )
+    [
+        rs...
+        TRS(
+            EvalRule(zero),
+            EvalRule(one),
+        )
+    ]
 end

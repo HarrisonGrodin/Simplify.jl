@@ -1,4 +1,4 @@
-using Rewrite: Symbolic, Match, AlgebraContext
+using Rewrite: Symbolic, Match
 using SpecialSets
 
 
@@ -86,7 +86,7 @@ using SpecialSets
 
         @testset "flat" begin
 
-            with_context(AlgebraContext(props=[Flat(f)])) do
+            with_context(Context(props=[Flat(f)])) do
                 @test match(@term(f(1, 2, f(3, 4))), @term(f(1, 2, 3, 4))) == zero(Match)
 
                 @test match(@term(f(g(x), g(y), z)), @term(f(g(a), g(b), g(c), g(d), g(e)))) ==
@@ -96,7 +96,7 @@ using SpecialSets
                     Match(Dict(x => 1, y => b))
             end
 
-            with_context(AlgebraContext(props=[Flat(*)])) do
+            with_context(Context(props=[Flat(*)])) do
                 @test match(@term(x), @term(a * b)) ==
                     Match(x => get(@term a * b))
 
@@ -111,7 +111,7 @@ using SpecialSets
                 @test match(@term(x * "_" * y), @term(a * b * "_" * c)) ==
                     Match(Dict(x => get(@term a * b), y => c))
 
-                with_context(AlgebraContext(props=[Flat(*)])) do
+                with_context(Context(props=[Flat(*)])) do
                     @test match(@term(a * b), @term(a * b)) == one(Match)
                     @test match(@term(a * b), @term(b * a)) == zero(Match)
                 end
@@ -126,7 +126,7 @@ using SpecialSets
 
             @testset "standard" begin
 
-                with_context(AlgebraContext(props=[Orderless(f)])) do
+                with_context(Context(props=[Orderless(f)])) do
                     @test match(@term(f(x, 1)), @term(f(1, y))) == Match(x => y)
 
                     @test match(@term(f(g(x), g(y), z)), @term(f(h(a), g(b), g(c))))::Match == Match(
@@ -154,12 +154,12 @@ using SpecialSets
 
             @testset "flat" begin
 
-                with_context(AlgebraContext(props=[Flat(f), Orderless(f)])) do
+                with_context(Context(props=[Flat(f), Orderless(f)])) do
                     @test replace(@term(f(x, y, z)), Dict(y => get(@term(x^3)))) == @term(f(x, x^3, z))
                     @test_skip replace(@term(f(x, y, z)), Dict(f(x, z) => 1)) == @term(f(1, y))
                 end
 
-                with_context(AlgebraContext(props=[Flat(+), Orderless(+), Flat(*), Orderless(*)])) do
+                with_context(Context(props=[Flat(+), Orderless(+), Flat(*), Orderless(*)])) do
                     @test normalize(@term((x+y+b*a))) == normalize(@term((a*b+x+y)))
                 end
 

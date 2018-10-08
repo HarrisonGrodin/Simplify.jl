@@ -52,9 +52,9 @@ abstract type AbstractContext end
 Base.broadcastable(ctx::AbstractContext) = Ref(ctx)
 
 struct AlgebraContext <: AbstractContext
-    props::Dict{Any,Vector{Type{<:Property}}}
+    props::Vector{Property}
     images::AbstractImages
-    AlgebraContext(; props=Dict(), images=EmptyImages()) = new(props, images)
+    AlgebraContext(; props=[], images=EmptyImages()) = new(props, images)
 end
 
 
@@ -62,15 +62,19 @@ image(x, ctx::AlgebraContext) = image(x, ctx.images)
 
 
 const DEFAULT_CONTEXT = AlgebraContext(
-    props = Dict(
-        Symbolic(:+)  => [Flat, Orderless],
-        Symbolic(:++) => [Flat],
-        Symbolic(:*)  => [Flat],
-        (+)           => [Flat, Orderless],
-        (*)           => [Flat],
-        (&)           => [Flat, Orderless],
-        (|)           => [Flat, Orderless],
-    ),
+    props = [
+        Flat.([
+            +,
+            *,
+            &,
+            |,
+        ]);
+        Orderless.([
+            +,
+            &,
+            |,
+        ]);
+    ],
     images = StandardImages(),
 )
 
@@ -91,9 +95,5 @@ function with_context(f, context::AbstractContext)
     end
 end
 
-property(::Type{Standard}, ::Any) = Standard
-function property(Prop::Type{<:Union{Flat, Orderless}}, f)
-    haskey(CONTEXT.props, f) || return
-    Prop ∈ CONTEXT.props[f]  || return
-    Prop
-end
+isvalid(::Standard) = true
+isvalid(prop::P) where {P<:Union{Flat, Orderless}} = prop ∈ CONTEXT.props

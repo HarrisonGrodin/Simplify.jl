@@ -71,8 +71,8 @@ function match(::Type{Term}, p::Expr, s::Expr, Θ)
     P = Standard
     if p.head === :call
         f = s.args[1]
-        P = hasproperty(Orderless, f) ? Orderless :
-            hasproperty(Flat, f)      ? Flat      :
+        P = isvalid(Orderless(f)) ? Orderless :
+            isvalid(Flat(f))      ? Flat      :
             Standard
     end
 
@@ -139,7 +139,7 @@ function match(::Type{Orderless}, p::Expr, s::Expr, Θ)
     @assert p.head === s.head === :call
 
     matches = map(perms(s)) do fn  # FIXME: efficiency
-        P = hasproperty(Flat, s.args[1]) ? Flat : Standard
+        P = isvalid(Flat(s.args[1])) ? Flat : Standard
         match(P, p, fn, Θ)
     end
     reduce(union, matches)

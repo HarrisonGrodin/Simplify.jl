@@ -1,11 +1,22 @@
-export Flat, Orderless
+export Flat, Orderless, isvalid
+
+import Base: isvalid
+
 
 abstract type Property end
 
 struct Standard  <: Property end
-struct Flat      <: Property end
-struct Orderless <: Property end
+struct Flat      <: Property
+    f
+end
+struct Orderless <: Property
+    f
+end
 
-property(::Type{<:Property}, x) = nothing
-hasproperty(P::Type{<:Property}, t::Term) = hasproperty(P, get(t))
-hasproperty(P::Type{<:Property}, x) = property(P, x) !== nothing
+"""
+    isvalid(p::Property) -> Bool
+
+Returns the value corresponding to whether or not the given property object `p` is valid,
+given the current context.
+"""
+isvalid(::Property) = false

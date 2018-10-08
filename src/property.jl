@@ -6,14 +6,14 @@ import Base: isvalid
 
 abstract type Property end
 
-struct Standard  <: Property end
-struct Flat      <: Property
+struct Standard <: Property end
+struct Flat <: Property
     f
 end
 struct Orderless <: Property
     f
 end
-struct Image     <: Property
+struct Image <: Property
     ex
     set::AbstractSet
 end

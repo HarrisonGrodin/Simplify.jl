@@ -71,8 +71,8 @@ function image(ex::Expr, i::StandardImages)
     sig == (log, 1) && return TypeSet(Float64)
 
     BOOL = TypeSet(Bool)
-    sig == (&, 2) && image(args[1], i) ⊆ BOOL && i(args[2]) ⊆ BOOL && return BOOL
-    sig == (|, 2) && image(args[1], i) ⊆ BOOL && i(args[2]) ⊆ BOOL && return BOOL
+    sig == (&, 2) && image(args[1], i) ⊆ BOOL && image(args[2], i) ⊆ BOOL && return BOOL
+    sig == (|, 2) && image(args[1], i) ⊆ BOOL && image(args[2], i) ⊆ BOOL && return BOOL
     sig == (!, 1) && image(args[1], i) ⊆ BOOL && return BOOL
 
     TypeSet(Number)

@@ -58,14 +58,12 @@ rules() = [
 
 function rules(::Val{:BASIC})
     @vars x y z
+    @vars f
 
     [
         @term RULES [
-            x + (y + z) => (+)(x, y, z)
-            (x + y) + z => (+)(x, y, z)
-
-            x * (y * z) => (*)(x, y, z)
-            (x * y) * z => (*)(x, y, z)
+            (f(f(x, y), z) => f(x, y, z)) where {σ -> isvalid(Flat(σ[f]))}
+            (f(x, f(y, z)) => f(x, y, z)) where {σ -> isvalid(Flat(σ[f]))}
 
             x - y  => x + -y
             (x / y  => x * inv(y)) where {_image(y, Nonzero)}

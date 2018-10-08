@@ -12,7 +12,8 @@ include("match.jl")
 include("rule.jl")
 include("context.jl")
 
-# List of rules
+# Default algebraic setup
+include("algebra.jl")
 include("rules.jl")
 
 # Utility functions

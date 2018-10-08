@@ -1,5 +1,5 @@
 using Rewrite: PatternRule, EvalRule, OrderRule
-using Rewrite: AlgebraContext, StandardImages, image
+using Rewrite: StandardImages
 using Rewrite: diff
 using SpecialSets
 
@@ -21,16 +21,29 @@ using SpecialSets
             trs = TRS(PatternRule{Term}(
                 @term(x / x),
                 @term(one(x)),
-                [σ -> image(σ[x]) ⊆ Nonzero]
+                [σ -> isvalid(Image(σ[x], Nonzero))]
             ))
             odd = Symbol(:odd, Odd)
-
-            @test normalize(@term(3 / 3), trs) == @term(one(3))
-            @test normalize(@term(2 / 3), trs) == @term(2 / 3)
-            @test normalize(@term(x / x), trs) == @term(x / x)
+            @test normalize(@term(3 / 3)        , trs) == @term(one(3))
+            @test normalize(@term(2 / 3)        , trs) == @term(2 / 3)
+            @test normalize(@term(x / x)        , trs) == @term(x / x)
             @test normalize(@term((2^x) / (2^x)), trs) == @term(one(2^x))
-            @test normalize(@term(odd / odd), trs) == @term(one(odd))
+            @test normalize(@term(odd / odd)    , trs) == @term(one(odd))
             @test_skip normalize(@term((odd + 2) / (odd + 2)), trs) == @term(one(odd + 2))
+
+            @vars h
+            flat_rs = @term RULES [
+                (h(h(x, y), z) => h(x, y, z)) where {σ -> isvalid(Flat(σ[h]))}
+                (h(x, h(y, z)) => h(x, y, z)) where {σ -> isvalid(Flat(σ[h]))}
+            ]
+            @test normalize(@term(a * (b * c)), flat_rs) == @term(a * b * c)
+            @test_skip normalize(@term(((a + b) + c) * (d * e)), flat_rs) == @term((a + b + c) * d * e)
+            with_context(Context(props=[Flat(f)])) do
+                @test normalize(@term(a * (b * c))  , flat_rs) == @term(a * (b * c))
+                @test normalize(@term(f(f(a, b), c)), flat_rs) == @term(f(a, b, c))
+                @test_skip normalize(@term(f(f(1, f(2, 3), 4), f(5, f(6, 7)))), flat_rs) ==
+                    @term(f(1, 2, 3, 4, 5, 6, 7))
+            end
         end
     end
     @testset "EvalRule" begin
@@ -43,7 +56,7 @@ using SpecialSets
         @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(*))) == @term(6 + 20)
         @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(+), EvalRule(*))) == @term(26)
 
-        with_context(AlgebraContext(props=Dict(f => [Flat]))) do
+        with_context(Context(props=[Flat(f)])) do
             rule = EvalRule(f, +)
             @test normalize(@term(f(a, 1, 2, b, 3, c)), rule) == @term(f(a, 3, b, 3, c))
             @test normalize(@term(f(1, 2, 3, 4, 5)), rule) == @term(15)
@@ -51,7 +64,7 @@ using SpecialSets
             @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), rule) == @term(f(3, x, y, 12))
         end
 
-        with_context(AlgebraContext(props=Dict(f => [Flat, Orderless]))) do
+        with_context(Context(props=[Flat(f), Orderless(f)])) do
             rule = EvalRule(f, +)
             @test normalize(@term(f(a, 1, 2, b, 3, c)), rule) == @term(f(a, b, c, 6))
             @test normalize(@term(f(1, 2, 3, 4, 5)), rule) == @term(15)
@@ -60,7 +73,7 @@ using SpecialSets
         end
     end
     @testset "OrderRule" begin
-        with_context(AlgebraContext(props=Dict(f => [Orderless]))) do
+        with_context(Context(props=[Orderless(f)])) do
             rule = OrderRule(x -> sprint(show, x))
             @test normalize(@term(f(a, b)), rule) == @term(f(a, b))
             @test normalize(@term(f(b, a)), rule) == @term(f(a, b))
@@ -184,11 +197,11 @@ end
         @syms b x y
         n = Symbolic(:n, GreaterThan(3))
 
-        ctx = AlgebraContext(
-            props = Dict(
-                (+) => [Flat, Orderless],
-                (*) => [Flat, Orderless],
-            ),
+        ctx = Context(
+            props = [
+                Flat(+), Orderless(+),
+                Flat(*), Orderless(*),
+            ],
             images = Rewrite.CONTEXT.images,
         )
 
@@ -216,7 +229,7 @@ end
         @test normalize(@term((tan(α) - tan(β)) * inv(1 + tan(α) * tan(β)))) == @term(tan(-β + α))
         @test normalize(@term(csc(π/2 - θ))) == @term(sec(θ))
 
-        with_context(AlgebraContext(images = StandardImages(a => TypeSet(Int)))) do
+        with_context(Context(images=StandardImages(a => TypeSet(Int)))) do
             @test_broken normalize(@term sin(a)^2 + cos(a)^2 + 1) == 2
         end
     end

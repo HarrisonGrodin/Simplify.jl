@@ -90,12 +90,12 @@ EvalRule(f::Function) = EvalRule(f, f)
 normalize(t::Term, r::EvalRule) = Term(normalize(get(t), r))
 function normalize(ex::Expr, r::EvalRule)
     ex.head === :call || return ex
-    name, args = ex.args[1], ex.args[2:end]
+    f, args = ex.args[1], ex.args[2:end]
 
-    match(Term(r.name), Term(name)) == zero(Match) && return ex
+    match(Term(r.name), Term(f)) == zero(Match) && return ex
 
-    if hasproperty(Flat, ex)
-        if hasproperty(Orderless, ex)
+    if isvalid(Flat(f))
+        if isvalid(Orderless(f))
             inds = findall(is_constant, args)
             if !isempty(inds)
                 res = r.f(args[inds]...)
@@ -107,7 +107,7 @@ function normalize(ex::Expr, r::EvalRule)
         end
 
         length(args) == 1 && return first(args)
-        return Expr(:call, name, args...)
+        return Expr(:call, f, args...)
     end
 
     all(is_constant, args) || return ex
@@ -137,11 +137,12 @@ struct OrderRule <: Rule{Term}
 end
 normalize(t::Term, r::OrderRule) = Term(normalize(get(t), r))
 function normalize(ex::Expr, r::OrderRule)
-    hasproperty(Orderless, ex) || return ex
-    name = ex.args[1]
+    ex.head === :call || return ex
+    f = ex.args[1]
+    isvalid(Orderless(f)) || return ex
     issorted(ex.args[2:end], by = r.by) && return ex
     args = sort(ex.args[2:end], by = r.by)
-    Expr(ex.head, name, args...)
+    Expr(ex.head, f, args...)
 end
 normalize(x, ::OrderRule) = x
 

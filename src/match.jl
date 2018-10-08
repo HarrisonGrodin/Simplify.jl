@@ -68,9 +68,14 @@ match(::Type{Term}, x::Variable, t, Θ) = merge(Θ, Match(x => t))
 function match(::Type{Term}, p::Expr, s::Expr, Θ)
     p.head === s.head   || return zero(Match)
 
-    P = hasproperty(Orderless, s) ? Orderless :
-        hasproperty(Flat, s)      ? Flat      :
-        Standard
+    P = Standard
+    if p.head === :call
+        f = s.args[1]
+        P = isvalid(Orderless(f)) ? Orderless :
+            isvalid(Flat(f))      ? Flat      :
+            Standard
+    end
+
     match(P, p, s, Θ)
 end
 match(::Type{Term}, p, s, Θ) = (typeof(s) <: typeof(p) && p == s) ? Θ : zero(Match)
@@ -93,8 +98,6 @@ algorithm by [Krebber](https://arxiv.org/abs/1705.00907). Requires `p` and `s` t
 head `:call`.
 """
 function match(::Type{Flat}, p::Expr, s::Expr, Θ)
-    p, s = flatten(p), flatten(s)
-
     @assert p.head === s.head === :call
 
     pname, pargs = p.args[1], p.args[2:end]
@@ -117,7 +120,7 @@ function match(::Type{Flat}, p::Expr, s::Expr, Θ)
                 l_sub += k[j]
                 j += 1
             end
-            s′ = l_sub > 0 ? Expr(:call, pname, sargs[i:i+l_sub]...) : sargs[i]
+            s′ = l_sub > 0 ? Expr(:call, sname, sargs[i:i+l_sub]...) : sargs[i]
             Θ′ = match(Term, pₗ, s′, Θ′)
             isempty(Θ′) && break
             i += l_sub + 1
@@ -136,7 +139,7 @@ function match(::Type{Orderless}, p::Expr, s::Expr, Θ)
     @assert p.head === s.head === :call
 
     matches = map(perms(s)) do fn  # FIXME: efficiency
-        P = hasproperty(Flat, s) ? Flat : Standard
+        P = isvalid(Flat(s.args[1])) ? Flat : Standard
         match(P, p, fn, Θ)
     end
     reduce(union, matches)
@@ -144,9 +147,9 @@ end
 function perms(ex::Expr)
     @assert ex.head === :call
 
-    name, args = ex.args[1], ex.args[2:end]
+    f, args = ex.args[1], ex.args[2:end]
 
     map(permutations(args)) do perm
-        Expr(:call, name, perm...)
+        Expr(:call, f, perm...)
     end |> unique
 end

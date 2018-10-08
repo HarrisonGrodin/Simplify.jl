@@ -1,5 +1,5 @@
 using Rewrite: PatternRule, EvalRule, OrderRule
-using Rewrite: AlgebraContext, StandardImages, image
+using Rewrite: AlgebraContext, StandardImages
 using Rewrite: diff
 using SpecialSets
 
@@ -21,7 +21,7 @@ using SpecialSets
             trs = TRS(PatternRule{Term}(
                 @term(x / x),
                 @term(one(x)),
-                [σ -> image(σ[x]) ⊆ Nonzero]
+                [σ -> isvalid(Image(σ[x], Nonzero))]
             ))
             odd = Symbol(:odd, Odd)
             @test normalize(@term(3 / 3)        , trs) == @term(one(3))

@@ -1,4 +1,5 @@
-export Flat, Orderless, isvalid
+export Flat, Orderless, Image
+export isvalid
 
 import Base: isvalid
 
@@ -11,6 +12,10 @@ struct Flat      <: Property
 end
 struct Orderless <: Property
     f
+end
+struct Image     <: Property
+    ex
+    set::AbstractSet
 end
 
 """

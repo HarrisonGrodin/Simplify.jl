@@ -14,4 +14,4 @@ vars(t::Expr) = [vars.(t.args)...;]
 vars(x) = []
 
 
-_image(x, S) = σ -> image(σ[x]) ⊆ S
+_image(x, S) = σ -> isvalid(Image(σ[x], S))

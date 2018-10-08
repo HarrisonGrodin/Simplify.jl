@@ -9,12 +9,43 @@ export with_context, set_context!, AlgebraContext
 Given image generator `t`, return the image of `x`.
 """
 function image end
+image(x) = image(x, CONTEXT)
 
 abstract type AbstractImages end
-image(::Expr, ::AbstractImages) = TypeSet(Any)
+image(::Expr     , ::AbstractImages) = TypeSet(Any)
 image(x::Symbolic, ::AbstractImages) = x.image
-image(x::Variable, i::AbstractImages) = TypeSet(Any)
-image(x, ::AbstractImages) = Set([x])
+image(::Variable , ::AbstractImages) = TypeSet(Any)
+image(x          , ::AbstractImages) = Set([x])
+
+
+abstract type AbstractContext end
+Base.broadcastable(ctx::AbstractContext) = Ref(ctx)
+
+set_context!(context::AbstractContext) = (global CONTEXT = context)
+function with_context(f, context::AbstractContext)
+    global CONTEXT
+    old = CONTEXT
+    CONTEXT = context
+    try
+        f()
+    finally
+        CONTEXT = old
+    end
+end
+
+isvalid(::Standard) = true
+isvalid(prop::P) where {P<:Union{Flat, Orderless}} = prop ∈ CONTEXT.props
+isvalid(i::Image) = image(i.ex) ⊆ i.set
+
+
+
+struct AlgebraContext <: AbstractContext
+    props::Vector{Property}
+    images::AbstractImages
+    AlgebraContext(; props=[], images=EmptyImages()) = new(props, images)
+end
+image(x, ctx::AlgebraContext) = image(x, ctx.images)
+
 
 struct EmptyImages <: AbstractImages end
 
@@ -40,25 +71,12 @@ function image(ex::Expr, i::StandardImages)
     sig == (log, 1) && return TypeSet(Float64)
 
     BOOL = TypeSet(Bool)
-    sig == (&, 2) && image(args[1], i) ⊆ BOOL && image(args[2], i) ⊆ BOOL && return BOOL
-    sig == (|, 2) && image(args[1], i) ⊆ BOOL && image(args[2], i) ⊆ BOOL && return BOOL
+    sig == (&, 2) && image(args[1], i) ⊆ BOOL && i(args[2]) ⊆ BOOL && return BOOL
+    sig == (|, 2) && image(args[1], i) ⊆ BOOL && i(args[2]) ⊆ BOOL && return BOOL
     sig == (!, 1) && image(args[1], i) ⊆ BOOL && return BOOL
 
     TypeSet(Number)
 end
-
-
-abstract type AbstractContext end
-Base.broadcastable(ctx::AbstractContext) = Ref(ctx)
-
-struct AlgebraContext <: AbstractContext
-    props::Vector{Property}
-    images::AbstractImages
-    AlgebraContext(; props=[], images=EmptyImages()) = new(props, images)
-end
-
-
-image(x, ctx::AlgebraContext) = image(x, ctx.images)
 
 
 const DEFAULT_CONTEXT = AlgebraContext(
@@ -77,23 +95,4 @@ const DEFAULT_CONTEXT = AlgebraContext(
     ],
     images = StandardImages(),
 )
-
-
 CONTEXT = DEFAULT_CONTEXT
-image(x) = image(x, CONTEXT)
-
-set_context!(context::AbstractContext) = (global CONTEXT = context)
-
-function with_context(f, context::AbstractContext)
-    global CONTEXT
-    old = CONTEXT
-    CONTEXT = context
-    try
-        f()
-    finally
-        CONTEXT = old
-    end
-end
-
-isvalid(::Standard) = true
-isvalid(prop::P) where {P<:Union{Flat, Orderless}} = prop ∈ CONTEXT.props

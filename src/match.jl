@@ -68,20 +68,17 @@ match(::Type{Term}, x::Variable, t, Θ) = merge(Θ, Match(x => t))
 function match(::Type{Term}, p::Expr, s::Expr, Θ)
     p.head === s.head   || return zero(Match)
 
-    P = Standard
     if p.head === :call
         f = s.args[1]
-        P = isvalid(Commutative(f)) ? Commutative :
-            isvalid(Associative(f)) ? Associative :
-            Standard
+        isvalid(Commutative(f)) && return match(Commutative, p, s, Θ)
+        isvalid(Associative(f)) && return match(Associative, p, s, Θ)
     end
 
-    match(P, p, s, Θ)
+    _match(p, s, Θ)
 end
 match(::Type{Term}, p, s, Θ) = (typeof(s) <: typeof(p) && p == s) ? Θ : zero(Match)
 
-
-function match(::Type{Standard}, f::Expr, g::Expr, Θ)
+function _match(f::Expr, g::Expr, Θ)
     length(f.args) == length(g.args) || return zero(Match)
 
     for (x, y) ∈ zip(f.args, g.args)
@@ -90,6 +87,7 @@ function match(::Type{Standard}, f::Expr, g::Expr, Θ)
 
     Θ
 end
+
 """
     match(::Type{Associative}, p::Expr, s::Expr, Θ::Match) -> Match
 
@@ -138,9 +136,9 @@ Requires `p` and `s` to have head `:call`.
 function match(::Type{Commutative}, p::Expr, s::Expr, Θ)
     @assert p.head === s.head === :call
 
-    matches = map(perms(s)) do fn  # FIXME: efficiency
-        P = isvalid(Associative(s.args[1])) ? Associative : Standard
-        match(P, p, fn, Θ)
+    matches = map(perms(s)) do s′  # FIXME: efficiency
+        isvalid(Associative(s.args[1])) && return match(Associative, p, s′, Θ)
+        _match(p, s′, Θ)
     end
     reduce(union, matches)
 end

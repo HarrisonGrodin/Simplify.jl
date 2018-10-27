@@ -6,7 +6,6 @@ import Base: isvalid
 
 abstract type Property end
 
-struct Standard <: Property end
 struct Associative <: Property
     f
 end

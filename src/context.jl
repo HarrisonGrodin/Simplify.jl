@@ -40,6 +40,5 @@ end
 
 image(x, ctx::Context) = image(x, ctx.images)
 
-isvalid(::Standard) = true
 isvalid(prop::P) where {P<:Union{Associative, Commutative}} = prop ∈ CONTEXT.props
 isvalid(i::Image) = image(i.ex) ⊆ i.set

@@ -62,8 +62,8 @@ function rules(::Val{:BASIC})
 
     [
         @term RULES [
-            (f(f(x, y), z) => f(x, y, z)) where {σ -> isvalid(Flat(σ[f]))}
-            (f(x, f(y, z)) => f(x, y, z)) where {σ -> isvalid(Flat(σ[f]))}
+            (f(f(x, y), z) => f(x, y, z)) where {σ -> isvalid(Associative(σ[f]))}
+            (f(x, f(y, z)) => f(x, y, z)) where {σ -> isvalid(Associative(σ[f]))}
 
             x - y  => x + -y
             (x / y  => x * inv(y)) where {_image(y, Nonzero)}

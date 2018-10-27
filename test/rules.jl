@@ -32,16 +32,16 @@ using SpecialSets
             @test_skip normalize(@term((odd + 2) / (odd + 2)), trs) == @term(one(odd + 2))
 
             @vars h
-            flat_rs = @term RULES [
-                (h(h(x, y), z) => h(x, y, z)) where {σ -> isvalid(Flat(σ[h]))}
-                (h(x, h(y, z)) => h(x, y, z)) where {σ -> isvalid(Flat(σ[h]))}
+            associative_rs = @term RULES [
+                (h(h(x, y), z) => h(x, y, z)) where {σ -> isvalid(Associative(σ[h]))}
+                (h(x, h(y, z)) => h(x, y, z)) where {σ -> isvalid(Associative(σ[h]))}
             ]
-            @test normalize(@term(a * (b * c)), flat_rs) == @term(a * b * c)
-            @test_skip normalize(@term(((a + b) + c) * (d * e)), flat_rs) == @term((a + b + c) * d * e)
-            with_context(Context(props=[Flat(f)])) do
-                @test normalize(@term(a * (b * c))  , flat_rs) == @term(a * (b * c))
-                @test normalize(@term(f(f(a, b), c)), flat_rs) == @term(f(a, b, c))
-                @test_skip normalize(@term(f(f(1, f(2, 3), 4), f(5, f(6, 7)))), flat_rs) ==
+            @test normalize(@term(a * (b * c)), associative_rs) == @term(a * b * c)
+            @test_skip normalize(@term(((a + b) + c) * (d * e)), associative_rs) == @term((a + b + c) * d * e)
+            with_context(Context(props=[Associative(f)])) do
+                @test normalize(@term(a * (b * c))  , associative_rs) == @term(a * (b * c))
+                @test normalize(@term(f(f(a, b), c)), associative_rs) == @term(f(a, b, c))
+                @test_skip normalize(@term(f(f(1, f(2, 3), 4), f(5, f(6, 7)))), associative_rs) ==
                     @term(f(1, 2, 3, 4, 5, 6, 7))
             end
         end
@@ -56,7 +56,7 @@ using SpecialSets
         @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(*))) == @term(6 + 20)
         @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(+), EvalRule(*))) == @term(26)
 
-        with_context(Context(props=[Flat(f)])) do
+        with_context(Context(props=[Associative(f)])) do
             rule = EvalRule(f, +)
             @test normalize(@term(f(a, 1, 2, b, 3, c)), rule) == @term(f(a, 3, b, 3, c))
             @test normalize(@term(f(1, 2, 3, 4, 5)), rule) == @term(15)
@@ -64,7 +64,7 @@ using SpecialSets
             @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), rule) == @term(f(3, x, y, 12))
         end
 
-        with_context(Context(props=[Flat(f), Orderless(f)])) do
+        with_context(Context(props=[Associative(f), Commutative(f)])) do
             rule = EvalRule(f, +)
             @test normalize(@term(f(a, 1, 2, b, 3, c)), rule) == @term(f(a, b, c, 6))
             @test normalize(@term(f(1, 2, 3, 4, 5)), rule) == @term(15)
@@ -73,7 +73,7 @@ using SpecialSets
         end
     end
     @testset "OrderRule" begin
-        with_context(Context(props=[Orderless(f)])) do
+        with_context(Context(props=[Commutative(f)])) do
             rule = OrderRule(x -> sprint(show, x))
             @test normalize(@term(f(a, b)), rule) == @term(f(a, b))
             @test normalize(@term(f(b, a)), rule) == @term(f(a, b))
@@ -199,8 +199,8 @@ end
 
         ctx = Context(
             props = [
-                Flat(+), Orderless(+),
-                Flat(*), Orderless(*),
+                Associative(+), Commutative(+),
+                Associative(*), Commutative(*),
             ],
             images = Rewrite.CONTEXT.images,
         )

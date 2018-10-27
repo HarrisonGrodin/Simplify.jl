@@ -1,4 +1,4 @@
-export Flat, Orderless, Image
+export Associative, Commutative, Image
 export isvalid
 
 import Base: isvalid
@@ -7,10 +7,10 @@ import Base: isvalid
 abstract type Property end
 
 struct Standard <: Property end
-struct Flat <: Property
+struct Associative <: Property
     f
 end
-struct Orderless <: Property
+struct Commutative <: Property
     f
 end
 struct Image <: Property

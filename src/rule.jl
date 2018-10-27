@@ -94,8 +94,8 @@ function normalize(ex::Expr, r::EvalRule)
 
     match(Term(r.name), Term(f)) == zero(Match) && return ex
 
-    if isvalid(Flat(f))
-        if isvalid(Orderless(f))
+    if isvalid(Associative(f))
+        if isvalid(Commutative(f))
             inds = findall(is_constant, args)
             if !isempty(inds)
                 res = r.f(args[inds]...)
@@ -103,7 +103,7 @@ function normalize(ex::Expr, r::EvalRule)
                 push!(args, res)
             end
         else
-            _apply_flat!(r, args)
+            _apply_associative!(r, args)
         end
 
         length(args) == 1 && return first(args)
@@ -114,7 +114,7 @@ function normalize(ex::Expr, r::EvalRule)
     r.f(args...)
 end
 normalize(x, ::EvalRule) = x
-function _apply_flat!(r::EvalRule, args)
+function _apply_associative!(r::EvalRule, args)
     i = firstindex(args)
 
     while i ≤ lastindex(args) - 1
@@ -139,7 +139,7 @@ normalize(t::Term, r::OrderRule) = Term(normalize(get(t), r))
 function normalize(ex::Expr, r::OrderRule)
     ex.head === :call || return ex
     f = ex.args[1]
-    isvalid(Orderless(f)) || return ex
+    isvalid(Commutative(f)) || return ex
     issorted(ex.args[2:end], by = r.by) && return ex
     args = sort(ex.args[2:end], by = r.by)
     Expr(ex.head, f, args...)

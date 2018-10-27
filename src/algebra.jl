@@ -29,13 +29,13 @@ end
 
 set_context!(Context(
     props = [
-        Flat.([
+        Associative.([
             +,
             *,
             &,
             |,
         ]);
-        Orderless.([
+        Commutative.([
             +,
             &,
             |,

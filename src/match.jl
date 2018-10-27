@@ -71,8 +71,8 @@ function match(::Type{Term}, p::Expr, s::Expr, Θ)
     P = Standard
     if p.head === :call
         f = s.args[1]
-        P = isvalid(Orderless(f)) ? Orderless :
-            isvalid(Flat(f))      ? Flat      :
+        P = isvalid(Commutative(f)) ? Commutative :
+            isvalid(Associative(f)) ? Associative :
             Standard
     end
 
@@ -91,13 +91,13 @@ function match(::Type{Standard}, f::Expr, g::Expr, Θ)
     Θ
 end
 """
-    match(::Type{Flat}, p::Expr, s::Expr, Θ::Match) -> Match
+    match(::Type{Associative}, p::Expr, s::Expr, Θ::Match) -> Match
 
 Match an associative function call to another associative function call, based on the
 algorithm by [Krebber](https://arxiv.org/abs/1705.00907). Requires `p` and `s` to have
 head `:call`.
 """
-function match(::Type{Flat}, p::Expr, s::Expr, Θ)
+function match(::Type{Associative}, p::Expr, s::Expr, Θ)
     @assert p.head === s.head === :call
 
     pname, pargs = p.args[1], p.args[2:end]
@@ -130,16 +130,16 @@ function match(::Type{Flat}, p::Expr, s::Expr, Θ)
     Θᵣ
 end
 """
-    match(::Type{Orderless}, p::Expr, s::Expr, Θ::Match) -> Match
+    match(::Type{Commutative}, p::Expr, s::Expr, Θ::Match) -> Match
 
 Match a commutative function call to another commutative function call.
 Requires `p` and `s` to have head `:call`.
 """
-function match(::Type{Orderless}, p::Expr, s::Expr, Θ)
+function match(::Type{Commutative}, p::Expr, s::Expr, Θ)
     @assert p.head === s.head === :call
 
     matches = map(perms(s)) do fn  # FIXME: efficiency
-        P = isvalid(Flat(s.args[1])) ? Flat : Standard
+        P = isvalid(Associative(s.args[1])) ? Associative : Standard
         match(P, p, fn, Θ)
     end
     reduce(union, matches)

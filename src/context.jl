@@ -1,6 +1,10 @@
-using SpecialSets
+import Base: isvalid
 
 export with_context, set_context!, Context, CONTEXT
+export isvalid
+
+
+abstract type Property end
 
 
 struct Context

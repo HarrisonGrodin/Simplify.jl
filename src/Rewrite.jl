@@ -3,7 +3,6 @@ module Rewrite
 
 # Base types
 include("types.jl")
-include("property.jl")
 
 # Rule and context logic
 include("rule.jl")

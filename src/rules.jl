@@ -116,7 +116,7 @@ end
 
 function rules(::Val{:BOOLEAN}; and=&, or=|, neg=!)
     @vars x y z
-    _bool(xs...) = σ -> all(x -> image(σ[x]) ⊆ TypeSet(Bool), xs)
+    _bool(xs...) = σ -> all(x -> isvalid(Image(σ[x], TypeSet(Bool))), xs)
 
     [
         @term RULES [

@@ -1,5 +1,4 @@
 using Rewrite: PatternRule, EvalRule, OrderRule
-using Rewrite: StandardImages
 using Rewrite: diff
 using SpecialSets
 
@@ -38,7 +37,7 @@ using SpecialSets
             ]
             @test normalize(@term(a * (b * c)), associative_rs) == @term(a * b * c)
             @test_skip normalize(@term(((a + b) + c) * (d * e)), associative_rs) == @term((a + b + c) * d * e)
-            with_context(Context(props=[Associative(f)])) do
+            with_context(Context(Associative(f))) do
                 @test normalize(@term(a * (b * c))  , associative_rs) == @term(a * (b * c))
                 @test normalize(@term(f(f(a, b), c)), associative_rs) == @term(f(a, b, c))
                 @test_skip normalize(@term(f(f(1, f(2, 3), 4), f(5, f(6, 7)))), associative_rs) ==
@@ -56,7 +55,7 @@ using SpecialSets
         @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(*))) == @term(6 + 20)
         @test normalize(@term(2 * 3 + 4 * 5), TRS(EvalRule(+), EvalRule(*))) == @term(26)
 
-        with_context(Context(props=[Associative(f)])) do
+        with_context(Context(Associative(f))) do
             rule = EvalRule(f, +)
             @test normalize(@term(f(a, 1, 2, b, 3, c)), rule) == @term(f(a, 3, b, 3, c))
             @test normalize(@term(f(1, 2, 3, 4, 5)), rule) == @term(15)
@@ -64,7 +63,7 @@ using SpecialSets
             @test normalize(@term(f(1, 2, x, y, 3, 4, 5)), rule) == @term(f(3, x, y, 12))
         end
 
-        with_context(Context(props=[Associative(f), Commutative(f)])) do
+        with_context(Context(Associative(f), Commutative(f))) do
             rule = EvalRule(f, +)
             @test normalize(@term(f(a, 1, 2, b, 3, c)), rule) == @term(f(a, b, c, 6))
             @test normalize(@term(f(1, 2, 3, 4, 5)), rule) == @term(15)
@@ -73,7 +72,7 @@ using SpecialSets
         end
     end
     @testset "OrderRule" begin
-        with_context(Context(props=[Commutative(f)])) do
+        with_context(Context(Commutative(f))) do
             rule = OrderRule(x -> sprint(show, x))
             @test normalize(@term(f(a, b)), rule) == @term(f(a, b))
             @test normalize(@term(f(b, a)), rule) == @term(f(a, b))
@@ -118,94 +117,107 @@ end
 @testset "normalize" begin
 
     @testset "BASIC" begin
-        a = Symbolic(:a, TypeSet(Number))
-        b = Symbolic(:b, TypeSet(Number))
+        @syms a b
 
-        @test normalize(@term(37)) == @term(37)
-        @test normalize(@term(a)) == @term(a)
-        @test normalize(@term(a + 0)) == @term(a)
-        @test normalize(@term(b + 0 + 0)) == @term(b)
-        @test normalize(@term(0 + 0 + b)) == @term(b)
-        @test normalize(@term(b * (1 + 2 - 3))) == @term(0)
-        @test normalize(@term(0 + b + 0)) == @term(b)
-        @test normalize(@term(a * (2 * b))) == @term(a * 2 * b)
-        @test normalize(@term(a * (b * c))) == @term(a * b * c)
-        @test normalize(@term((a * b) * c)) == @term(a * b * c)
-        @test_broken normalize(@term(a * ((b * c) * d))) == @term(a * b * c * d)
-        @test_broken normalize(@term(a * ((b * c) * d) * e)) == @term(a * b * c * d * e)
-        @test normalize(@term(a + ((2 + b) + 3))) == @term(a + b + 5)
-        @test normalize(@term(a + 2)) == normalize(@term(2 + a))
+        with_context([CONTEXT; Image.([a, b], Ref(TypeSet(Number)))]) do
+            @test normalize(@term(37)) == @term(37)
+            @test normalize(@term(a)) == @term(a)
+            @test normalize(@term(a + 0)) == @term(a)
+            @test normalize(@term(b + 0 + 0)) == @term(b)
+            @test normalize(@term(0 + 0 + b)) == @term(b)
+            @test normalize(@term(b * (1 + 2 - 3))) == @term(0)
+            @test normalize(@term(0 + b + 0)) == @term(b)
+            @test normalize(@term(a * (2 * b))) == @term(a * 2 * b)
+            @test normalize(@term(a * (b * c))) == @term(a * b * c)
+            @test normalize(@term((a * b) * c)) == @term(a * b * c)
+            @test_broken normalize(@term(a * ((b * c) * d))) == @term(a * b * c * d)
+            @test_broken normalize(@term(a * ((b * c) * d) * e)) == @term(a * b * c * d * e)
+            @test normalize(@term(a + ((2 + b) + 3))) == @term(a + b + 5)
+            @test normalize(@term(a + 2)) == normalize(@term(2 + a))
+        end
     end
 
     @testset "ABSOLUTE_VALUE" begin
-        a = Symbolic(:a)
-        b = Symbolic(:b, Nonzero)
+        @syms a b
 
-        @test normalize(@term(abs(a))) == @term(abs(a))
-        @test normalize(@term(abs(-a))) == @term(abs(a))
-        @test normalize(@term(abs(0))) == @term(0)
-        @test normalize(@term(abs(-3))) == @term(3)
-        @test normalize(@term(abs(3))) == @term(3)
-        @test normalize(@term(abs(2a))) == @term(2abs(a))
-        @test normalize(@term(abs(-(5a)))) == @term(5abs(a))
-        @test normalize(@term(abs(a * b))) == @term(abs(a) * abs(b))
-        @test normalize(@term(abs(a / b))) == @term(abs(a) * inv(abs(b)))
-        @test normalize(@term(abs(a / 1))) == @term(abs(a))
-        @test normalize(@term(abs(abs(a)))) == @term(abs(a))
-        @test normalize(@term(abs(a^2))) == @term(a^2)
+        with_context([CONTEXT; Image(a, TypeSet(Int)); Image(b, Nonzero)]) do
+            @test normalize(@term(abs(a))) == @term(abs(a))
+            @test normalize(@term(abs(-a))) == @term(abs(a))
+            @test normalize(@term(abs(0))) == @term(0)
+            @test normalize(@term(abs(-3))) == @term(3)
+            @test normalize(@term(abs(3))) == @term(3)
+            @test normalize(@term(abs(2a))) == @term(2abs(a))
+            @test normalize(@term(abs(-(5a)))) == @term(5abs(a))
+            @test normalize(@term(abs(a * b))) == @term(abs(a) * abs(b))
+            @test normalize(@term(abs(a / b))) == @term(abs(a) * inv(abs(b)))
+            @test normalize(@term(abs(a / 1))) == @term(abs(a))
+            @test normalize(@term(abs(abs(a)))) == @term(abs(a))
+            @test normalize(@term(abs(a^2))) == @term(a^2)
+        end
 
-        d1 = Symbolic(:d1, Set([1, 2]))
-        d2 = Symbolic(:d2, Set([-1, 1]))
-        @test normalize(@term(abs(d1))) == @term(d1)
-        @test normalize(@term(abs(d2))) == @term(abs(d2))
+        @syms d1 d2
+        with_context([CONTEXT; Image(d1, Set([1, 2])); Image(d2, Set([-1, 1]))]) do
+            @test normalize(@term(abs(d1))) == @term(d1)
+            @test normalize(@term(abs(d2))) == @term(abs(d2))
+        end
     end
 
     @testset "BOOLEAN" begin
-        x = Symbolic(:x, TypeSet(Bool))
-        y = Symbolic(:y, TypeSet(Bool))
+        @syms x y
 
-        @test normalize(@term(x & true)) == @term(x)
-        @test normalize(@term(x | (x & y))) == @term(x)
-        @test normalize(@term(y | !y)) == @term(true)
-        @test normalize(@term(!y | y)) == @term(true)
-        @test normalize(@term(y & y)) == @term(y)
-        @test normalize(@term(!(!x))) == @term(x)
-        @test normalize(@term(!(!x & !x))) == @term(x)
-        @test normalize(@term(!(!x & !x) & !x)) == @term(false)
-        @test normalize(@term(!(!x & !x) | x)) == @term(x)
-        @test normalize(@term(!x & x | (y & (y | true)))) == @term(y)
+        with_context([CONTEXT; Image.([x, y], Ref(TypeSet(Bool)))]) do
+            @test normalize(@term(x & true)) == @term(x)
+            @test normalize(@term(x | (x & y))) == @term(x)
+            @test normalize(@term(y | !y)) == @term(true)
+            @test normalize(@term(!y | y)) == @term(true)
+            @test normalize(@term(y & y)) == @term(y)
+            @test normalize(@term(!(!x))) == @term(x)
+            @test normalize(@term(!(!x & !x))) == @term(x)
+            @test normalize(@term(!(!x & !x) & !x)) == @term(false)
+            @test normalize(@term(!(!x & !x) | x)) == @term(x)
+            @test normalize(@term(!x & x | (y & (y | true)))) == @term(y)
+        end
     end
 
     @testset "CALCULUS" begin
-        x = Symbolic(:x, TypeSet(Int))
-        y = Symbolic(:y, TypeSet(Int))
-        z = Symbolic(:z, TypeSet(Int))
+        @syms x y z
 
-        @test normalize(@term diff(2, x)) == @term(0)
-        @test normalize(@term diff(x * y, x)) == @term(x*diff(y, x) + y)
-        @test normalize(@term diff(sin(2x + 3y), x)) == @term(cos(2x + 3y) * (3diff(y, x) + 2))
-        @test normalize(@term diff(x * y + sin(x^z), x)) ==
-              normalize(@term(y + x*diff(y, x) + cos(x^z)*(z*x^(z-1) + (x^z * log(x) * diff(z, x)))))
-        @test normalize(@term diff(2x + tan(x), x)) == @term(tan(x)^2 + 3)
-        @test normalize(@term diff(f(x) + 3x, x)) == @term(diff(f(x), x) + 3)
+        ctx = [
+            Image.([x, y, z], Ref(TypeSet(Int)))
+            Signature(f, [TypeSet(Number)], TypeSet(Number))
+        ]
 
-        w = Symbolic(:w, Nonzero ∩ TypeSet(Float64))
-        @test normalize(@term diff(log(w), w)) == @term(inv(w))
+        with_context([CONTEXT; ctx]) do
+            @test normalize(@term diff(2, x)) == @term(0)
+            @test normalize(@term diff(x * y, x)) == @term(x*diff(y, x) + y)
+            @test normalize(@term diff(sin(2x + 3y), x)) == @term(cos(2x + 3y) * (3diff(y, x) + 2))
+            @test normalize(@term diff(x * y + sin(x^z), x)) ==
+                  normalize(@term(y + x*diff(y, x) + cos(x^z)*(z*x^(z-1) + (x^z * log(x) * diff(z, x)))))
+            @test normalize(@term diff(2x + tan(x), x)) == @term(tan(x)^2 + 3)
+            @test normalize(@term diff(f(x) + 3x, x)) == @term(diff(f(x), x) + 3)
+        end
+
+        @syms w
+        with_context([CONTEXT; Image(w, Nonzero ∩ TypeSet(Float64))]) do
+            @test normalize(@term diff(log(w), w)) == @term(inv(w))
+        end
     end
 
     @testset "LOGARITHM" begin
-        @syms b x y
-        n = Symbolic(:n, GreaterThan(3))
+        @syms b x y n
 
         ctx = Context(
-            props = [
-                Associative(+), Commutative(+),
-                Associative(*), Commutative(*),
-            ],
-            images = Rewrite.CONTEXT.images,
+            Associative(+),
+            Commutative(+),
+            Associative(*),
+            Commutative(*),
+            Image(b, TypeSet(Real)),
+            Image(x, TypeSet(Real)),
+            Image(y, TypeSet(Real)),
+            Image(n, GreaterThan(3)),
         )
 
-        with_context(ctx) do
+        with_context([CONTEXT; ctx]) do
             @test normalize(@term(log(b, x * y))) == @term(log(b, x) + log(b, y))
             @test normalize(@term(log(n, 1))) == @term(0)
             @test normalize(@term(log(n, n ^ x))) == @term(x)
@@ -229,7 +241,7 @@ end
         @test normalize(@term((tan(α) - tan(β)) * inv(1 + tan(α) * tan(β)))) == @term(tan(-β + α))
         @test normalize(@term(csc(π/2 - θ))) == @term(sec(θ))
 
-        with_context(Context(images=StandardImages(a => TypeSet(Int)))) do
+        with_context(Context(Image(a, TypeSet(Int)))) do
             @test_broken normalize(@term sin(a)^2 + cos(a)^2 + 1) == 2
         end
     end

@@ -55,13 +55,10 @@ _quote(x) = x
 Base.replace(t::Term, σ) = haskey(σ, get(t)) ? Term(σ[get(t)]) : map(x -> replace(x, σ), t)
 
 
-mutable struct Symbolic
+struct Symbolic
     name::Symbol
-    image::AbstractSet
 end
-Symbolic(name) = Symbolic(name, TypeSet(Any))
 (x::Symbolic)(xs...) = Expr(:call, x, xs...)
-Base.convert(::Type{Symbolic}, x::Symbol) = Symbolic(x)
 Base.show(io::IO, x::Symbolic) = print(io, x.name)
 macro syms(xs::Symbol...)
     syms = (:($x = $(Symbolic(x))) for x ∈ xs)

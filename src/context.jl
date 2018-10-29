@@ -1,30 +1,16 @@
 using SpecialSets
 
-export with_context, set_context!, Context
-
-
-"""
-    image(x, t::T) -> AbstractSet
-
-Given image generator `t`, return the image of `x`.
-"""
-function image end
-image(x) = image(x, CONTEXT)
-
-abstract type AbstractImages end
-struct EmptyImages <: AbstractImages end
-image(::Expr     , ::AbstractImages) = TypeSet(Any)
-image(x::Symbolic, ::AbstractImages) = x.image
-image(::Variable , ::AbstractImages) = TypeSet(Any)
-image(x          , ::AbstractImages) = Set([x])
+export with_context, set_context!, Context, CONTEXT
 
 
 struct Context
     props::Vector{Property}
-    images::AbstractImages
-    Context(; props=[], images=EmptyImages()) = new(props, images)
 end
-
+Context(props::Property...) = Context(collect(props))
+Base.vcat(ctx::Context, xs...) = Context(vcat(_props(ctx), _props.(xs)...))
+Base.vcat(ctx::Context, ctxs::Context...) = Context(vcat(_props(ctx), _props.(ctxs)...))
+_props(ctx::Context) = ctx.props
+_props(p) = p
 Base.broadcastable(ctx::Context) = Ref(ctx)
 set_context!(context::Context) = (global CONTEXT = context)
 function with_context(f, context::Context)
@@ -37,8 +23,6 @@ function with_context(f, context::Context)
         CONTEXT = old
     end
 end
-
-image(x, ctx::Context) = image(x, ctx.images)
 
 
 """

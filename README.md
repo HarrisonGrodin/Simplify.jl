@@ -29,7 +29,7 @@ julia> normalize(@term(y^(6 - 3log(x, x^2))))
 @term((^)(y, (+)((-)((*)(6, (log)(x, x))), 6)))
 ```
 
-In many cases, it is useful to specify entirely custom rules by passing a Term Rewriting System as the second argument to `normalize`. This may be done either by manually constructing a `TRS` object or by using the `RULES` strategy for `@term`.
+In many cases, it is useful to specify entirely custom rules by passing a Term Rewriting System as the second argument to `normalize`. This may be done either by manually constructing a `Rules` object or by using the `RULES` strategy for `@term`.
 ```julia
 julia> @syms f g h;
        @vars x;
@@ -40,7 +40,7 @@ julia> normalize(@term(f(x, f(y, y))), @term RULES [
       ])
 @term(x)
 
-julia> normalize(@term(f(g(f(1), h()))), TRS(
+julia> normalize(@term(f(g(f(1), h()))), Rules(
           @term(f(x)) => @term(x),
           @term(h())  => @term(3),
       ))
@@ -48,7 +48,7 @@ julia> normalize(@term(f(g(f(1), h()))), TRS(
 
 julia> using Rewrite: EvalRule
 
-julia> normalize(@term(f(g(f(1), h()))), TRS(
+julia> normalize(@term(f(g(f(1), h()))), Rules(
           @term(f(x)) => @term(x),
           @term(h())  => @term(3),
           EvalRule(g, (a, b) -> 2a + b)
@@ -154,15 +154,16 @@ match(b, x - 1) => match
 An expression can be **normalized** to a normal form given a set of rewrite rules.
 
 #### Example
+Let `rs` contain two rules:
 ```
-Let TRS contain two rules:
   rule 1: sin(a)^2 + cos(a)^2 => one(a)
   rule 2: log(a, b) * log(b, c) => log(a, c)
-
-normalize(log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z), TRS)
-  => log(2, (sin(x)^2 + cos(x)^2) + y) * log(y + 1, z)        + is associative
-  => log(2, 1 + y) * log(y + 1, z)                            rule 1
-  => log(2, y + 1) * log(y + 1, z)                            + is commutative
-  => log(2, z)                                                rule 2
 ```
-In this example, `log(2, z)` is the normal form of `log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z)` given the rule set `TRS`.
+```
+normalize(log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z), rs)
+  => log(2, (sin(x)^2 + cos(x)^2) + y) * log(y + 1, z)     #  + is associative
+  => log(2, 1 + y) * log(y + 1, z)                         #  rule 1
+  => log(2, y + 1) * log(y + 1, z)                         #  + is commutative
+  => log(2, z)                                             #  rule 2
+```
+In this example, `log(2, z)` is the normal form of `log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z)` given the rule set `rs`.

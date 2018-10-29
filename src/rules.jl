@@ -37,9 +37,9 @@ macro term(::Val{:RULES}, ex)
         p, a, b = pair.args
         @assert p == :(=>)
 
-        esc(:($(PatternRule{Term})(@term($a), @term($b), $ps)))
+        esc(:($PatternRule(@term($a), @term($b), $ps)))
     end
-    :(TermRewritingSystem([$(args...)]))
+    :(Rules($Rule[$(args...)]))
 end
 
 
@@ -86,7 +86,7 @@ function rules(::Val{:BASIC})
             x ^ 1      => x
             x ^ 1.0    => x
         ]
-        TRS(
+        Rules(
             OrderRule(x -> sprint(show, x)),
             EvalRule(+),
             EvalRule(-),
@@ -107,7 +107,7 @@ function rules(::Val{:ABSOLUTE_VALUE})
             abs(x * y)  => abs(x) * abs(y)
             abs(inv(x)) => inv(abs(x))
         ]
-        TRS(
+        Rules(
             EvalRule(abs),
         )
     ]
@@ -143,7 +143,7 @@ function rules(::Val{:BOOLEAN}; and=&, or=|, neg=!)
 
             (neg(neg(x)) => x)  where {_bool(x)}
         ];
-        TRS(
+        Rules(
             EvalRule(and, &),
             EvalRule(or,  |),
             EvalRule(neg, !),
@@ -181,7 +181,7 @@ function rules(::Val{:CALCULUS})
 
     @vars x
 
-    TRS(
+    Rules(
         rules...,
         @term(diff(x, x)) => @term(one(x)),
         DiffRule(),
@@ -336,7 +336,7 @@ function rules(::Val{:TYPES})
 
     [
         rs...
-        TRS(
+        Rules(
             EvalRule(zero),
             EvalRule(one),
         )

@@ -22,7 +22,10 @@ struct Image{T} <: Property
     ex::T
     S::AbstractSet
 end
-isvalid(i::Image, ctx::Context) = i.ex ∈ i.S || invoke(isvalid, Tuple{Property,Context}, i, ctx)
+isvalid(i::Image{<:Union{Symbolic,Variable,Expr}}, ctx::Context) =
+    invoke(isvalid, Tuple{Property,Context}, i, ctx)
+isvalid(i::Image, ctx::Context) =
+    i.ex ∈ i.S || invoke(isvalid, Tuple{Property,Context}, i, ctx)
 implies(i::Image, i′::Image, ::Context) = i.ex == i′.ex && i.S ⊆ i′.S
 
 """

@@ -22,13 +22,16 @@ using SpecialSets
                 @term(one(x)),
                 [σ -> isvalid(Image(σ[x], Nonzero))]
             ))
-            odd = Symbol(:odd, Odd)
-            @test normalize(@term(3 / 3)        , trs) == @term(one(3))
-            @test normalize(@term(2 / 3)        , trs) == @term(2 / 3)
-            @test normalize(@term(x / x)        , trs) == @term(x / x)
-            @test normalize(@term((2^x) / (2^x)), trs) == @term(one(2^x))
-            @test normalize(@term(odd / odd)    , trs) == @term(one(odd))
-            @test_skip normalize(@term((odd + 2) / (odd + 2)), trs) == @term(one(odd + 2))
+            odd = Symbolic(:odd)
+
+            with_context([CONTEXT; Image(x, TypeSet(Number)); Image(odd, Odd)]) do
+                @test normalize(@term(3 / 3)        , trs) == @term(one(3))
+                @test normalize(@term(2 / 3)        , trs) == @term(2 / 3)
+                @test normalize(@term(x / x)        , trs) == @term(x / x)
+                @test normalize(@term((2^x) / (2^x)), trs) == @term(one(2^x))
+                @test normalize(@term(odd / odd)    , trs) == @term(one(odd))
+                @test_skip normalize(@term((odd + 2) / (odd + 2)), trs) == @term(one(odd + 2))
+            end
 
             @vars h
             associative_rs = @term RULES [

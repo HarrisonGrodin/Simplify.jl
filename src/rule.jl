@@ -39,17 +39,6 @@ normalize(t::Term, sets::Symbol...) = normalize(t, vcat(rules.(sets)...))
 normalize(t::Term) = normalize(t, rules())
 
 
-
-struct DivergentError <: Exception
-    forms::Vector{Term}
-end
-DivergentError(forms::Term...) = DivergentError(collect(forms))
-function Base.showerror(io::IO, err::DivergentError)
-    print(io, "DivergentError: ")
-    join(io, err.forms, ", ")
-end
-
-
 struct PatternRule <: Rule
     left::Term
     right::Term

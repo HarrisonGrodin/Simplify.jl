@@ -118,18 +118,18 @@ match(f(a, a), f(cos(y), 15)) => no match
 ```
 
 #### Properties
-Many functions have implicit properties which affect the ways in which they should be matched. Orderless (commutative) functions are matched without respect to argument order, while flat (associative) functions are matched such that a variable in the pattern can match multiple arguments in the subject. Many functions have one or both of these properties. For example, `+` is by default orderless and flat, and `*` is by default flat. Properties are configurable and may be derived from the rewrite domain.
+Many functions have implicit properties which affect the ways in which they should be matched. Commutative functions are matched without respect to argument order, while associative functions are matched such that a variable in the pattern can match multiple arguments in the subject. Many functions have one or both of these properties. For example, `+` is by default commutative and associative, and `*` is by default associative. Properties are configurable and may be derived from the rewrite domain.
 
 ##### Examples
 ```
-Orderless and flat:
+Commutative and associative:
 match(f(a) + g(b) + c, x ^ 4 + g(tan(y)) + 3 + log(√(x)) + f(y)) => match
   a => y
   b => tan(y)
   c => x ^ 4 + 3 + log(√(x))
 ```
 ```
-Flat only:
+Associative only:
 match(a * f(b), x * y^z * f(w)) => match
   a => x * y^z
   b => w
@@ -160,9 +160,9 @@ Let TRS contain two rules:
   rule 2: log(a, b) * log(b, c) => log(a, c)
 
 normalize(log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z), TRS)
-  => log(2, (sin(x)^2 + cos(x)^2) + y) * log(y + 1, z)        + is flat
+  => log(2, (sin(x)^2 + cos(x)^2) + y) * log(y + 1, z)        + is associative
   => log(2, 1 + y) * log(y + 1, z)                            rule 1
-  => log(2, y + 1) * log(y + 1, z)                            + is orderless
+  => log(2, y + 1) * log(y + 1, z)                            + is commutative
   => log(2, z)                                                rule 2
 ```
 In this example, `log(2, z)` is the normal form of `log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z)` given the rule set `TRS`.

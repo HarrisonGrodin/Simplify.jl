@@ -62,8 +62,8 @@ function rules(::Val{:BASIC})
 
     [
         @term RULES [
-            (f(f(x, y), z) => f(x, y, z)) where {σ -> isvalid(Flat(σ[f]))}
-            (f(x, f(y, z)) => f(x, y, z)) where {σ -> isvalid(Flat(σ[f]))}
+            (f(f(x, y), z) => f(x, y, z)) where {σ -> isvalid(Associative(σ[f]))}
+            (f(x, f(y, z)) => f(x, y, z)) where {σ -> isvalid(Associative(σ[f]))}
 
             x - y  => x + -y
             (x / y  => x * inv(y)) where {_image(y, Nonzero)}
@@ -116,7 +116,7 @@ end
 
 function rules(::Val{:BOOLEAN}; and=&, or=|, neg=!)
     @vars x y z
-    _bool(xs...) = σ -> all(x -> image(σ[x]) ⊆ TypeSet(Bool), xs)
+    _bool(xs...) = σ -> all(x -> isvalid(Image(σ[x], TypeSet(Bool))), xs)
 
     [
         @term RULES [

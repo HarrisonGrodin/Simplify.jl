@@ -1,30 +1,20 @@
-using SpecialSets
+import Base: isvalid
 
-export with_context, set_context!, Context
+export with_context, set_context!, Context, CONTEXT
+export isvalid
 
 
-"""
-    image(x, t::T) -> AbstractSet
-
-Given image generator `t`, return the image of `x`.
-"""
-function image end
-image(x) = image(x, CONTEXT)
-
-abstract type AbstractImages end
-struct EmptyImages <: AbstractImages end
-image(::Expr     , ::AbstractImages) = TypeSet(Any)
-image(x::Symbolic, ::AbstractImages) = x.image
-image(::Variable , ::AbstractImages) = TypeSet(Any)
-image(x          , ::AbstractImages) = Set([x])
+abstract type Property end
 
 
 struct Context
     props::Vector{Property}
-    images::AbstractImages
-    Context(; props=[], images=EmptyImages()) = new(props, images)
 end
-
+Context(props::Property...) = Context(collect(props))
+Base.vcat(ctx::Context, xs...) = Context(vcat(_props(ctx), _props.(xs)...))
+Base.vcat(ctx::Context, ctxs::Context...) = Context(vcat(_props(ctx), _props.(ctxs)...))
+_props(ctx::Context) = ctx.props
+_props(p) = p
 Base.broadcastable(ctx::Context) = Ref(ctx)
 set_context!(context::Context) = (global CONTEXT = context)
 function with_context(f, context::Context)
@@ -38,8 +28,27 @@ function with_context(f, context::Context)
     end
 end
 
-image(x, ctx::Context) = image(x, ctx.images)
 
-isvalid(::Standard) = true
-isvalid(prop::P) where {P<:Union{Flat, Orderless}} = prop ∈ CONTEXT.props
-isvalid(i::Image) = image(i.ex) ⊆ i.set
+"""
+    isvalid(p::Property, ctx::Context) -> Bool
+
+Returns the value corresponding to whether or not the given property object `p` is valid,
+given context `ctx`.
+"""
+isvalid(q::Property, ctx::Context) = any(p -> implies(p, q, ctx), ctx.props)
+isvalid(prop::Property) = isvalid(prop, CONTEXT)
+isvalid(ctx::Context) = Base.Fix2(isvalid, ctx)
+
+
+"""
+    implies(p::Property, q::Property, , ctx::Context) -> Bool
+
+Determine whether property `p` implies property `q` given context `ctx`.
+
+!!! note
+    Since `p` implies `q`, it is implied that `q` is more basic of a property than `p`.
+"""
+implies(p::Property, q::Property, ctx::Context)
+
+implies(::Property, ::Property, ::Context) = false
+implies(p::P, q::P, ::Context) where {P<:Property} = p == q

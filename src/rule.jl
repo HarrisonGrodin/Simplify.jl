@@ -1,38 +1,35 @@
 using DiffRules
 
-export TermRewritingSystem, TRS
+export Rules
 export normalize
 
 
-abstract type Rule{T} end
+abstract type Rule end
 
 
-struct AbstractRewritingSystem{T}
-    rules::Vector{Rule{T}}
+struct Rules
+    rules::Vector{Rule}
+    Rules(rs::Vector{Rule}) = new(rs)
 end
-AbstractRewritingSystem{T}(rs::Union{Rule,Pair}...) where {T} =
-    AbstractRewritingSystem{T}(collect(rs))
-Base.:(==)(a::AbstractRewritingSystem, b::AbstractRewritingSystem) = a.rules == b.rules
-Base.iterate(ars::AbstractRewritingSystem) = iterate(ars.rules)
-Base.iterate(ars::AbstractRewritingSystem, state) = iterate(ars.rules, state)
-Base.length(ars::AbstractRewritingSystem) = length(ars.rules)
-Base.getindex(ars::AbstractRewritingSystem, ind) = getindex(ars.rules, ind)
-Base.push!(ars::AbstractRewritingSystem, rule) = (push!(ars.rules, rule); ars)
-Base.pushfirst!(ars::AbstractRewritingSystem, rule) = (push!(ars.rules, rule); ars)
-Base.pop!(ars::AbstractRewritingSystem) = pop!(ars.rules)
-Base.popfirst!(ars::AbstractRewritingSystem) = popfirst!(ars.rules)
-Base.deleteat!(ars::AbstractRewritingSystem, ind) = (deleteat!(ars.rules, ind); ars)
-Base.vcat(arss::AbstractRewritingSystem{T}...) where {T} = AbstractRewritingSystem([(ars.rules for ars ∈ arss)...;])
-
-const TermRewritingSystem = AbstractRewritingSystem{Term}
-const TRS = TermRewritingSystem
+Rules(rs...) = Rules(collect(Rule, rs))
+Base.:(==)(a::Rules, b::Rules) = a.rules == b.rules
+Base.iterate(rs::Rules) = iterate(rs.rules)
+Base.iterate(rs::Rules, state) = iterate(rs.rules, state)
+Base.length(rs::Rules) = length(rs.rules)
+Base.getindex(rs::Rules, ind) = getindex(rs.rules, ind)
+Base.push!(rs::Rules, rule) = (push!(rs.rules, rule); rs)
+Base.pushfirst!(rs::Rules, rule) = (push!(rs.rules, rule); rs)
+Base.pop!(rs::Rules) = pop!(rs.rules)
+Base.popfirst!(rs::Rules) = popfirst!(rs.rules)
+Base.deleteat!(rs::Rules, ind) = (deleteat!(rs.rules, ind); rs)
+Base.vcat(rss::Rules...) = Rules([(rs.rules for rs ∈ rss)...;])
 
 
-normalize(ars::AbstractRewritingSystem) = Base.Fix2(normalize, ars)
-function normalize(t::Term, trs::TermRewritingSystem)
+normalize(rs::Rules) = Base.Fix2(normalize, rs)
+function normalize(t::Term, rs::Rules)
     while true
-        t = map(normalize(trs), t)  # FIXME: replace with `subexpressions`
-        t′ = foldl(normalize, trs; init=t)
+        t = map(normalize(rs), t)  # FIXME: replace with `subexpressions`
+        t′ = foldl(normalize, rs; init=t)
         t == t′ && return t
         t = t′
     end
@@ -42,34 +39,20 @@ normalize(t::Term, sets::Symbol...) = normalize(t, vcat(rules.(sets)...))
 normalize(t::Term) = normalize(t, rules())
 
 
-
-struct DivergentError <: Exception
-    forms::Vector{Term}
-end
-DivergentError(forms::Term...) = DivergentError(collect(forms))
-function Base.showerror(io::IO, err::DivergentError)
-    print(io, "DivergentError: ")
-    join(io, err.forms, ", ")
-end
-
-
-struct PatternRule{T} <: Rule{T}
-    left::T
-    right::T
+struct PatternRule <: Rule
+    left::Term
+    right::Term
     ps::Vector{Function}
 end
-PatternRule{T}(l, r) where {T} = PatternRule{T}(l, r, [])
-PatternRule{T}((l, r)::Pair{<:T,<:T}) where {T} = PatternRule{T}(l, r)
-PatternRule(l::L, r::R) where {L,R} = PatternRule{promote_type(L,R)}(l, r)
+PatternRule(l, r) = PatternRule(l, r, [])
 PatternRule((l, r)::Pair) = PatternRule(l, r)
-Base.convert(::Type{PR}, p::Pair) where {PR<:PatternRule} = PR(p)
-Base.convert(::Type{Rule{T}}, p::Pair) where {T} = convert(PatternRule{T}, p)
+Base.convert(::Type{PatternRule}, p::Pair) = PatternRule(p)
 Base.convert(::Type{Rule}, p::Pair) = convert(PatternRule, p)
 Base.convert(::Type{Pair}, r::PatternRule) = r.left => r.right
 Base.:(==)(a::PatternRule, b::PatternRule) = (a.left, a.right) == (b.left, b.right)
-Base.hash(p::PatternRule{T}, h::UInt) where {T} = hash((p.left, p.right), hash(PatternRule{T}, h))
-Base.map(f, r::PatternRule{T}) where {T} = PatternRule{T}(f(r.left), f(r.right))
-function normalize(t::T, r::PatternRule{U}) where {U,T<:U}
+Base.hash(p::PatternRule, h::UInt) = hash((p.left, p.right), hash(PatternRule, h))
+Base.map(f, r::PatternRule) = PatternRule(f(r.left), f(r.right), r.ps)
+function normalize(t::Term, r::PatternRule)
     Θ = match(r.left, t) |> collect
     isempty(Θ) && return t
 
@@ -82,7 +65,7 @@ end
 _preds_match(ps, σ) = all(p -> p(σ), ps)
 _preds_match(ps) = Base.Fix1(_preds_match, ps)
 
-struct EvalRule <: Rule{Term}
+struct EvalRule <: Rule
     name
     f
 end
@@ -132,7 +115,7 @@ function _apply_associative!(r::EvalRule, args)
 end
 
 
-struct OrderRule <: Rule{Term}
+struct OrderRule <: Rule
     by::Function
 end
 normalize(t::Term, r::OrderRule) = Term(normalize(get(t), r))
@@ -147,7 +130,7 @@ end
 normalize(x, ::OrderRule) = x
 
 
-struct DiffRule <: Rule{Term} end
+struct DiffRule <: Rule end
 normalize(t::Term, r::DiffRule) = Term(normalize(get(t), r))
 function normalize(ex::Expr, r::DiffRule)
     fn = ex.args[1]

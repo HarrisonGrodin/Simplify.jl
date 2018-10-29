@@ -1,5 +1,16 @@
-export Image, Associative, Commutative
+export Arity, Image
+export Associative, Commutative
 
+
+"""
+    Arity <: Property
+
+Representation of function `f` having the arity `n`, `Arity(f, n)`.
+"""
+struct Arity <: Property
+    f
+    n::Int
+end
 
 """
     Image <: Property

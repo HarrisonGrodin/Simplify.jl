@@ -32,7 +32,7 @@ julia> normalize(@term(y^(6 - 3log(x, x^2))))
 In many cases, it is useful to specify entirely custom rules by passing a Term Rewriting System as the second argument to `normalize`. This may be done either by manually constructing a `Rules` object or by using the `RULES` strategy for `@term`.
 ```julia
 julia> @syms f g h;
-       @vars x;
+       @vars x y;
 
 julia> normalize(@term(f(x, f(y, y))), @term RULES [
           f(x, x) => 1
@@ -61,24 +61,32 @@ Variables may contain information about their domain, which may result in more s
 ```julia
 julia> using SpecialSets
 
-julia> x = Symbolic(:x);
-       y = Symbolic(:y, GreaterThan(3));
-       z = Symbolic(:z, Even ∩ LessThan(0));
+julia> @syms x y z;
 
-julia> normalize(@term(abs(x)))
+julia> ctx = [Rewrite.CONTEXT; Image(y, GreaterThan(3)); Image(z, Even ∩ LessThan(0))];
+
+julia> with_context(ctx) do
+           normalize(@term(abs(x)))
+       end
 @term((abs)(x))
 
-julia> normalize(@term(abs(y)))
+julia> with_context(ctx) do
+           normalize(@term(abs(y)))
+       end
 @term(y)
 
-julia> normalize(@term(abs(z)))
+julia> with_context(ctx) do
+           normalize(@term(abs(z)))
+       end
 @term((-)(z))
 ```
 
 ```julia
-julia> x, y = Symbolic.([:x, :y], Ref(TypeSet(Int)));
+julia> ctx = [Rewrite.CONTEXT; Image(x, TypeSet(Int)); Image(y, TypeSet(Int))];
 
-julia> normalize(@term(diff(sin(2x) - log(x + y), x)))
+julia> with_context(ctx) do
+           normalize(@term(diff(sin(2x) - log(x + y), x)))
+       end
 @term((+)((*)((cos)((*)(2, x)), 2), (-)((*)((inv)((+)(x, y)), (+)((diff)(y, x), 1)))))
 ```
 

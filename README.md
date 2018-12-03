@@ -32,7 +32,7 @@ julia> normalize(@term(y^(6 - 3log(x, x^2))))
 In many cases, it is useful to specify entirely custom rules by passing a Term Rewriting System as the second argument to `normalize`. This may be done either by manually constructing a `Rules` object or by using the `RULES` strategy for `@term`.
 ```julia
 julia> @syms f g h;
-       @vars x;
+       @vars x y;
 
 julia> normalize(@term(f(x, f(y, y))), @term RULES [
           f(x, x) => 1

@@ -18,10 +18,10 @@ struct Term
 end
 (f::Term)(xs...) = convert(Term, Expr(:call, f, xs...))
 Base.convert(::Type{Term}, ex::Term) = ex
-Base.convert(::Type{Term}, ex) = Term(traverse(ex))
-traverse(t::Term) = get(t)
-traverse(ex::Expr) = Expr(ex.head, traverse.(ex.args)...)
-traverse(x) = x
+Base.convert(::Type{Term}, ex) = Term(traverse!(ex))
+traverse!(t::Term) = get(t)
+traverse!(ex::Expr) = (@. ex.args = traverse!(ex.args); ex)
+traverse!(x) = x
 
 Base.:(==)(a::Term, b::Term) = a.ex == b.ex
 Base.hash(t::Term, h::UInt) = hash(t.ex, hash(Term, h))

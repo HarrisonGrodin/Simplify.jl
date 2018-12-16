@@ -2,6 +2,7 @@ export Term,     @term
 export Symbolic, @syms
 export Variable, @vars
 
+using MacroTools
 
 macro term(ex)
     :(convert(Term, $(esc(_term(ex)))))
@@ -44,7 +45,8 @@ _map(f, x) = x
 
 Base.issubset(a::Term, b::Term) = !isempty(match(b, a))
 function Base.show(io::IO, t::Term)
-    ex = Expr(:macrocall, Symbol("@term"), nothing, _quote(get(t)))
+    ex1 = Expr(:macrocall, Symbol("@term"), nothing, _quote(get(t)))
+    ex = MacroTools.postwalk(x -> x isa Function ? nameof(x) : x, ex1)
     repr = sprint(show, ex)[9:end-1]
     print(io, "@term(", repr, ")")
 end

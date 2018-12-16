@@ -1,4 +1,4 @@
-using DiffRules
+using DiffRules, Memoize
 
 export Rules
 export normalize
@@ -26,7 +26,7 @@ Base.vcat(rss::Rules...) = Rules([(rs.rules for rs ∈ rss)...;])
 
 
 normalize(rs::Rules) = Base.Fix2(normalize, rs)
-function normalize(t::Term, rs::Rules)
+@memoize function normalize(t::Term, rs::Rules)
     while true
         t = map(normalize(rs), t)  # FIXME: replace with `subexpressions`
         t′ = foldl(normalize, rs; init=t)

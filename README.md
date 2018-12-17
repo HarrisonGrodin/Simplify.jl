@@ -37,13 +37,13 @@ julia> @syms f g h;
 julia> normalize(@term(f(x, f(y, y))), @term RULES [
           f(x, x) => 1
           f(x, 1) => x
-      ])
+       ])
 @term(x)
 
 julia> normalize(@term(f(g(f(1), h()))), Rules(
           @term(f(x)) => @term(x),
           @term(h())  => @term(3),
-      ))
+       ))
 @term(g(1, 3))
 
 julia> using Rewrite: EvalRule
@@ -52,7 +52,7 @@ julia> normalize(@term(f(g(f(1), h()))), Rules(
           @term(f(x)) => @term(x),
           @term(h())  => @term(3),
           EvalRule(g, (a, b) -> 2a + b)
-      ))
+       ))
 @term(5)
 ```
 

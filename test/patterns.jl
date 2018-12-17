@@ -209,11 +209,25 @@ using SpecialSets
 
     end
 
-    @testset "miscellaneous" begin
-        let x = 1
+    @testset "show" begin
+        let
+            x = 1
             @test sprint(show, @term([x, :x])) == "@term([1, :x])"
         end
+        let
+            @syms x
+            @test sprint(show, @term(2x + 3)) == "@term(2x + 3)"
+        end
+        @test sprint(show, @term(Base.Broadcast.materialize(1, 2))) ==
+            "@term(Broadcast.materialize(1, 2))"
+        let
+            @syms a
+            @vars x
+            @test sprint(show, @term(2^3a+5x)) == "@term($(:(2^3a+5x)))"
+        end
+    end
 
+    @testset "miscellaneous" begin
         @test match(@term([x, y, z]), @term([a, b, c])) == Match(Dict(
             x => a, y => b, z => c,
         ))

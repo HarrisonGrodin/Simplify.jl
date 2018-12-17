@@ -58,7 +58,6 @@ version = "0.4.4"
 deps = ["Base64"]
 uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
-
 [[Memoize]]
 deps = ["Test"]
 git-tree-sha1 = "d9683969337ad20dc957122038bd2c0ead4b5209"
@@ -78,7 +77,6 @@ git-tree-sha1 = "1a1eae52956658a6acae6fa1b6d6c3d488192895"
 uuid = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
 version = "0.5.1"
 
-
 [[Printf]]
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
@@ -86,7 +84,6 @@ uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 [[REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets"]
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
->>>>>>> master
 
 [[Random]]
 deps = ["Serialization"]

@@ -2,12 +2,14 @@ export Term,     @term
 export Symbolic, @syms
 export Variable, @vars
 
+using MacroTools
 
 macro term(ex)
     :(convert(Term, $(esc(_term(ex)))))
 end
 function _term(ex::Expr)
     ex.head === :$ && return ex.args[1]
+    ex.head === :. && return ex
     Expr(:call, Expr, Meta.quot(ex.head), _term.(ex.args)...)
 end
 _term(x) = x
@@ -43,15 +45,6 @@ _map(f, ex::Expr) = Expr(ex.head, map(f ∘ Term, ex.args)...)
 _map(f, x) = x
 
 Base.issubset(a::Term, b::Term) = !isempty(match(b, a))
-function Base.show(io::IO, t::Term)
-    ex = Expr(:macrocall, Symbol("@term"), nothing, _quote(get(t)))
-    repr = sprint(show, ex)[9:end-1]
-    print(io, "@term(", repr, ")")
-end
-_quote(x::Symbol) = Meta.quot(x)
-_quote(ex::Expr) = Expr(ex.head, _quote.(ex.args)...)
-_quote(x) = x
-
 Base.replace(t::Term, σ) = haskey(σ, get(t)) ? Term(σ[get(t)]) : map(x -> replace(x, σ), t)
 
 
@@ -75,4 +68,27 @@ macro vars(xs::Symbol...)
     vars = (:($x = $(Variable(x))) for x ∈ xs)
     results = Expr(:tuple, xs...)
     esc(Expr(:block, vars..., results))
+end
+
+
+function _show_term(f::Function)
+    # Inspired by: `show(::IO, ::Function)`
+    ft = typeof(f)
+    mt = ft.name.mt
+    if isdefined(mt, :module) && isdefined(mt.module, mt.name) && getfield(mt.module, mt.name) === f
+        Base.is_exported_from_stdlib(mt.name, mt.module) && return mt.name
+        return :($(nameof(mt.module)).$(mt.name))
+    else
+        return f
+    end
+end
+_show_term(x::Symbolic) = x.name
+_show_term(x::Variable) = x.name
+_show_term(x::Symbol) = Meta.quot(x)
+_show_term(x) = x
+function Base.show(io::IO, t::Term)
+    ex = MacroTools.postwalk(_show_term, get(t))
+    macro_call = Expr(:macrocall, Symbol("@term"), nothing, ex)
+    repr = sprint(show, macro_call)[9:end-1]
+    print(io, "@term(", repr, ")")
 end

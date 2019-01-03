@@ -45,19 +45,19 @@ Match term `t` to `pattern`, producing a `Match` if the process succeeds.
 ```jldoctest
 julia> @vars x;
 
-julia> @syms a b;
+julia> @syms a b f;
 
 julia> match(@term(x), @term(f(a)))
-Match(Set(Dict{Variable,Any}[Dict(x=>:((f)(a)))]))
+Rewrite.Match with 1 entry:
+  x => :((f)(a))
 
 julia> match(@term(f(x)), @term(a))
-Match(Set(Dict{Variable,Any}[]))
 
 julia> match(@term(f(x, x)), @term(f(a, b)))
-Match(Set(Dict{Variable,Any}[]))
 
 julia> match(@term(f(x, x)), @term(f(a, a)))
-Match(Set(Dict{Variable,Any}[Dict(x=>a)]))
+Rewrite.Match with 1 entry:
+  x => a
 ```
 """
 match(pattern::Term, subject::Term) = match(Term, get(pattern), get(subject))

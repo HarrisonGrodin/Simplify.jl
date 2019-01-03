@@ -53,17 +53,12 @@ Base.:(==)(a::PatternRule, b::PatternRule) = (a.left, a.right) == (b.left, b.rig
 Base.hash(p::PatternRule, h::UInt) = hash((p.left, p.right), hash(PatternRule, h))
 Base.map(f, r::PatternRule) = PatternRule(f(r.left), f(r.right), r.ps)
 function normalize(t::Term, r::PatternRule)
-    Θ = match(r.left, t) |> collect
-    isempty(Θ) && return t
+    σ = match(r.left, t)
+    σ === nothing && return t
+    all(p -> p(σ), r.ps) || return t
 
-    σᵢ = findfirst(_preds_match(r.ps), Θ)
-    σᵢ === nothing && return t
-    σ = Θ[σᵢ]
-
-    replace(r.right, σ)
+    return replace(r.right, σ)
 end
-_preds_match(ps, σ) = all(p -> p(σ), ps)
-_preds_match(ps) = Base.Fix1(_preds_match, ps)
 
 struct EvalRule <: Rule
     name
@@ -75,7 +70,7 @@ function normalize(ex::Expr, r::EvalRule)
     ex.head === :call || return ex
     f, args = ex.args[1], ex.args[2:end]
 
-    match(Term(r.name), Term(f)) == zero(Match) && return ex
+    match(Term(r.name), Term(f)) === nothing && return ex
 
     if isvalid(Associative(f))
         if isvalid(Commutative(f))

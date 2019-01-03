@@ -44,9 +44,6 @@ Base.map(f, t::Term) = convert(Term, _map(f, get(t)))
 _map(f, ex::Expr) = Expr(ex.head, map(f ∘ Term, ex.args)...)
 _map(f, x) = x
 
-Base.issubset(a::Term, b::Term) = !isempty(match(b, a))
-Base.replace(t::Term, σ) = haskey(σ, get(t)) ? Term(σ[get(t)]) : map(x -> replace(x, σ), t)
-
 
 struct Symbolic
     name::Symbol

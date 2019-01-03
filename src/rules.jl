@@ -169,7 +169,8 @@ function _diff(M, fn, arity)
     @term(diff(f, x)) => Term(rhs)
 end
 function rules(::Val{:CALCULUS})
-    rules = []
+    rules = Rules()
+
     for (M, fn, arity) ∈ DiffRules.diffrules()
         try
             rule = _diff(M, fn, arity)
@@ -181,11 +182,10 @@ function rules(::Val{:CALCULUS})
 
     @vars x
 
-    Rules(
-        rules...,
-        @term(diff(x, x)) => @term(one(x)),
-        DiffRule(),
-    )
+    push!(rules, @term(diff(x, x)) => @term(one(x)))
+    push!(rules, DiffRule())
+
+    rules
 end
 
 

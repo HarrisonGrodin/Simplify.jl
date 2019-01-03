@@ -28,11 +28,10 @@ using SpecialSets
         @test x ≠ y
 
         @test match(@term(x), @term(y)) == Match(x => y)
-        @test @term(y) ⊆ @term(x)
 
-        @test replace(@term(x), Dict(x => y)) == @term(y)
-        @test replace(@term(x), Dict(y => x)) == @term(x)
-        @test replace(@term(x), Dict(y => z)) == @term(x)
+        @test replace(@term(x), Match(x => y)) == @term(y)
+        @test replace(@term(x), Match(y => x)) == @term(x)
+        @test replace(@term(x), Match(y => z)) == @term(x)
     end
 
     @testset "Constant" begin
@@ -44,17 +43,15 @@ using SpecialSets
 
         @test _1 == @term 1
 
-        @test match(_1, _1) == one(Match)
-        @test _1 ⊆ _1
-        @test match(_2, _1) == zero(Match)
-        @test _1 ⊈ _2
+        @test match(_1, _1) == Match()
+        @test match(_2, _1) == nothing
 
-        @test match(@term(:x), @term(:x)) == one(Match)
-        @test match(@term(:x), @term(:y)) == zero(Match)
+        @test match(@term(:x), @term(:x)) == Match()
+        @test match(@term(:x), @term(:y)) == nothing
 
         @test match(@term(f(x, 0)), @term(f(y, 0))) == Match(x => y)
 
-        @test replace(_1, Dict(x => y)) == _1
+        @test replace(_1, Match(x => y)) == _1
     end
 
     @testset "Function" begin
@@ -64,147 +61,20 @@ using SpecialSets
             @test @term(f(x)) == @term(f(x))
             @test @term(f(x)) ≠ @term(f(y))
 
-            @test match(@term(f()), @term(f())) == one(Match)
+            @test match(@term(f()), @term(f())) == Match()
             @test match(@term(f(x)), @term(f(y))) == Match(x => y)
-            @test @term(f(y)) ⊆ @term(f(x))
-            @test match(@term(f(x)), @term(g(x))) == zero(Match)
-            @test match(@term(f(f(), x)), @term(f(g(), y))) == zero(Match)
-            @test match(@term(f(x, x)), @term(f(y, z))) == zero(Match)
-            @test match(@term(f(x)), @term(g(x, y))) == zero(Match)
-            @test match(@term(x - x), @term(-y)) == zero(Match)
-            @test @term(g(x, y)) ⊈ @term(f(x))
-            @test @term(f(:a, 2, :a)) ⊆ @term(f(x, 2, x))
-            @test @term(f(:a, 2, :b)) ⊈ @term(f(x, 2, x))
+            @test match(@term(f(x)), @term(g(x))) == nothing
+            @test match(@term(f(f(), x)), @term(f(g(), y))) == nothing
+            @test match(@term(f(x, x)), @term(f(y, z))) == nothing
+            @test match(@term(f(x)), @term(g(x, y))) == nothing
+            @test match(@term(x - x), @term(-y)) == nothing
 
             @test match(@term(x(y)), @term(sin(3))) == Match(Dict(x => sin, y => 3))
             @test match(@term(map(x, [])), @term(map(iseven, []))) == Match(x => iseven)
-            @test match(@term(map(x, [])), @term(map(iseven, [1]))) == zero(Match)
+            @test match(@term(map(x, [])), @term(map(iseven, [1]))) == nothing
 
-            @test replace(@term(f(x)), Dict(x => y)) == @term(f(y))
-            @test replace(@term(f(x)), Dict(y => x)) == @term(f(x))
-        end
-
-        @testset "associative" begin
-
-            with_context(Context(Associative(f))) do
-                @test match(@term(f(1, 2, f(3, 4))), @term(f(1, 2, 3, 4))) == zero(Match)
-
-                @test match(@term(f(g(x), g(y), z)), @term(f(g(a), g(b), g(c), g(d), g(e)))) ==
-                    Match(Dict(x => a, y => b, z => f(g(c), g(d), g(e))))
-
-                @test match(@term(f(x, y)), @term(f(1, b))) ==
-                    Match(Dict(x => 1, y => b))
-            end
-
-            with_context(Context(Associative(*))) do
-                @test match(@term(x), @term(a * b)) ==
-                    Match(x => get(@term a * b))
-
-                @test match(@term(x * y), @term(a * b))::Match ==
-                    Match(Dict(x => a, y => b))
-
-                @test match(@term(x * y), @term(a * b * c)) == Match(
-                    Dict(x => get(@term a * b), y => c),
-                    Dict(x => a, y => get(@term b * c)),
-                )
-
-                @test match(@term(x * "_" * y), @term(a * b * "_" * c)) ==
-                    Match(Dict(x => get(@term a * b), y => c))
-
-                with_context(Context(Associative(*))) do
-                    @test match(@term(a * b), @term(a * b)) == one(Match)
-                    @test match(@term(a * b), @term(b * a)) == zero(Match)
-                end
-
-                @test replace(@term(a * b * (c * b)), Dict(b => d)) == @term(a * d * (c * d))
-                @test_broken replace(@term(a * b * c), Dict(get(@term(b * c)) => 2)) == @term(a * 2)
-            end
-
-        end
-
-        @testset "commutative" begin
-
-            @testset "standard" begin
-
-                with_context(Context(Commutative(f))) do
-                    @test match(@term(f(x, 1)), @term(f(1, y))) == Match(x => y)
-
-                    @test match(@term(f(g(x), g(y), z)), @term(f(h(a), g(b), g(c))))::Match == Match(
-                        Dict(x => b, y => c, z => h(a)),
-                        Dict(x => c, y => b, z => h(a)),
-                    )
-
-                    @test replace(@term(f(x, y)), Dict(x => 1)) == @term(f(1, y))
-                    @test replace(@term(f(f(x, y), z)), Dict(f(x, y) => 2)) == @term(f(2, z))
-                end
-
-            end
-
-            @testset "partial" begin
-                @test_broken match(@term(f() * g()), @term(g() * f())) ==
-                    one(Match)
-
-                @test_broken match(@term(x * y), @term(1 * b)) == Match(
-                    Dict(x => 1, y => b),
-                    Dict(x => b, y => 1),
-                )
-
-                @test_broken normalize(@term(3 * (x * 2) * y)) == @term(2 * 3 * x * y)
-            end
-
-            @testset "associative" begin
-
-                with_context(Context(Associative(f), Commutative(f))) do
-                    @test replace(@term(f(x, y, z)), Dict(y => get(@term(x^3)))) == @term(f(x, x^3, z))
-                    @test_skip replace(@term(f(x, y, z)), Dict(f(x, z) => 1)) == @term(f(1, y))
-                end
-
-                with_context(Context(Associative(+), Commutative(+), Associative(*), Commutative(*))) do
-                    @test normalize(@term((x+y+b*a))) == normalize(@term((a*b+x+y)))
-                end
-
-                @test match(@term(x), @term(a + b)) ==
-                    Match(x => get(@term(a + b)))
-
-                @test match(@term(x + y), @term(a() + b()))::Match == Match(
-                    Dict(x => a(), y => b()),
-                    Dict(x => b(), y => a()),
-                )
-
-                @test match(@term(x + y), @term(1 + b)) == Match(
-                    Dict(x => 1, y => b),
-                    Dict(x => b, y => 1),
-                )
-
-                @test match(@term(x + y), @term(a + b)) == Match(
-                    Dict(x => a, y => b),
-                    Dict(x => b, y => a),
-                )
-
-                @test length(match(@term(x + y), @term(a + b + c))) == 12
-                @test match(@term(a + b + c), @term(x + y)) == zero(Match)
-
-                @test match(@term(x + 0), @term(f() + 0 + g())) == Match(
-                    Dict(x => get(@term(f() + g()))),
-                    Dict(x => get(@term(g() + f()))),
-                )
-
-                @test match(@term(x + y + 1), @term(a + 1 + b)) == Match(
-                    Dict(x => a, y => b),
-                    Dict(x => b, y => a),
-                )
-
-                @test match(@term(f() + g()), @term(f() + g())) ==
-                    one(Match)
-
-                @test match(@term(g() + f()), @term(f() + g())) ==
-                    one(Match)
-
-                @test match(@term(f() + f()), @term(f() + g())) ==
-                    zero(Match)
-
-            end
-
+            @test replace(@term(f(x)), Match(x => y)) == @term(f(y))
+            @test replace(@term(f(x)), Match(y => x)) == @term(f(x))
         end
 
     end
@@ -234,7 +104,7 @@ using SpecialSets
         @test match(@term([x, y, z]), @term([2a, a-1, b])) == Match(Dict(
             x => get(@term 2a), y => get(@term a-1), z => b
         ))
-        @test match(@term([x, y, z]), @term([a, b])) == zero(Match)
+        @test match(@term([x, y, z]), @term([a, b])) == nothing
 
         @test match(@term(x ? y : z), @term(a ? b : c)) == Match(Dict(
             x => a, y => b, z => c,
@@ -242,7 +112,7 @@ using SpecialSets
         @test match(@term(x ? y : y), @term(a ? b : b)) == Match(Dict(
             x => a, y => b,
         ))
-        @test match(@term(x ? y : y), @term(a ? b : c)) == zero(Match)
+        @test match(@term(x ? y : y), @term(a ? b : c)) == nothing
     end
 
 end

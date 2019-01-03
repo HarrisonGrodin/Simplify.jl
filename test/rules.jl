@@ -24,7 +24,7 @@ using SpecialSets
             ))
             odd = Symbolic(:odd)
 
-            with_context([CONTEXT; Image(x, TypeSet(Number)); Image(odd, Odd)]) do
+            with_context([get_context(); Image(x, TypeSet(Number)); Image(odd, Odd)]) do
                 @test normalize(@term(3 / 3)        , trs) == @term(one(3))
                 @test normalize(@term(2 / 3)        , trs) == @term(2 / 3)
                 @test normalize(@term(x / x)        , trs) == @term(x / x)
@@ -122,7 +122,7 @@ end
     @testset "BASIC" begin
         @syms a b
 
-        with_context([CONTEXT; Image.([a, b], Ref(TypeSet(Number)))]) do
+        with_context([get_context(); Image.([a, b], Ref(TypeSet(Number)))]) do
             @test normalize(@term(37)) == @term(37)
             @test normalize(@term(a)) == @term(a)
             @test normalize(@term(a + 0)) == @term(a)
@@ -143,7 +143,7 @@ end
     @testset "ABSOLUTE_VALUE" begin
         @syms a b
 
-        with_context([CONTEXT; Image(a, TypeSet(Int)); Image(b, Nonzero)]) do
+        with_context([get_context(); Image(a, TypeSet(Int)); Image(b, Nonzero)]) do
             @test normalize(@term(abs(a))) == @term(abs(a))
             @test normalize(@term(abs(-a))) == @term(abs(a))
             @test normalize(@term(abs(0))) == @term(0)
@@ -159,7 +159,7 @@ end
         end
 
         @syms d1 d2
-        with_context([CONTEXT; Image(d1, Set([1, 2])); Image(d2, Set([-1, 1]))]) do
+        with_context([get_context(); Image(d1, Set([1, 2])); Image(d2, Set([-1, 1]))]) do
             @test normalize(@term(abs(d1))) == @term(d1)
             @test normalize(@term(abs(d2))) == @term(abs(d2))
         end
@@ -168,7 +168,7 @@ end
     @testset "BOOLEAN" begin
         @syms x y
 
-        with_context([CONTEXT; Image.([x, y], Ref(TypeSet(Bool)))]) do
+        with_context([get_context(); Image.([x, y], Ref(TypeSet(Bool)))]) do
             @test normalize(@term(x & true)) == @term(x)
             @test normalize(@term(x | (x & y))) == @term(x)
             @test normalize(@term(y | !y)) == @term(true)
@@ -190,7 +190,7 @@ end
             Signature(f, [TypeSet(Number)], TypeSet(Number))
         ]
 
-        with_context([CONTEXT; ctx]) do
+        with_context([get_context(); ctx]) do
             @test normalize(@term diff(2, x)) == @term(0)
             @test normalize(@term diff(x * y, x)) == @term(x*diff(y, x) + y)
             @test normalize(@term diff(sin(2x + 3y), x)) == @term(cos(2x + 3y) * (3diff(y, x) + 2))
@@ -201,7 +201,7 @@ end
         end
 
         @syms w
-        with_context([CONTEXT; Image(w, Nonzero ∩ TypeSet(Float64))]) do
+        with_context([get_context(); Image(w, Nonzero ∩ TypeSet(Float64))]) do
             @test normalize(@term diff(log(w), w)) == @term(inv(w))
         end
     end
@@ -220,7 +220,7 @@ end
             Image(n, GreaterThan(3)),
         )
 
-        with_context([CONTEXT; ctx]) do
+        with_context([get_context(); ctx]) do
             @test normalize(@term(log(b, x * y))) == @term(log(b, x) + log(b, y))
             @test normalize(@term(log(n, 1))) == @term(0)
             @test normalize(@term(log(n, n ^ x))) == @term(x)

@@ -1,6 +1,6 @@
 import Base: isvalid
 
-export with_context, set_context!, Context, CONTEXT
+export with_context, get_context, set_context!, Context
 export isvalid
 
 
@@ -15,16 +15,19 @@ Base.vcat(ctx::Context, xs...) = Context(vcat(_props(ctx), _props.(xs)...))
 Base.vcat(ctx::Context, ctxs::Context...) = Context(vcat(_props(ctx), _props.(ctxs)...))
 _props(ctx::Context) = ctx.props
 _props(p) = p
-Base.broadcastable(ctx::Context) = Ref(ctx)
-set_context!(context::Context) = (global CONTEXT = context)
+
+
+const CONTEXT = Ref(Context())
+
+get_context() = CONTEXT[]
+set_context!(context::Context) = (CONTEXT[] = context)
 function with_context(f, context::Context)
-    global CONTEXT
-    old = CONTEXT
-    CONTEXT = context
+    old = get_context()
+    set_context!(context)
     try
         f()
     finally
-        CONTEXT = old
+        set_context!(old)
     end
 end
 
@@ -36,7 +39,7 @@ Returns the value corresponding to whether or not the given property object `p` 
 given context `ctx`.
 """
 isvalid(q::Property, ctx::Context) = any(p -> implies(p, q, ctx), ctx.props)
-isvalid(prop::Property) = isvalid(prop, CONTEXT)
+isvalid(prop::Property) = isvalid(prop, get_context())
 isvalid(ctx::Context) = Base.Fix2(isvalid, ctx)
 
 

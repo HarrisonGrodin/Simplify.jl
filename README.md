@@ -62,7 +62,7 @@ julia> using SpecialSets
 
 julia> @syms x y z;
 
-julia> ctx = [Rewrite.CONTEXT; Image(y, GreaterThan(3)); Image(z, Even ∩ LessThan(0))];
+julia> ctx = [get_context(); Image(y, GreaterThan(3)); Image(z, Even ∩ LessThan(0))];
 
 julia> with_context(ctx) do
            normalize(@term(abs(x)))
@@ -81,7 +81,7 @@ julia> with_context(ctx) do
 ```
 
 ```julia
-julia> ctx = [Rewrite.CONTEXT; Image(x, TypeSet(Int)); Image(y, TypeSet(Int))];
+julia> ctx = [get_context(); Image(x, TypeSet(Int)); Image(y, TypeSet(Int))];
 
 julia> with_context(ctx) do
            normalize(@term(diff(sin(2x) - log(x + y), x)))

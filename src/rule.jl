@@ -12,16 +12,9 @@ struct Rules
     Rules(rs::Vector{Rule}) = new(rs)
 end
 Rules(rs...) = Rules(collect(Rule, rs))
-Base.:(==)(a::Rules, b::Rules) = a.rules == b.rules
 Base.iterate(rs::Rules) = iterate(rs.rules)
 Base.iterate(rs::Rules, state) = iterate(rs.rules, state)
-Base.length(rs::Rules) = length(rs.rules)
-Base.getindex(rs::Rules, ind) = getindex(rs.rules, ind)
 Base.push!(rs::Rules, rule) = (push!(rs.rules, rule); rs)
-Base.pushfirst!(rs::Rules, rule) = (push!(rs.rules, rule); rs)
-Base.pop!(rs::Rules) = pop!(rs.rules)
-Base.popfirst!(rs::Rules) = popfirst!(rs.rules)
-Base.deleteat!(rs::Rules, ind) = (deleteat!(rs.rules, ind); rs)
 Base.vcat(rss::Rules...) = Rules([(rs.rules for rs ∈ rss)...;])
 
 
@@ -35,7 +28,6 @@ function normalize(t::Term, rs::Rules)
     end
 end
 normalize(::T, ::R) where {T,R<:Rule} = error("normalize undefined for rule type $R on term type $T")
-normalize(t::Term, sets::Symbol...) = normalize(t, vcat(rules.(sets)...))
 normalize(t::Term) = normalize(t, rules())
 
 
@@ -48,10 +40,6 @@ PatternRule(l, r) = PatternRule(l, r, [])
 PatternRule((l, r)::Pair) = PatternRule(l, r)
 Base.convert(::Type{PatternRule}, p::Pair) = PatternRule(p)
 Base.convert(::Type{Rule}, p::Pair) = convert(PatternRule, p)
-Base.convert(::Type{Pair}, r::PatternRule) = r.left => r.right
-Base.:(==)(a::PatternRule, b::PatternRule) = (a.left, a.right) == (b.left, b.right)
-Base.hash(p::PatternRule, h::UInt) = hash((p.left, p.right), hash(PatternRule, h))
-Base.map(f, r::PatternRule) = PatternRule(f(r.left), f(r.right), r.ps)
 function normalize(t::Term, r::PatternRule)
     Θ = match(r.left, t) |> collect
     isempty(Θ) && return t

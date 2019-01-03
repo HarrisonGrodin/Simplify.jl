@@ -18,7 +18,6 @@ _term(x) = x
 struct Term
     ex
 end
-(f::Term)(xs...) = convert(Term, Expr(:call, f, xs...))
 Base.convert(::Type{Term}, ex::Term) = ex
 Base.convert(::Type{Term}, ex) = Term(traverse(ex))
 traverse(t::Term) = get(t)
@@ -26,19 +25,7 @@ traverse(ex::Expr) = Expr(ex.head, traverse.(ex.args)...)
 traverse(x) = x
 
 Base.:(==)(a::Term, b::Term) = a.ex == b.ex
-Base.hash(t::Term, h::UInt) = hash(t.ex, hash(Term, h))
-Base.eltype(::Term) = Term
 Base.get(t::Term) = t.ex
-Base.occursin(a::Term, b::Term) = a == b || any(x -> occursin(a, x), b)
-
-Base.iterate(t::Term) = _iterate(get(t))
-Base.iterate(t::Term, state) = _iterate(get(t), state)
-_iterate(ex::Expr) = (Term(first(ex.args)), 1)
-function _iterate(ex::Expr, state)
-    state > lastindex(ex.args) && return
-    (Term(ex.args[state]), state + 1)
-end
-_iterate(x, state = nothing) = nothing
 
 Base.map(f, t::Term) = convert(Term, _map(f, get(t)))
 _map(f, ex::Expr) = Expr(ex.head, map(f ∘ Term, ex.args)...)

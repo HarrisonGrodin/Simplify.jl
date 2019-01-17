@@ -170,10 +170,12 @@ end
 
         with_context([get_context(); Image.([x, y], Ref(TypeSet(Bool)))]) do
             @test normalize(@term(x & true)) == @term(x)
+            @test normalize(@term(x ⊻ false)) == @term(x)
             @test normalize(@term(x | (x & y))) == @term(x)
             @test normalize(@term(y | !y)) == @term(true)
             @test normalize(@term(!y | y)) == @term(true)
             @test normalize(@term(y & y)) == @term(y)
+            @test normalize(@term(y ⊻ y)) == @term(false)
             @test normalize(@term(!(!x))) == @term(x)
             @test normalize(@term(!(!x & !x))) == @term(x)
             @test normalize(@term(!(!x & !x) & !x)) == @term(false)

@@ -6,11 +6,13 @@ set_context!(Context([
         *,
         &,
         |,
+        ⊻,
     ]);
     Commutative.([
         +,
         &,
         |,
+        ⊻,
     ]);
     Closure(+, TypeSet(Number))
     Closure(+, TypeSet(Int))

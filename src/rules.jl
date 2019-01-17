@@ -114,7 +114,7 @@ function rules(::Val{:ABSOLUTE_VALUE})
 end
 
 
-function rules(::Val{:BOOLEAN}; and=&, or=|, neg=!)
+function rules(::Val{:BOOLEAN}; and=&, or=|, xor= ⊻, neg=!)
     @vars x y z
     _bool(xs...) = σ -> all(x -> isvalid(Image(σ[x], TypeSet(Bool))), xs)
 
@@ -126,24 +126,32 @@ function rules(::Val{:BOOLEAN}; and=&, or=|, neg=!)
             (or(x, or(y, z)) => or(x, y, z))  where {_bool(x, y, z)}
             (or(or(x, y), z) => or(x, y, z))  where {_bool(x, y, z)}
 
-            (or(x, false) => x)  where {_bool(x)}
-            (and(x, true) => x)  where {_bool(x)}
+            (xor(x, xor(y, z)) => xor(x, y, z))  where {_bool(x, y, z)}
+            (xor(xor(x, y), z) => xor(x, y, z))  where {_bool(x, y, z)}
 
-            (or(x, true)   => true )  where {_bool(x)}
-            (and(x, false) => false)  where {_bool(x)}
+            (xor(x, false) => x)  where {_bool(x)}            
+            (or(x, false)  => x)  where {_bool(x)}
+            (and(x, true)  => x)  where {_bool(x)}
 
-            (or(x, x)  => x)  where {_bool(x)}
-            (and(x, x) => x)  where {_bool(x)}
+            (xor(x, true)  => neg(x))  where {_bool(x)}            
+            (or(x, true)   => true )   where {_bool(x)}
+            (and(x, false) => false)   where {_bool(x)}
+            
+            (xor(x, x) => false)  where {_bool(x)}
+            (or(x, x)  => x)      where {_bool(x)}
+            (and(x, x) => x)      where {_bool(x)}
 
             (or(x, and(x, y)) => x)  where {_bool(x, y)}
             (and(x, or(x, y)) => x)  where {_bool(x, y)}
 
+            (xor(x, neg(x)) => true )  where {_bool(x)}
             (or(x, neg(x))  => true )  where {_bool(x)}
             (and(x, neg(x)) => false)  where {_bool(x)}
 
             (neg(neg(x)) => x)  where {_bool(x)}
         ];
         Rules(
+            EvalRule(xor, ⊻),
             EvalRule(and, &),
             EvalRule(or,  |),
             EvalRule(neg, !),

@@ -10,16 +10,6 @@
         @test normalize(@term(b + 1), Rule(@term(x + 0), @term(x))) == @term(b + 1)
         @test normalize(@term(b), Rule(@term(x + 0), @term(x))) == @term(b)
         @test normalize(@term(f(a, b)), Rules(@term(f(x, y)) => @term(g(x)))) == @term(g(a))
-
-        @testset "Predicates" begin
-            trs = Rules(Rule(
-                @term(x / x),
-                @term(one(x)),
-                [σ -> !iszero(σ[x])]
-            ))
-            @test normalize(@term(3 / 3), trs) == @term(one(3))
-            @test normalize(@term(2 / 3), trs) == @term(2 / 3)
-        end
     end
 end
 

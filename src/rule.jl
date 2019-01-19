@@ -34,16 +34,12 @@ normalize(t::Term) = normalize(t, rules())
 struct Rule <: AbstractRule
     left::Term
     right::Term
-    ps::Vector{Function}
 end
-Rule(l, r) = Rule(l, r, [])
-Rule((l, r)::Pair) = Rule(l, r)
-Base.convert(::Type{Rule}, p::Pair) = Rule(p)
+Base.convert(::Type{Rule}, (l,r)::Pair) = Rule(l, r)
 Base.convert(::Type{AbstractRule}, p::Pair) = convert(Rule, p)
 function normalize(t::Term, r::Rule)
     σ = match(r.left, t)
     σ === nothing && return t
-    all(p -> p(σ), r.ps) || return t
 
     return replace(r.right, σ)
 end

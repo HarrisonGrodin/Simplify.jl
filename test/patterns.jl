@@ -1,7 +1,3 @@
-using Rewrite: Symbolic, Match
-using SpecialSets
-
-
 @testset "Patterns" begin
 
     @syms f g h

@@ -102,7 +102,7 @@ end
                     vars = Rewrite.vars(l)
 
                     σ = Dict(var => case for var ∈ vars)
-                    Rewrite._preds_match(rule.ps, σ) || continue
+                    all(p -> p(σ), rule.ps) || continue
 
                     lres = replace(l, σ) |> get |> eval
                     rres = replace(r, σ) |> get |> eval

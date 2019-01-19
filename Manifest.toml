@@ -1,3 +1,5 @@
+# This file is machine-generated - editing it directly is not advised
+
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
@@ -99,14 +101,6 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 [[SparseArrays]]
 deps = ["LinearAlgebra", "Random"]
 uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
-
-[[SpecialSets]]
-deps = ["Combinatorics"]
-git-tree-sha1 = "71a10914b75f5d6c18c55958e88df349fad6d28a"
-repo-rev = "master"
-repo-url = "https://github.com/HarrisonGrodin/SpecialSets.jl"
-uuid = "c6b63f46-9023-11e8-3b28-1f7d8c94880d"
-version = "0.1.0"
 
 [[Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]

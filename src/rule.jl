@@ -21,7 +21,7 @@ Base.vcat(rss::Rules...) = Rules([(rs.rules for rs ∈ rss)...;])
 normalize(rs::Rules) = Base.Fix2(normalize, rs)
 function normalize(t::Term, rs::Rules)
     while true
-        t = map(normalize(rs), t)  # FIXME: replace with `subexpressions`
+        t = map(normalize(rs), t)
         t′ = foldl(normalize, rs; init=t)
         t == t′ && return t
         t = t′
@@ -111,15 +111,3 @@ function normalize(ex::Expr, r::OrderRule)
     Expr(ex.head, f, args...)
 end
 normalize(x, ::OrderRule) = x
-
-
-struct DiffRule <: Rule end
-normalize(t::Term, r::DiffRule) = Term(normalize(get(t), r))
-function normalize(ex::Expr, r::DiffRule)
-    fn = ex.args[1]
-    fn === diff && length(ex.args) == 3 || return ex
-    f, x = ex.args[[2, 3]]
-    is_ground(f) && return :($zero($f))
-    ex
-end
-normalize(x, ::DiffRule) = x

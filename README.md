@@ -174,3 +174,8 @@ normalize(log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z), rs)
   => log(2, z)                                             #  rule 2
 ```
 In this example, `log(2, z)` is the normal form of `log(2, sin(x)^2 + cos(x)^2 + y) * log(y + 1, z)` given the rule set `rs`.
+
+## Acknowledgements
+- [*Term Rewriting and All That*](https://www21.in.tum.de/~nipkow/TRaAT/)
+- [@MasonProtter](https://github.com/MasonProtter)
+- [@Yijia-Chen](https://github.com/Yijia-Chen)

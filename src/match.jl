@@ -1,7 +1,7 @@
 import Base: match
 using Combinatorics: combinations, permutations
 
-export match
+export match, Match
 
 
 struct Match <: AbstractDict{Variable,Any}

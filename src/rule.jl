@@ -4,14 +4,14 @@ export Rules
 export normalize
 
 
-abstract type Rule end
+abstract type AbstractRule end
 
 
 struct Rules
-    rules::Vector{Rule}
-    Rules(rs::Vector{Rule}) = new(rs)
+    rules::Vector{AbstractRule}
+    Rules(rs::Vector{AbstractRule}) = new(rs)
 end
-Rules(rs...) = Rules(collect(Rule, rs))
+Rules(rs...) = Rules(collect(AbstractRule, rs))
 Base.iterate(rs::Rules) = iterate(rs.rules)
 Base.iterate(rs::Rules, state) = iterate(rs.rules, state)
 Base.push!(rs::Rules, rule) = (push!(rs.rules, rule); rs)
@@ -27,11 +27,11 @@ function normalize(t::Term, rs::Rules)
         t = t′
     end
 end
-normalize(::T, ::R) where {T,R<:Rule} = error("normalize undefined for rule type $R on term type $T")
+normalize(::T, ::R) where {T,R<:AbstractRule} = error("normalize undefined for rule type $R on term type $T")
 normalize(t::Term) = normalize(t, rules())
 
 
-struct PatternRule <: Rule
+struct PatternRule <: AbstractRule
     left::Term
     right::Term
     ps::Vector{Function}
@@ -39,7 +39,7 @@ end
 PatternRule(l, r) = PatternRule(l, r, [])
 PatternRule((l, r)::Pair) = PatternRule(l, r)
 Base.convert(::Type{PatternRule}, p::Pair) = PatternRule(p)
-Base.convert(::Type{Rule}, p::Pair) = convert(PatternRule, p)
+Base.convert(::Type{AbstractRule}, p::Pair) = convert(PatternRule, p)
 function normalize(t::Term, r::PatternRule)
     σ = match(r.left, t)
     σ === nothing && return t
@@ -48,7 +48,7 @@ function normalize(t::Term, r::PatternRule)
     return replace(r.right, σ)
 end
 
-struct EvalRule <: Rule
+struct EvalRule <: AbstractRule
     name
     f
 end
@@ -98,7 +98,7 @@ function _apply_associative!(r::EvalRule, args)
 end
 
 
-struct OrderRule <: Rule
+struct OrderRule <: AbstractRule
     by::Function
 end
 normalize(t::Term, r::OrderRule) = Term(normalize(get(t), r))

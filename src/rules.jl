@@ -25,5 +25,5 @@ macro term(::Val{:RULES}, ex)
 
         esc(:($PatternRule(@term($a), @term($b), $ps)))
     end
-    :(Rules($Rule[$(args...)]))
+    :(Rules($AbstractRule[$(args...)]))
 end

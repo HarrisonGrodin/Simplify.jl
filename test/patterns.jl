@@ -1,4 +1,4 @@
-using Rewrite: Symbolic, Match
+using Simplify: Symbolic, Match
 using SpecialSets
 
 

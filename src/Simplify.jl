@@ -1,4 +1,4 @@
-module Rewrite
+module Simplify
 
 
 # Base types

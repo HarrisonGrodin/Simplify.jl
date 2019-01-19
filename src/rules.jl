@@ -23,7 +23,7 @@ macro term(::Val{:RULES}, ex)
         p, a, b = pair.args
         @assert p == :(=>)
 
-        esc(:($PatternRule(@term($a), @term($b), $ps)))
+        esc(:($Rule(@term($a), @term($b), $ps)))
     end
-    :(Rules($AbstractRule[$(args...)]))
+    :(Rules($Rule[$(args...)]))
 end

@@ -9,8 +9,7 @@ include("rule.jl")
 include("context.jl")
 include("rules.jl")
 
-# Matching and unification
-include("properties.jl")
+# Matching
 include("match.jl")
 
 # Utility functions

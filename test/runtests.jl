@@ -1,4 +1,4 @@
-using Rewrite
+using Simplify
 using Test
 
 include("patterns.jl")

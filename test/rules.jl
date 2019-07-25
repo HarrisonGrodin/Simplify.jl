@@ -1,5 +1,5 @@
-using Rewrite: PatternRule, EvalRule, OrderRule
-using Rewrite: diff
+using Simplify: PatternRule, EvalRule, OrderRule
+using Simplify: diff
 using SpecialSets
 
 
@@ -99,10 +99,10 @@ end
 
             @testset "$rule" begin
                 for case ∈ CASES
-                    vars = Rewrite.vars(l)
+                    vars = Simplify.vars(l)
 
                     σ = Dict(var => case for var ∈ vars)
-                    Rewrite._preds_match(rule.ps, σ) || continue
+                    Simplify._preds_match(rule.ps, σ) || continue
 
                     lres = replace(l, σ) |> get |> eval
                     rres = replace(r, σ) |> get |> eval

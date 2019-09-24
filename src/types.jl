@@ -5,7 +5,7 @@ export Variable, @vars
 using MacroTools
 
 macro term(ex)
-    :(convert(Term, $(esc(_term(ex)))))
+     :(convert(Term, $(esc(_term(ex)))))
 end
 function _term(ex::Expr)
     ex.head === :$ && return ex.args[1]
@@ -69,6 +69,8 @@ function _show_term(f::Function)
         return f
     end
 end
+
+_show_term(::Irrational{sym}) where sym = sym
 _show_term(x::Symbolic) = x.name
 _show_term(x::Variable) = x.name
 _show_term(x::Symbol) = Meta.quot(x)

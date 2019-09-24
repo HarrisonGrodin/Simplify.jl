@@ -1,5 +1,5 @@
 is_constant(t::Term) = is_constant(get(t))
-is_constant(x) = typeof(x) ∉ [Expr, Symbolic, Variable]
+is_constant(x) = !any(T->typeof(x) <: T, [Expr, Symbolic, Variable, Irrational])
 
 is_ground(t::Term) = is_ground(get(t))
 is_ground(ex::Expr) = all(is_ground, ex.args)

@@ -50,9 +50,9 @@ rules() = [
     rules(:BASIC)
     rules(:ABSOLUTE_VALUE)
     rules(:BOOLEAN)
-    rules(:EXP)
     rules(:CALCULUS)
     rules(:LOGARITHM)
+    rules(:EXP)
     rules(:TRIGONOMETRY)
     rules(:TYPES)
 ]

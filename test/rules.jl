@@ -1,3 +1,5 @@
+using Test
+using Simplify
 using Simplify: PatternRule, EvalRule, OrderRule
 using Simplify: diff
 using SpecialSets
@@ -251,6 +253,21 @@ end
         end
     end
 
+    @testset "EXP" begin
+        @vars α β n
+        @test normalize(@term(exp(2π * im))) == @term(1)
+        @test normalize(@term(exp(π * im))) == @term(-1)
+        @test normalize(@term(exp(π * im * inv(2)))) == @term(im)
+
+        # actually broken: the order of imaginary and real is not correct
+        @test normalize(@term(exp(π * im * inv(3)))) == @term(√3 * inv(2) * im + inv(2))
+        @test normalize(@term(exp(π * im * inv(4)))) == @term(√2 * inv(2) + √2 * inv(2) * im)
+        @test normalize(@term(exp(π * im * inv(6)))) == @term(inv(2) * im + √3 * inv(2))
+
+        @test normalize(@term(exp(α) * exp(β))) == @term(exp(α + β))
+        @test normalize(@term(exp(α)^n)) == @term(exp(α * n))
+        @test normalize(@term(exp(π * im))) == @term(-1)
+    end
 
     @testset "custom" begin
         @syms a

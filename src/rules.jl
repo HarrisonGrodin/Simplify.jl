@@ -52,6 +52,7 @@ rules() = [
     rules(:BOOLEAN)
     rules(:CALCULUS)
     rules(:LOGARITHM)
+    rules(:EXP)
     rules(:TRIGONOMETRY)
     rules(:TYPES)
 ]
@@ -216,6 +217,21 @@ function rules(::Val{:LOGARITHM})
         log(b, inv(x)) => -log(b, x)
 
         log(a, b) * log(b, c) => log(a, c)
+    ]
+end
+
+function rules(::Val{:EXP})
+    @vars α β n
+    @term RULES [
+        exp(*(2, π, im)) => 1
+        exp(π * im) => -1
+        exp(π * im * inv(2)) => im
+        exp(π * im * inv(3)) => 1 / 2 + √3 / 2 * im
+        exp(π * im * inv(4)) => √2 / 2 + √2 / 2 * im
+        exp(π * im * inv(6)) => √3 / 2 + 1 / 2 * im
+
+        exp(α) * exp(β) => exp(α + β)
+        exp(α)^n => exp(α * n)
     ]
 end
 

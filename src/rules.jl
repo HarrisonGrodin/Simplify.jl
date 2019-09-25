@@ -223,7 +223,7 @@ end
 function rules(::Val{:EXP})
     @vars α β n
     @term RULES [
-        exp(2π * im) => 1
+        exp(*(2, π, im)) => 1
         exp(π * im) => -1
         exp(π * im * inv(2)) => im
         exp(π * im * inv(3)) => 1 / 2 + √3 / 2 * im
